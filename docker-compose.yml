@@ -11,6 +11,7 @@ services:
         environment:
             XDEBUG_MODE: debug
             XDEBUG_CONFIG: "client_host=host.docker.internal"
+            PHP_IDE_CONFIG: "serverName=localhost"
         networks:
             - network
         healthcheck:
