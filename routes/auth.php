@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\v1\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Api\v1\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Api\v1\Auth\NewPasswordController;
+use App\Http\Controllers\Api\v1\Auth\OtpController;
 use App\Http\Controllers\Api\v1\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Api\v1\Auth\RegisteredUserController;
 use App\Http\Controllers\Api\v1\Auth\VerifyEmailController;
@@ -14,8 +15,9 @@ Route::post('/register', [RegisteredUserController::class, 'store'])
 
 Route::post('/invite-register', [RegisteredUserController::class, 'invitation']);
 
-Route::prefix('otp')->group(function () {
-    Route::post('/verify', [RegisteredUserController::class, 'verifyOtp']);
+Route::prefix('otp')->controller(OtpController::class)->group(function () {
+    Route::post('verify', 'verify');
+    Route::post('resend', 'resend');
 });
 
 
