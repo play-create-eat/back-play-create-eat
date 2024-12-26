@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Enums\Invitation\Status;
+use App\Enums\InvitationStatusEnum;
 use Illuminate\Database\Eloquent\Model;
 
 class Invitation extends Model
@@ -16,7 +16,7 @@ class Invitation extends Model
     ];
 
     protected $casts = [
-        'status' => Status::class,
+        'status' => InvitationStatusEnum::class,
         'expired_at' => 'datetime'
     ];
 }

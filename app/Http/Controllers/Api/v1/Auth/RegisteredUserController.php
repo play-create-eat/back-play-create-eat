@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1\Auth;
+namespace App\Http\Controllers\Api\v1\Auth;
 
+use App\Enums\GenderEnum;
 use App\Enums\IdTypeEnum;
 use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
@@ -23,27 +24,27 @@ class RegisteredUserController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'first_name' => ['required', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'first_name'   => ['required', 'string', 'max:255'],
+            'last_name'    => ['required', 'string', 'max:255'],
+            'email'        => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'phone_number' => ['required', 'string', 'max:255'],
-            'id_type' => ['required', new Rules\Enum(IdTypeEnum::class)],
-            'id_number' => ['required', 'string', 'max:255'],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' =>  ['required', new Rules\Enum(RoleEnum::class)],
+            'id_type'      => ['required', new Rules\Enum(IdTypeEnum::class)],
+            'id_number'    => ['required', 'string', 'max:255'],
+            'password'     => ['required', 'confirmed', Rules\Password::defaults()],
+            'role'         => ['required', new Rules\Enum(RoleEnum::class)],
         ]);
 
         $user = User::create([
-            'email' => $request->email,
+            'email'    => $request->email,
             'password' => Hash::make($request->string('password')),
         ]);
 
         $user->profile()->create([
-            'first_name' => $request->first_name,
-            'last_name' => $request->last_name,
+            'first_name'   => $request->first_name,
+            'last_name'    => $request->last_name,
             'phone_number' => $request->phone_number,
-            'id_type' => $request->id_type,
-            'id_number' => $request->id_number,
+            'id_type'      => $request->id_type,
+            'id_number'    => $request->id_number,
         ]);
 
         $token = $user->createToken($request->userAgent())->plainTextToken;
@@ -51,14 +52,15 @@ class RegisteredUserController extends Controller
         return response()->json(['token' => $token], Response::HTTP_CREATED);
     }
 
-    public function invitation(Request $request) {
+    public function invitation(Request $request)
+    {
         $request->validate([
-            'code' => ['required', 'string', 'exists:invitations,code'],
+            'code'       => ['required', 'string', 'exists:invitations,code'],
             'first_name' => ['required', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
-            'id_type' => ['required', new Rules\Enum(IdTypeEnum::class)],
-            'id_number' => ['required', 'string', 'max:255'],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'last_name'  => ['required', 'string', 'max:255'],
+            'id_type'    => ['required', new Rules\Enum(IdTypeEnum::class)],
+            'id_number'  => ['required', 'string', 'max:255'],
+            'password'   => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
         $invitation = Invitation::where('code', $request->code)
@@ -66,14 +68,14 @@ class RegisteredUserController extends Controller
             ->firstOrFail();
 
         $user = User::create([
-            'email' => $invitation->email,
-            'password' => Hash::make($request->input('password')),
+            'email'     => $invitation->email,
+            'password'  => Hash::make($request->input('password')),
             'family_id' => $invitation->family_id,
         ]);
 
         $user->profile()->create([
             'first_name' => $request->name,
-            'last_name' => $request->surname,
+            'last_name'  => $request->surname,
         ]);
 
         $invitation->update(['expired_at' => now()]);

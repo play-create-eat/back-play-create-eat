@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\Invitation\Status;
+use App\Enums\InvitationStatusEnum;
 use App\Models\Family;
 use App\Models\User;
 use Illuminate\Database\Migrations\Migration;
@@ -23,8 +23,8 @@ return new class extends Migration
             $table->foreignIdFor(Family::class)
                 ->nullable();
             $table->foreignIdFor(User::class, 'creator_id');
-            $table->enum('status', Status::values())
-                ->default(Status::PENDING->value);
+            $table->enum('status', InvitationStatusEnum::values())
+                ->default(InvitationStatusEnum::PENDING->value);
             $table->timestamp('expired_at')
                 ->nullable();
             $table->timestamps();

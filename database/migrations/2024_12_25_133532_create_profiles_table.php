@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\GenderEnum;
 use App\Enums\IdTypeEnum;
 use App\Models\User;
 use Illuminate\Database\Migrations\Migration;
@@ -21,10 +22,12 @@ return new class extends Migration
             ->cascadeOnUpdate();
             $table->string('first_name');
             $table->string('last_name');
-            $table->string('id_number');
-            $table->enum('id_type', IdTypeEnum::values());
             $table->string('phone_number');
             $table->date('date_of_birth')->nullable();
+            $table->enum('gender', GenderEnum::values());
+            $table->string('id_number');
+            $table->enum('id_type', IdTypeEnum::values());
+
             $table->timestamps();
             $table->softDeletes();
         });

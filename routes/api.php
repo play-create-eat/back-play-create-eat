@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\V1\InvitationController;
+use App\Http\Controllers\Api\v1\InvitationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 

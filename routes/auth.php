@@ -1,11 +1,11 @@
 <?php
 
-use App\Http\Controllers\Api\V1\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\Api\V1\Auth\EmailVerificationNotificationController;
-use App\Http\Controllers\Api\V1\Auth\NewPasswordController;
-use App\Http\Controllers\Api\V1\Auth\PasswordResetLinkController;
-use App\Http\Controllers\Api\V1\Auth\RegisteredUserController;
-use App\Http\Controllers\Api\V1\Auth\VerifyEmailController;
+use App\Http\Controllers\Api\v1\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Api\v1\Auth\EmailVerificationNotificationController;
+use App\Http\Controllers\Api\v1\Auth\NewPasswordController;
+use App\Http\Controllers\Api\v1\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Api\v1\Auth\RegisteredUserController;
+use App\Http\Controllers\Api\v1\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [RegisteredUserController::class, 'store'])
@@ -13,6 +13,10 @@ Route::post('/register', [RegisteredUserController::class, 'store'])
     ->name('register');
 
 Route::post('/invite-register', [RegisteredUserController::class, 'invitation']);
+
+Route::prefix('otp')->group(function () {
+    Route::post('/verify', [RegisteredUserController::class, 'verifyOtp']);
+});
 
 
 Route::post('/login', [AuthenticatedSessionController::class, 'store'])
