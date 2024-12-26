@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Enums\Invitation;
+namespace App\Enums;
 
-enum Status: string
+enum InvitationStatusEnum: string
 {
     case PENDING = 'pending';
     case ACCEPTED = 'accepted';
