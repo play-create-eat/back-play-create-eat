@@ -13,7 +13,34 @@ use Symfony\Component\HttpFoundation\Response;
 class AuthenticatedSessionController extends Controller
 {
     /**
-     * Handle an incoming authentication request.
+     * @OA\Post(
+     *     path="/api/v1/login",
+     *     summary="Login a user",
+     *     tags={"Auth"},
+     *     description="Logs in a user and returns an authentication token.",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email", "password"},
+     *             @OA\Property(property="email", type="string", format="email", description="User's email address", example="john.doe@example.com"),
+     *             @OA\Property(property="password", type="string", format="password", description="User's password", example="securePassword123")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="User successfully logged in",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="token", type="string", example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Invalid credentials",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Invalid credentials provided.")
+     *         )
+     *     )
+     * )
      */
     public function store(LoginRequest $request): JsonResponse
     {
@@ -36,7 +63,24 @@ class AuthenticatedSessionController extends Controller
     }
 
     /**
-     * Destroy an authenticated session.
+     * @OA\Post(
+     *     path="/api/auth/logout",
+     *     summary="Log out a user",
+     *     tags={"Auth"},
+     *     description="Logs out the authenticated user by deleting their current access token.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Response(
+     *         response=204,
+     *         description="Successfully logged out"
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *         )
+     *     )
+     * )
      */
     public function destroy(Request $request)
     {

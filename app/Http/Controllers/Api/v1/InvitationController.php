@@ -11,6 +11,51 @@ use Random\RandomException;
 
 class InvitationController extends Controller
 {
+    /**
+     * @OA\Post(
+     *     path="/api/v1/invite",
+     *     summary="Invite a family member",
+     *     tags={"Invite"},
+     *     description="Sends an invitation to join the user's family group via email.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email"},
+     *             @OA\Property(property="email", type="string", format="email", description="Email address of the invitee", example="invitee@example.com")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Invitation sent successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Invitation sent successfully.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="User is not part of a family",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="User is not part of a family.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation errors",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *         )
+     *     )
+     * )
+     */
     public function invite(Request $request)
     {
         $request->validate([
