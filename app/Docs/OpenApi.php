@@ -9,11 +9,14 @@ namespace App\Docs;
  *     description="This is the official API documentation for the Play Create Eat application.",
  *     @OA\Contact(
  *         email="eugenispas15@gmail.com"
- *     )
- * )
- * @OA\Server(
- *     url="https://dev.playcreateeat.com",
- *     description="Development server"
+ *     ),
+ *     @OA\SecurityScheme(
+ *           securityScheme="bearerAuth",
+ *           type="http",
+ *           scheme="bearer",
+ *           bearerFormat="JWT",
+ *           description="Input your bearer token in the format **Bearer &lt;token>** to authenticate"
+ *       )
  * )
  */
 

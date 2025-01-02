@@ -8,12 +8,6 @@
         },
         "version": "1.0.0"
     },
-    "servers": [
-        {
-            "url": "https://dev.playcreateeat.com",
-            "description": "Development server"
-        }
-    ],
     "paths": {
         "/api/v1/login": {
             "post": {
@@ -391,14 +385,14 @@
                 }
             }
         },
-        "/api/v1/invite": {
+        "/api/v1/invite-register": {
             "post": {
                 "tags": [
                     "Auth"
                 ],
                 "summary": "Register a user from an invitation",
                 "description": "Registers a new user using an invitation code and returns an authentication token.",
-                "operationId": "bddb4c3a0d5fc61c6b0d81ee8fe14420",
+                "operationId": "915d720d5fc3d2183efd13552f7be6b1",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -515,6 +509,111 @@
                     }
                 }
             }
+        },
+        "/api/v1/invite": {
+            "post": {
+                "tags": [
+                    "Invite"
+                ],
+                "summary": "Invite a family member",
+                "description": "Sends an invitation to join the user's family group via email.",
+                "operationId": "0c36d3c8852e0ddfbb1b98c7cb14b35b",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "description": "Email address of the invitee",
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "invitee@example.com"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Invitation sent successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invitation sent successfully."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "User is not part of a family",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User is not part of a family."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation errors",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
         }
     },
     "tags": [
@@ -525,6 +624,10 @@
         {
             "name": "OTP",
             "description": "OTP"
+        },
+        {
+            "name": "Invite",
+            "description": "Invite"
         }
     ]
 }
