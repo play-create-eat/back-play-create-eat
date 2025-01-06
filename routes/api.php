@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\v1\ChildController;
 use App\Http\Controllers\Api\v1\InvitationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -11,6 +12,8 @@ Route::prefix('v1')->group(function () {
         Route::get('user', function (Request $request) {
             return response()->json($request->user());
         });
+
+        Route::post('children', [ChildController::class, 'store']);
 
         Route::post('invite', [InvitationController::class, 'invite']);
     });

@@ -10,16 +10,15 @@ namespace App\Docs;
  *     @OA\Contact(
  *         email="eugenispas15@gmail.com"
  *     ),
- *     @OA\SecurityScheme(
- *           securityScheme="bearerAuth",
- *           type="http",
- *           scheme="bearer",
- *           bearerFormat="JWT",
- *           description="Input your bearer token in the format **Bearer &lt;token>** to authenticate"
- *       )
- * )
+ *     )
+ * @OA\SecurityScheme(
+ * *     securityScheme="Sanctum",
+ * *     type="http",
+ * *     scheme="bearer",
+ * *     bearerFormat="JWT",
+ * *     description="Enter only your token. The 'Bearer ' prefix will be added automatically."
+ * * )
  */
-
 class OpenApi
 {
 

@@ -2,51 +2,47 @@
 
 namespace App\Http\Controllers\Api\v1\Auth;
 
-use App\Enums\GenderEnum;
 use App\Enums\IdTypeEnum;
-use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
+use App\Models\Family;
 use App\Models\Invitation;
+use App\Models\PartialRegistration;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Rules\Enum;
+use Illuminate\Validation\Rules\Password;
 use Symfony\Component\HttpFoundation\Response;
 
 class RegisteredUserController extends Controller
 {
     /**
      * @OA\Post(
-     *     path="/api/v1/register",
-     *     summary="Register a new user",
+     *     path="/api/v1/register/step-1",
+     *     summary="Start registration - Step 1",
      *     tags={"Auth"},
-     *     description="Registers a new user and returns an authentication token.",
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"first_name", "last_name", "email", "phone_number", "id_type", "id_number", "password", "role"},
-     *             @OA\Property(property="first_name", type="string", example="John"),
-     *             @OA\Property(property="last_name", type="string", example="Doe"),
-     *             @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
-     *             @OA\Property(property="phone_number", type="string", example="123-456-7890"),
-     *             @OA\Property(property="id_type", type="string", enum={"passport", "national_id"}, example="passport"),
-     *             @OA\Property(property="id_number", type="string", example="AB123456"),
-     *             @OA\Property(property="password", type="string", format="password", example="strongpassword123"),
-     *             @OA\Property(property="password_confirmation", type="string", format="password", example="strongpassword123"),
-     *             @OA\Property(property="role", type="string", enum={"super_admin", "platform_admin", "parent", "child"}, example="parent")
+     *             required={"first_name", "last_name", "id_type", "id_number"},
+     *             @OA\Property(property="first_name", type="string", maxLength=255, example="John"),
+     *             @OA\Property(property="last_name", type="string", maxLength=255, example="Doe"),
+     *             @OA\Property(property="id_type", type="string", example="passport"),
+     *             @OA\Property(property="id_number", type="string", maxLength=255, example="123456789"),
      *         )
      *     ),
      *     @OA\Response(
      *         response=201,
-     *         description="User successfully registered",
+     *         description="Step 1 completed successfully",
      *         @OA\JsonContent(
-     *             @OA\Property(property="token", type="string", example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+     *             @OA\Property(property="message", type="string", example="Step 1 completed successfully."),
+     *             @OA\Property(property="registration_id", type="integer", example=1)
      *         )
      *     ),
      *     @OA\Response(
      *         response=422,
-     *         description="Validation errors",
+     *         description="Validation error",
      *         @OA\JsonContent(
      *             @OA\Property(property="message", type="string", example="The given data was invalid."),
      *             @OA\Property(property="errors", type="object")
@@ -54,31 +50,97 @@ class RegisteredUserController extends Controller
      *     )
      * )
      */
-    public function store(Request $request)
+    public function step1(Request $request)
     {
-        $request->validate([
-            'first_name'   => ['required', 'string', 'max:255'],
-            'last_name'    => ['required', 'string', 'max:255'],
-            'email'        => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
-            'phone_number' => ['required', 'string', 'max:255'],
-            'id_type'      => ['required', new Rules\Enum(IdTypeEnum::class)],
-            'id_number'    => ['required', 'string', 'max:255'],
-            'password'     => ['required', 'confirmed', Rules\Password::defaults()],
-            'role'         => ['required', new Rules\Enum(RoleEnum::class)],
+        $validated = $request->validate([
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name'  => ['required', 'string', 'max:255'],
+            'id_type'    => ['required', new Enum(IdTypeEnum::class)],
+            'id_number'  => ['required', 'string', 'max:255', 'unique:partial_registrations', 'unique:profiles'],
+        ]);
+
+        $partialRegistration = PartialRegistration::create($validated);
+
+        return response()->json([
+            'message'         => 'Step 1 completed successfully.',
+            'registration_id' => $partialRegistration->id,
+        ], Response::HTTP_CREATED);
+
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/v1/register/step-2",
+     *     summary="Complete registration - Step 2",
+     *     tags={"Auth"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"registration_id", "email", "phone_number", "password", "password_confirmation"},
+     *             @OA\Property(property="registration_id", type="integer", example=1),
+     *             @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
+     *             @OA\Property(property="phone_number", type="string", example="1234567890"),
+     *             @OA\Property(property="password", type="string", format="password", example="StrongPassword123"),
+     *             @OA\Property(property="password_confirmation", type="string", format="password", example="StrongPassword123")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Registration completed successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="token", type="string", example="eyJ0eXAiOiJKV1QiLCJhb...")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     )
+     * )
+     */
+    public function step2(Request $request)
+    {
+        $validated = $request->validate([
+            'registration_id' => ['required', 'exists:partial_registrations,id'],
+            'email'           => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'phone_number'    => ['required', 'string', 'max:255'],
+            'password'        => ['required', 'confirmed', Password::defaults()],
+        ]);
+
+        $partialRegistration = PartialRegistration::findOrFail($validated['registration_id']);
+
+        $partialRegistration->update([
+            'email'        => $validated['email'],
+            'phone_number' => $validated['phone_number'],
+            'password'     => Hash::make($validated['password']),
+            'status'       => 'completed',
         ]);
 
         $user = User::create([
-            'email'    => $request->email,
+            'email'    => $partialRegistration->email,
             'password' => Hash::make($request->string('password')),
         ]);
 
         $user->profile()->create([
-            'first_name'   => $request->first_name,
-            'last_name'    => $request->last_name,
-            'phone_number' => $request->phone_number,
-            'id_type'      => $request->id_type,
-            'id_number'    => $request->id_number,
+            'first_name'   => $partialRegistration->first_name,
+            'last_name'    => $partialRegistration->last_name,
+            'phone_number' => $partialRegistration->phone_number,
+            'id_type'      => $partialRegistration->id_type,
+            'id_number'    => $partialRegistration->id_number,
         ]);
+
+        $family = Family::create([
+            'name' => "$partialRegistration->last_name's Family",
+        ]);
+
+        $user->update([
+            'family_id' => $family->id
+        ]);
+
+        $partialRegistration->delete();
 
         $token = $user->createToken($request->userAgent())->plainTextToken;
 

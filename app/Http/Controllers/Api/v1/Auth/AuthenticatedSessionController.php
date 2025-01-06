@@ -23,7 +23,7 @@ class AuthenticatedSessionController extends Controller
      *         @OA\JsonContent(
      *             required={"email", "password"},
      *             @OA\Property(property="email", type="string", format="email", description="User's email address", example="john.doe@example.com"),
-     *             @OA\Property(property="password", type="string", format="password", description="User's password", example="securePassword123")
+     *             @OA\Property(property="password", type="string", format="password", description="User's password", example="StrongPassword123")
      *         )
      *     ),
      *     @OA\Response(
