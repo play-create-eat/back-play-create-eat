@@ -7,7 +7,6 @@ use App\Mail\InviteMemberMail;
 use App\Models\Invitation;
 use Illuminate\Http\Request;
 use Mail;
-use Random\RandomException;
 
 class InvitationController extends Controller
 {

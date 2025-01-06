@@ -37,7 +37,7 @@
                                         "description": "User's password",
                                         "type": "string",
                                         "format": "password",
-                                        "example": "securePassword123"
+                                        "example": "StrongPassword123"
                                     }
                                 },
                                 "type": "object"
@@ -267,14 +267,13 @@
                 ]
             }
         },
-        "/api/v1/register": {
+        "/api/v1/register/step-1": {
             "post": {
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Register a new user",
-                "description": "Registers a new user and returns an authentication token.",
-                "operationId": "db77e1825c3124fb21979594876b7987",
+                "summary": "Start registration - Step 1",
+                "operationId": "671e0f0327fc9716f966236bd773c675",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -283,62 +282,28 @@
                                 "required": [
                                     "first_name",
                                     "last_name",
-                                    "email",
-                                    "phone_number",
                                     "id_type",
-                                    "id_number",
-                                    "password",
-                                    "role"
+                                    "id_number"
                                 ],
                                 "properties": {
                                     "first_name": {
                                         "type": "string",
+                                        "maxLength": 255,
                                         "example": "John"
                                     },
                                     "last_name": {
                                         "type": "string",
+                                        "maxLength": 255,
                                         "example": "Doe"
-                                    },
-                                    "email": {
-                                        "type": "string",
-                                        "format": "email",
-                                        "example": "john.doe@example.com"
-                                    },
-                                    "phone_number": {
-                                        "type": "string",
-                                        "example": "123-456-7890"
                                     },
                                     "id_type": {
                                         "type": "string",
-                                        "enum": [
-                                            "passport",
-                                            "national_id"
-                                        ],
                                         "example": "passport"
                                     },
                                     "id_number": {
                                         "type": "string",
-                                        "example": "AB123456"
-                                    },
-                                    "password": {
-                                        "type": "string",
-                                        "format": "password",
-                                        "example": "strongpassword123"
-                                    },
-                                    "password_confirmation": {
-                                        "type": "string",
-                                        "format": "password",
-                                        "example": "strongpassword123"
-                                    },
-                                    "role": {
-                                        "type": "string",
-                                        "enum": [
-                                            "super_admin",
-                                            "platform_admin",
-                                            "parent",
-                                            "child"
-                                        ],
-                                        "example": "parent"
+                                        "maxLength": 255,
+                                        "example": "123456789"
                                     }
                                 },
                                 "type": "object"
@@ -348,14 +313,18 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "User successfully registered",
+                        "description": "Step 1 completed successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
-                                        "token": {
+                                        "message": {
                                             "type": "string",
-                                            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                                            "example": "Step 1 completed successfully."
+                                        },
+                                        "registration_id": {
+                                            "type": "integer",
+                                            "example": 1
                                         }
                                     },
                                     "type": "object"
@@ -364,7 +333,95 @@
                         }
                     },
                     "422": {
-                        "description": "Validation errors",
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/register/step-2": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Complete registration - Step 2",
+                "operationId": "e95f22ee27768aa90893d65fda346eb5",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "registration_id",
+                                    "email",
+                                    "phone_number",
+                                    "password",
+                                    "password_confirmation"
+                                ],
+                                "properties": {
+                                    "registration_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "john.doe@example.com"
+                                    },
+                                    "phone_number": {
+                                        "type": "string",
+                                        "example": "1234567890"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "StrongPassword123"
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "StrongPassword123"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Registration completed successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "token": {
+                                            "type": "string",
+                                            "example": "eyJ0eXAiOiJKV1QiLCJhb..."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -510,6 +567,159 @@
                 }
             }
         },
+        "/api/v1/children": {
+            "post": {
+                "tags": [
+                    "Children"
+                ],
+                "summary": "Create a new child",
+                "operationId": "39c305206d0a3d0b10c471557e12bd1a",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "first_name",
+                                    "last_name",
+                                    "birth_date",
+                                    "gender"
+                                ],
+                                "properties": {
+                                    "first_name": {
+                                        "description": "First name of the child",
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "John"
+                                    },
+                                    "last_name": {
+                                        "description": "Last name of the child",
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "Doe"
+                                    },
+                                    "birth_date": {
+                                        "description": "Birth date of the child in YYYY-MM-DD format",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2015-06-15"
+                                    },
+                                    "gender": {
+                                        "description": "Gender of the child (male, female, other)",
+                                        "type": "string",
+                                        "enum": [
+                                            "male",
+                                            "female",
+                                            "other"
+                                        ],
+                                        "example": "male"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Child created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "description": "ID of the created child",
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "first_name": {
+                                            "description": "First name of the child",
+                                            "type": "string",
+                                            "example": "John"
+                                        },
+                                        "last_name": {
+                                            "description": "Last name of the child",
+                                            "type": "string",
+                                            "example": "Doe"
+                                        },
+                                        "birth_date": {
+                                            "description": "Birth date of the child",
+                                            "type": "string",
+                                            "format": "date",
+                                            "example": "2015-06-15"
+                                        },
+                                        "gender": {
+                                            "description": "Gender of the child",
+                                            "type": "string",
+                                            "example": "male"
+                                        },
+                                        "family_id": {
+                                            "description": "Family ID associated with the child",
+                                            "type": "integer",
+                                            "example": 5
+                                        },
+                                        "created_at": {
+                                            "description": "Timestamp of creation",
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "example": "2024-01-06T12:34:56Z"
+                                        },
+                                        "updated_at": {
+                                            "description": "Timestamp of last update",
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "example": "2024-01-06T12:34:56Z"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "description": "An object containing validation errors for specific fields",
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "Sanctum": []
+                    }
+                ]
+            }
+        },
         "/api/v1/invite": {
             "post": {
                 "tags": [
@@ -616,6 +826,16 @@
             }
         }
     },
+    "components": {
+        "securitySchemes": {
+            "Sanctum": {
+                "type": "http",
+                "description": "Enter only your token. The 'Bearer ' prefix will be added automatically.",
+                "bearerFormat": "JWT",
+                "scheme": "bearer"
+            }
+        }
+    },
     "tags": [
         {
             "name": "Auth",
@@ -624,6 +844,10 @@
         {
             "name": "OTP",
             "description": "OTP"
+        },
+        {
+            "name": "Children",
+            "description": "Children"
         },
         {
             "name": "Invite",

@@ -9,9 +9,13 @@ use App\Http\Controllers\Api\v1\Auth\RegisteredUserController;
 use App\Http\Controllers\Api\v1\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/register', [RegisteredUserController::class, 'store'])
+
+Route::prefix('register')
     ->middleware('guest')
-    ->name('register');
+    ->group(function () {
+    Route::post('step-1', [RegisteredUserController::class, 'step1'])->name('step-1');
+    Route::post('step-2', [RegisteredUserController::class, 'step2'])->name('step-2');
+})->name('register');
 
 Route::post('/invite-register', [RegisteredUserController::class, 'invitation']);
 
