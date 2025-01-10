@@ -56,7 +56,7 @@ class RegisteredUserController extends Controller
             'first_name' => ['required', 'string', 'max:255'],
             'last_name'  => ['required', 'string', 'max:255'],
             'id_type'    => ['required', new Enum(IdTypeEnum::class)],
-            'id_number'  => ['required', 'string', 'max:255', 'unique:partial_registrations', 'unique:profiles'],
+            'id_number'  => ['required', 'string', 'max:255', 'unique:profiles'],
         ]);
 
         $partialRegistration = PartialRegistration::create($validated);
@@ -119,32 +119,37 @@ class RegisteredUserController extends Controller
             'status'       => 'completed',
         ]);
 
-        $user = User::create([
-            'email'    => $partialRegistration->email,
-            'password' => Hash::make($request->string('password')),
-        ]);
+//        $user = User::create([
+//            'email'    => $partialRegistration->email,
+//            'password' => Hash::make($request->string('password')),
+//        ]);
+//
+//        $user->profile()->create([
+//            'first_name'   => $partialRegistration->first_name,
+//            'last_name'    => $partialRegistration->last_name,
+//            'phone_number' => $partialRegistration->phone_number,
+//            'id_type'      => $partialRegistration->id_type,
+//            'id_number'    => $partialRegistration->id_number,
+//        ]);
+//
+//        $family = Family::create([
+//            'name' => "$partialRegistration->last_name's Family",
+//        ]);
+//
+//        $user->update([
+//            'family_id' => $family->id
+//        ]);
+//
+//        $partialRegistration->delete();
 
-        $user->profile()->create([
-            'first_name'   => $partialRegistration->first_name,
-            'last_name'    => $partialRegistration->last_name,
-            'phone_number' => $partialRegistration->phone_number,
-            'id_type'      => $partialRegistration->id_type,
-            'id_number'    => $partialRegistration->id_number,
-        ]);
+//        $token = $user->createToken($request->userAgent())->plainTextToken;
 
-        $family = Family::create([
-            'name' => "$partialRegistration->last_name's Family",
-        ]);
+//        return response()->json(['token' => $token], Response::HTTP_CREATED);
 
-        $user->update([
-            'family_id' => $family->id
-        ]);
-
-        $partialRegistration->delete();
-
-        $token = $user->createToken($request->userAgent())->plainTextToken;
-
-        return response()->json(['token' => $token], Response::HTTP_CREATED);
+        return response()->json([
+            'message'         => 'Step 2 completed successfully.',
+            'registration_id' => $partialRegistration->id,
+        ], Response::HTTP_CREATED);
     }
 
     /**

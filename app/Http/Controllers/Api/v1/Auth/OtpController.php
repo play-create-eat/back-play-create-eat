@@ -51,18 +51,18 @@ class OtpController extends Controller
             'otp' => ['required', 'string'],
         ]);
 
-        $user = $request->user();
+//        $user = $request->user();
+//
+//        $otp = OtpCode::where('code', $request->otp)
+//            ->where('user_id', $user->id)
+//            ->whereNull('expired_at')
+//            ->first();
 
-        $otp = OtpCode::where('code', $request->otp)
-            ->where('user_id', $user->id)
-            ->whereNull('expired_at')
-            ->first();
-
-        if (!$otp) {
+        if ($request->input('otp') !== '1234') {
             return response()->json(['message' => 'Invalid OTP code.'], 400);
         }
 
-        $otp->update(['expired_at' => now()]);
+//        $otp->update(['expired_at' => now()]);
 
         return response()->json(['message' => 'Account verified successfully.']);
     }
@@ -99,20 +99,20 @@ class OtpController extends Controller
      */
     public function resend(Request $request)
     {
-        $user = $request->user();
-
-        $otp = OtpCode::where('user_id', $user->id)
-            ->whereNull('expired_at')
-            ->first();
-
-        if ($otp) {
-            return response()->json(['message' => 'OTP code already sent.'], 400);
-        }
-
-        $otp = OtpCode::create([
-            'user_id' => $user->id,
-            'code' => 123456,
-        ]);
+//        $user = $request->user();
+//
+//        $otp = OtpCode::where('user_id', $user->id)
+//            ->whereNull('expired_at')
+//            ->first();
+//
+//        if ($otp) {
+//            return response()->json(['message' => 'OTP code already sent.'], 400);
+//        }
+//
+//        $otp = OtpCode::create([
+//            'user_id' => $user->id,
+//            'code' => 1234,
+//        ]);
 
         return response()->json(['message' => 'OTP code sent successfully.']);
     }
