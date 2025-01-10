@@ -13,7 +13,8 @@ Route::prefix('v1')->group(function () {
             return response()->json($request->user());
         });
 
-        Route::post('children', [ChildController::class, 'store']);
+        Route::get('children', [ChildController::class, 'index'])->withoutMiddleware('auth:sanctum');
+        Route::post('children', [ChildController::class, 'store'])->withoutMiddleware('auth:sanctum');
 
         Route::post('invite', [InvitationController::class, 'invite']);
     });

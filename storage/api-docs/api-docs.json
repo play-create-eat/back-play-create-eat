@@ -568,6 +568,73 @@
             }
         },
         "/api/v1/children": {
+            "get": {
+                "tags": [
+                    "Children"
+                ],
+                "summary": "Get all children of the authenticated user's family",
+                "operationId": "a00e20195833cd24093e1a2f1676ac6b",
+                "responses": {
+                    "200": {
+                        "description": "List of children",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "id": {
+                                                "description": "Child ID",
+                                                "type": "integer",
+                                                "example": 1
+                                            },
+                                            "first_name": {
+                                                "description": "First name of the child",
+                                                "type": "string",
+                                                "example": "John"
+                                            },
+                                            "last_name": {
+                                                "description": "Last name of the child",
+                                                "type": "string",
+                                                "example": "Doe"
+                                            },
+                                            "birth_date": {
+                                                "description": "Birth date of the child",
+                                                "type": "string",
+                                                "format": "date",
+                                                "example": "2015-06-15"
+                                            },
+                                            "gender": {
+                                                "description": "Gender of the child",
+                                                "type": "string",
+                                                "example": "male"
+                                            },
+                                            "family_id": {
+                                                "description": "Family ID associated with the child",
+                                                "type": "integer",
+                                                "example": 5
+                                            },
+                                            "created_at": {
+                                                "description": "Timestamp of creation",
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "example": "2024-01-06T12:34:56Z"
+                                            },
+                                            "updated_at": {
+                                                "description": "Timestamp of last update",
+                                                "type": "string",
+                                                "format": "date-time",
+                                                "example": "2024-01-06T12:34:56Z"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
             "post": {
                 "tags": [
                     "Children"
@@ -712,12 +779,7 @@
                             }
                         }
                     }
-                },
-                "security": [
-                    {
-                        "Sanctum": []
-                    }
-                ]
+                }
             }
         },
         "/api/v1/invite": {
