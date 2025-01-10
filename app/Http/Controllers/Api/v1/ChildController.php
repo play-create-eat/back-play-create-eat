@@ -11,12 +11,42 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ChildController extends Controller
 {
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/children",
+     *     summary="Get all children of the authenticated user's family",
+     *     tags={"Children"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="List of children",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(
+     *                 type="object",
+     *                 @OA\Property(property="id", type="integer", example=1, description="Child ID"),
+     *                 @OA\Property(property="first_name", type="string", example="John", description="First name of the child"),
+     *                 @OA\Property(property="last_name", type="string", example="Doe", description="Last name of the child"),
+     *                 @OA\Property(property="birth_date", type="string", format="date", example="2015-06-15", description="Birth date of the child"),
+     *                 @OA\Property(property="gender", type="string", example="male", description="Gender of the child"),
+     *                 @OA\Property(property="family_id", type="integer", example=5, description="Family ID associated with the child"),
+     *                 @OA\Property(property="created_at", type="string", format="date-time", example="2024-01-06T12:34:56Z", description="Timestamp of creation"),
+     *                 @OA\Property(property="updated_at", type="string", format="date-time", example="2024-01-06T12:34:56Z", description="Timestamp of last update")
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function index()
+    {
+        // TODO Return children of the authenticated user's family
+        return response()->json(Child::all());
+    }
     /**
      * @OA\Post(
      *     path="/api/v1/children",
      *     summary="Create a new child",
      *     tags={"Children"},
-     *     security={{"Sanctum":{}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -73,7 +103,7 @@ class ChildController extends Controller
             'gender'     => ['required', 'string', new Enum(GenderEnum::class)],
         ]);
 
-        $child = Child::create([...$validated, 'family_id' => auth()->user()->family_id]);
+        $child = Child::create([...$validated]);
 
         return response()->json($child, Response::HTTP_CREATED);
     }

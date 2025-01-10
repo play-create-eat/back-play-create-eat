@@ -15,6 +15,7 @@ return new class extends Migration {
         Schema::create('children', function (Blueprint $table) {
             $table->id();
             $table->foreignIdFor(Family::class)
+                ->nullable()
                 ->constrained()
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete();
