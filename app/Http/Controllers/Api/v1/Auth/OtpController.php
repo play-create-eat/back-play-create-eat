@@ -19,7 +19,7 @@ class OtpController extends Controller
      *         required=true,
      *         @OA\JsonContent(
      *             required={"otp"},
-     *             @OA\Property(property="otp", type="string", description="The OTP code", example="123456")
+     *             @OA\Property(property="otp", type="string", description="The OTP code", example="1234")
      *         )
      *     ),
      *     @OA\Response(

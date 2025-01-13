@@ -17,7 +17,7 @@ return new class extends Migration {
             $table->string('first_name');
             $table->string('last_name');
             $table->enum('id_type', IdTypeEnum::values());
-            $table->string('id_number')->unique();
+            $table->string('id_number');
             $table->string('email')->nullable();
             $table->string('phone_number')->nullable();
             $table->string('password')->nullable();
