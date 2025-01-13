@@ -42,6 +42,7 @@ class ChildController extends Controller
         // TODO Return children of the authenticated user's family
         return response()->json(Child::all());
     }
+
     /**
      * @OA\Post(
      *     path="/api/v1/children",
@@ -106,5 +107,44 @@ class ChildController extends Controller
         $child = Child::create([...$validated]);
 
         return response()->json($child, Response::HTTP_CREATED);
+    }
+
+    /**
+     * @OA\Delete(
+     *     path="/api/v1/children/{id}",
+     *     summary="Delete a specific child",
+     *     tags={"Children"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID of the child to delete",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Response(
+     *         response=204,
+     *         description="Child deleted successfully"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Child not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Child not found.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *         )
+     *     )
+     * )
+     */
+    public function destroy(Child $child)
+    {
+        $child->delete();
+
+        return response()->noContent();
     }
 }
