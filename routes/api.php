@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\v1\ChildController;
+use App\Http\Controllers\Api\v1\DocumentController;
 use App\Http\Controllers\Api\v1\InvitationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -15,6 +16,8 @@ Route::prefix('v1')->group(function () {
 
         Route::get('children', [ChildController::class, 'index'])->withoutMiddleware('auth:sanctum');
         Route::post('children', [ChildController::class, 'store'])->withoutMiddleware('auth:sanctum');
+
+        Route::post('documents', [DocumentController::class, 'store'])->withoutMiddleware('auth:sanctum');
 
         Route::post('invite', [InvitationController::class, 'invite']);
     });

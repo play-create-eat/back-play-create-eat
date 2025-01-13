@@ -137,7 +137,7 @@
                                     "otp": {
                                         "description": "The OTP code",
                                         "type": "string",
-                                        "example": "123456"
+                                        "example": "1234"
                                     }
                                 },
                                 "type": "object"
@@ -782,6 +782,33 @@
                 }
             }
         },
+        "/api/v1/documents": {
+            "post": {
+                "tags": [
+                    "Documents"
+                ],
+                "summary": "Sign a document",
+                "operationId": "5c72e0c27b74d923392f5003dac837b1",
+                "responses": {
+                    "200": {
+                        "description": "Document signed successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Document signed successfully."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/invite": {
             "post": {
                 "tags": [
@@ -910,6 +937,10 @@
         {
             "name": "Children",
             "description": "Children"
+        },
+        {
+            "name": "Documents",
+            "description": "Documents"
         },
         {
             "name": "Invite",
