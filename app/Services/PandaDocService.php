@@ -13,6 +13,7 @@ use PandaDoc\Client\Model\DocumentCreateRequestRecipients;
 use PandaDoc\Client\Model\DocumentCreateResponse;
 use PandaDoc\Client\Model\DocumentSendRequest;
 use PandaDoc\Client\Model\DocumentSendResponse;
+use PandaDoc\Client\Model\RecipientRedirect;
 
 class PandaDocService
 {
@@ -34,7 +35,11 @@ class PandaDocService
     {
         $recipient = (new DocumentCreateRequestRecipients())
             ->setEmail($recipientData['EMAIL_ADDRESS']['value'])
-            ->setRole('Client');
+            ->setRole('Client')
+            ->setRedirect((new RecipientRedirect())
+                ->setIsEnabled(true)
+                ->setUrl('https://dev.playcreateeat.ae/success')
+            );
 
         $documentRequest = (new DocumentCreateRequest())
             ->setName('Generated Document')
