@@ -2,6 +2,7 @@
 
 use App\Enums\IdTypeEnum;
 use App\Enums\PartialRegistrationStatusEnum;
+use App\Models\Family;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -21,6 +22,7 @@ return new class extends Migration {
             $table->string('email')->nullable();
             $table->string('phone_number')->nullable();
             $table->string('password')->nullable();
+            $table->foreignIdFor(Family::class)->nullable();
             $table->enum('status', PartialRegistrationStatusEnum::values())
                 ->default(PartialRegistrationStatusEnum::Pending->value);
             $table->timestamps();

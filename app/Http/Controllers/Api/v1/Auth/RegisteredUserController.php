@@ -59,7 +59,11 @@ class RegisteredUserController extends Controller
             'id_number'  => ['required', 'string', 'max:255', 'unique:profiles'],
         ]);
 
-        $partialRegistration = PartialRegistration::create($validated);
+        $family = Family::create([
+            'name' => "$validated->last_name's Family",
+        ]);
+
+        $partialRegistration = PartialRegistration::create([...$validated, 'family_id' => $family->id]);
 
         return response()->json([
             'message'         => 'Step 1 completed successfully.',
