@@ -67,13 +67,10 @@ class PandaDocController extends Controller
             if ($document->getId()) {
                 if ($this->pandadoc->checkDocumentStatus($document->getId())) {
                     $this->pandadoc->sendDocument($document->getId());
-                    $signingLink = $this->pandadoc->generateDocumentLink($document->getId());
+                    $response = $this->pandadoc->generateDocumentLink($document->getId());
+                    $signingResponse = json_decode($response->getContent(), true);
 
-                    return response()->json([
-                        'message'      => 'Document is ready for signing.',
-                        'document_id'  => $document->getId(),
-                        'signing_link' => $signingLink
-                    ]);
+                    return response()->json([...$signingResponse, 'document_id' => $document->getId()]);
                 }
 
                 return response()->json(['error' => 'Document is not ready for signing.'], 500);
