@@ -17,7 +17,7 @@ class PandaDocController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/api/v1/documents/create",
+     *     path="/api/v1/documents",
      *     summary="Create a document from template and prepare it for signing.",
      *     tags={"Documents"},
      *     @OA\RequestBody(
@@ -86,7 +86,7 @@ class PandaDocController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/v1/documents/status/{documentId}",
+     *     path="/api/v1/documents/status/{id}",
      *     summary="Check the status of a document",
      *     tags={"Documents"},
      *     security={{"Sanctum":{}}},
