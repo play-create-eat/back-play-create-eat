@@ -14,56 +14,37 @@ class PandaDocController extends Controller
     {
     }
 
+
     /**
      * @OA\Post(
-     *     path="/api/v1/documents",
-     *     summary="Create a document and generate a signing link",
+     *     path="/api/v1/documents/create",
+     *     summary="Create a document from template and prepare it for signing.",
      *     tags={"Documents"},
-     *     security={{"Sanctum":{}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"template_id", "recipient_data", "kids_array"},
-     *             @OA\Property(property="template_id", type="string", example="WVGshXQkryavX2rVoCwQf5", description="PandaDoc template ID"),
-     *             @OA\Property(
-     *                 property="recipient_data",
-     *                 type="object",
-     *                 required={"FIRST_NAME", "LAST_NAME", "PHONE_NUMBER", "EMAIL_ADDRESS", "PASSPORT_NUMBER"},
-     *                 @OA\Property(property="FIRST_NAME", type="string", example="John", description="Recipient's first name"),
-     *                 @OA\Property(property="LAST_NAME", type="string", example="Doe", description="Recipient's last name"),
-     *                 @OA\Property(property="PHONE_NUMBER", type="string", example="+971501234567", description="Recipient's phone number"),
-     *                 @OA\Property(property="EMAIL_ADDRESS", type="string", format="email", example="tech@playcreateeat.ae", description="Recipient's email address"),
-     *                 @OA\Property(property="PASSPORT_NUMBER", type="string", example="P1234567", description="Recipient's passport number")
-     *             ),
-     *             @OA\Property(
-     *                 property="KIDS_ARRAY",
-     *                 type="string",
-     *                 example="Alex Malii from 30.05.2004",
-     *                 description="Comma-separated string of children information"
-     *             )
+     *             @OA\Property(property="FIRST_NAME", type="string", example="John", description="Recipient's first name"),
+     *             @OA\Property(property="LAST_NAME", type="string", example="Doe", description="Recipient's last name"),
+     *             @OA\Property(property="PHONE_NUMBER", type="string", example="+971501234567", description="Recipient's phone number"),
+     *             @OA\Property(property="EMAIL_ADDRESS", type="string", example="tech@playcreateeat.ae", description="Recipient's email address"),
+     *             @OA\Property(property="PASSPORT_NUMBER", type="string", example="P1234567", description="Recipient's passport number"),
+     *             @OA\Property(property="KIDS_ARRAY", type="string", example="Alex Malii from 30.05.2004", description="Additional information about kids.")
      *         )
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Document created successfully and ready for signing",
+     *         description="Document created and ready for signing.",
      *         @OA\JsonContent(
      *             @OA\Property(property="message", type="string", example="Document is ready for signing."),
-     *             @OA\Property(property="document_id", type="string", example="abc123", description="ID of the created document"),
-     *             @OA\Property(property="signing_link", type="string", example="https://pandadoc.com/sign/abc123", description="Link to sign the document")
+     *             @OA\Property(property="document_id", type="string", example="xyz789", description="The ID of the newly created document."),
+     *             @OA\Property(property="signing_link", type="string", example="https://sign.pandadoc.com/signinglink", description="The link to sign the document.")
      *         )
      *     ),
      *     @OA\Response(
      *         response=500,
-     *         description="Error during document creation or sending",
+     *         description="Document creation or signing preparation failed.",
      *         @OA\JsonContent(
-     *             @OA\Property(property="error", type="string", example="Document creation failed.")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthorized",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *             @OA\Property(property="error", type="string", example="Document is not ready for signing.")
      *         )
      *     )
      * )
