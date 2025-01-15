@@ -86,7 +86,7 @@ class PandaDocController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/v1/documents/status/{document_id}",
+     *     path="/api/v1/documents/status/{documentId}",
      *     summary="Check the status of a document",
      *     tags={"Documents"},
      *     security={{"Sanctum":{}}},
@@ -121,9 +121,9 @@ class PandaDocController extends Controller
      * )
      * @throws Exception
      */
-    public function status($id)
+    public function status($documentId)
     {
-        $status = $this->pandadoc->getDocumentStatus($id);
+        $status = $this->pandadoc->getDocumentStatus($documentId);
         return response()->json(['status' => $status]);
     }
 
