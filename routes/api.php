@@ -26,6 +26,8 @@ Route::prefix('v1')->group(function () {
         Route::post('documents/create', [PandaDocController::class, 'create'])
             ->withoutMiddleware('auth:sanctum');
 
+        Route::get('pandadoc/status', [PandaDocController::class, 'status'])
+            ->withoutMiddleware('auth:sanctum');
 
         Route::post('invite', [InvitationController::class, 'invite']);
     });

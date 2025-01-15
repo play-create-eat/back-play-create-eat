@@ -91,6 +91,20 @@ class PandaDocService
     }
 
     /**
+     * @throws Exception
+     */
+    public function getDocumentStatus($documentId): string
+    {
+        try {
+            $status = $this->documentsApi->statusDocument($documentId);
+            return $status->getStatus();
+
+        } catch (Exception $e) {
+            throw new Exception("Failed to get document status: " . $e->getMessage());
+        }
+    }
+
+    /**
      * @throws ApiException
      * @throws Exception
      */
