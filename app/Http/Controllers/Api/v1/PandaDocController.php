@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Api\v1;
 use App\Http\Controllers\Controller;
 use App\Services\PandaDocService;
 use Exception;
+use Illuminate\Http\Request;
 use Log;
-use Request;
 
 class PandaDocController extends Controller
 {
