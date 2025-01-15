@@ -121,9 +121,9 @@ class PandaDocController extends Controller
      * )
      * @throws Exception
      */
-    public function status($id)
+    public function status($documentId)
     {
-        $status = $this->pandadoc->getDocumentStatus($id);
+        $status = $this->pandadoc->getDocumentStatus($documentId);
         return response()->json(['status' => $status]);
     }
 
