@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bddf3028a6c279015802273beaf1489e",
+    "content-hash": "2799d4f9f303863161894765689eff7f",
     "packages": [
         {
             "name": "brick/math",
@@ -2946,6 +2946,59 @@
                 }
             ],
             "time": "2024-11-21T10:39:51+00:00"
+        },
+        {
+            "name": "pandadoc/php-client",
+            "version": "6.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/PandaDoc/pandadoc-api-php-client.git",
+                "reference": "c0739dee4e0bad03643617f4d7655f3844f46c93"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/PandaDoc/pandadoc-api-php-client/zipball/c0739dee4e0bad03643617f4d7655f3844f46c93",
+                "reference": "c0739dee4e0bad03643617f4d7655f3844f46c93",
+                "shasum": ""
+            },
+            "require": {
+                "ext-curl": "*",
+                "ext-json": "*",
+                "ext-mbstring": "*",
+                "guzzlehttp/guzzle": "^7.3",
+                "guzzlehttp/psr7": "^1.7 || ^2.0",
+                "php": "^7.3 || ^8.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PandaDoc\\Client\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "PandaDoc",
+                    "homepage": "https://developers.pandadoc.com"
+                }
+            ],
+            "description": "The Official PandaDoc PHP client SDK",
+            "homepage": "https://developers.pandadoc.com",
+            "keywords": [
+                "api",
+                "openapi",
+                "php",
+                "rest",
+                "sdk"
+            ],
+            "support": {
+                "issues": "https://github.com/PandaDoc/pandadoc-api-php-client/issues",
+                "source": "https://github.com/PandaDoc/pandadoc-api-php-client/tree/v6.2.0"
+            },
+            "time": "2024-04-05T09:12:41+00:00"
         },
         {
             "name": "phpoption/phpoption",

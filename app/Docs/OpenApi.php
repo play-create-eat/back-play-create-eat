@@ -8,7 +8,7 @@ namespace App\Docs;
  *     version="1.0.0",
  *     description="This is the official API documentation for the Play Create Eat application.",
  *     @OA\Contact(
- *         email="eugenispas15@gmail.com"
+ *         email="tech@playcreateeat.ae"
  *     ),
  *     )
  * @OA\SecurityScheme(
