@@ -16,9 +16,10 @@ class PandaDocController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/api/v1/documents/create",
-     *     summary="Create and send a document using PandaDoc",
+     *     path="/api/v1/documents",
+     *     summary="Create a document and generate a signing link",
      *     tags={"Documents"},
+     *     security={{"Sanctum":{}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -27,43 +28,33 @@ class PandaDocController extends Controller
      *             @OA\Property(
      *                 property="recipient_data",
      *                 type="object",
-     *                 required={"first_name", "last_name", "phone_number", "email_address", "passport_number"},
-     *                 @OA\Property(property="first_name", type="string", example="John", description="Recipient's first name"),
-     *                 @OA\Property(property="last_name", type="string", example="Doe", description="Recipient's last name"),
-     *                 @OA\Property(property="phone_number", type="string", example="+971501234567", description="Recipient's phone number"),
-     *                 @OA\Property(property="email_address", type="string", format="email", example="john.doe@example.com", description="Recipient's email address"),
-     *                 @OA\Property(property="passport_number", type="string", example="P1234567", description="Recipient's passport number")
+     *                 required={"FIRST_NAME", "LAST_NAME", "PHONE_NUMBER", "EMAIL_ADDRESS", "PASSPORT_NUMBER"},
+     *                 @OA\Property(property="FIRST_NAME", type="string", example="John", description="Recipient's first name"),
+     *                 @OA\Property(property="LAST_NAME", type="string", example="Doe", description="Recipient's last name"),
+     *                 @OA\Property(property="PHONE_NUMBER", type="string", example="+971501234567", description="Recipient's phone number"),
+     *                 @OA\Property(property="EMAIL_ADDRESS", type="string", format="email", example="tech@playcreateeat.ae", description="Recipient's email address"),
+     *                 @OA\Property(property="PASSPORT_NUMBER", type="string", example="P1234567", description="Recipient's passport number")
      *             ),
      *             @OA\Property(
-     *                 property="kids_array",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     type="object",
-     *                     required={"name", "age"},
-     *                     @OA\Property(property="name", type="string", example="Jane Doe", description="Child's name"),
-     *                     @OA\Property(property="age", type="integer", example=10, description="Child's age")
-     *                 ),
-     *                 description="Array of children information"
+     *                 property="KIDS_ARRAY",
+     *                 type="string",
+     *                 example="Alex Malii from 30.05.2004",
+     *                 description="Comma-separated string of children information"
      *             )
      *         )
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Document created and sent successfully",
+     *         description="Document created successfully and ready for signing",
      *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Document created and sent successfully!"),
-     *             @OA\Property(
-     *                 property="document",
-     *                 type="object",
-     *                 @OA\Property(property="id", type="string", example="abc123", description="ID of the created document"),
-     *                 @OA\Property(property="status", type="string", example="sent", description="Status of the document"),
-     *                 @OA\Property(property="created_at", type="string", format="date-time", example="2024-01-10T12:34:56Z", description="Document creation timestamp")
-     *             )
+     *             @OA\Property(property="message", type="string", example="Document is ready for signing."),
+     *             @OA\Property(property="document_id", type="string", example="abc123", description="ID of the created document"),
+     *             @OA\Property(property="signing_link", type="string", example="https://pandadoc.com/sign/abc123", description="Link to sign the document")
      *         )
      *     ),
      *     @OA\Response(
      *         response=500,
-     *         description="Document creation failed or server error",
+     *         description="Error during document creation or sending",
      *         @OA\JsonContent(
      *             @OA\Property(property="error", type="string", example="Document creation failed.")
      *         )
@@ -99,6 +90,7 @@ class PandaDocController extends Controller
 
                     return response()->json([
                         'message'      => 'Document is ready for signing.',
+                        'document_id'  => $document->getId(),
                         'signing_link' => $signingLink
                     ]);
                 }
@@ -109,6 +101,49 @@ class PandaDocController extends Controller
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/documents/status/{document_id}",
+     *     summary="Check the status of a document",
+     *     tags={"Documents"},
+     *     security={{"Sanctum":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="The ID of the document to check the status for",
+     *         @OA\Schema(type="string", example="abc123")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Document status retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="string", example="sent", description="Current status of the document")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Document not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="error", type="string", example="Document not found.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *         )
+     *     )
+     * )
+     * @throws Exception
+     */
+    public function status($id)
+    {
+        $status = $this->pandadoc->getDocumentStatus($id);
+        return response()->json(['status' => $status]);
     }
 
     public function handleWebhook(Request $request)

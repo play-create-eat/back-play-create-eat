@@ -971,6 +971,169 @@
                     }
                 ]
             }
+        },
+        "/api/v1/documents/create": {
+            "post": {
+                "tags": [
+                    "Documents"
+                ],
+                "summary": "Create and send a document using PandaDoc",
+                "operationId": "8a2f18a3cad273347e9d4ee53a4965d6",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "template_id",
+                                    "recipient_data",
+                                    "kids_array"
+                                ],
+                                "properties": {
+                                    "template_id": {
+                                        "description": "PandaDoc template ID",
+                                        "type": "string",
+                                        "example": "WVGshXQkryavX2rVoCwQf5"
+                                    },
+                                    "recipient_data": {
+                                        "required": [
+                                            "first_name",
+                                            "last_name",
+                                            "phone_number",
+                                            "email_address",
+                                            "passport_number"
+                                        ],
+                                        "properties": {
+                                            "first_name": {
+                                                "description": "Recipient's first name",
+                                                "type": "string",
+                                                "example": "John"
+                                            },
+                                            "last_name": {
+                                                "description": "Recipient's last name",
+                                                "type": "string",
+                                                "example": "Doe"
+                                            },
+                                            "phone_number": {
+                                                "description": "Recipient's phone number",
+                                                "type": "string",
+                                                "example": "+971501234567"
+                                            },
+                                            "email_address": {
+                                                "description": "Recipient's email address",
+                                                "type": "string",
+                                                "format": "email",
+                                                "example": "john.doe@example.com"
+                                            },
+                                            "passport_number": {
+                                                "description": "Recipient's passport number",
+                                                "type": "string",
+                                                "example": "P1234567"
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "kids_array": {
+                                        "description": "Array of children information",
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "name",
+                                                "age"
+                                            ],
+                                            "properties": {
+                                                "name": {
+                                                    "description": "Child's name",
+                                                    "type": "string",
+                                                    "example": "Jane Doe"
+                                                },
+                                                "age": {
+                                                    "description": "Child's age",
+                                                    "type": "integer",
+                                                    "example": 10
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Document created and sent successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Document created and sent successfully!"
+                                        },
+                                        "document": {
+                                            "properties": {
+                                                "id": {
+                                                    "description": "ID of the created document",
+                                                    "type": "string",
+                                                    "example": "abc123"
+                                                },
+                                                "status": {
+                                                    "description": "Status of the document",
+                                                    "type": "string",
+                                                    "example": "sent"
+                                                },
+                                                "created_at": {
+                                                    "description": "Document creation timestamp",
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2024-01-10T12:34:56Z"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Document creation failed or server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Document creation failed."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
