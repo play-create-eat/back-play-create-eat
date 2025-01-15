@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'pandadoc' => [
+        'key' => env('PANDADOC_API_KEY'),
+    ],
+
 ];
