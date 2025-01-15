@@ -60,7 +60,7 @@ class RegisteredUserController extends Controller
         ]);
 
         $family = Family::create([
-            'name' => "$validated->last_name's Family",
+            'name' => "{$validated['last_name']}'s Family",
         ]);
 
         $partialRegistration = PartialRegistration::create([...$validated, 'family_id' => $family->id]);
