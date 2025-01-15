@@ -21,9 +21,7 @@ Route::prefix('v1')->group(function () {
             ->withoutMiddleware('auth:sanctum');
         Route::delete('children/{child}', [ChildController::class, 'destroy'])->withoutMiddleware('auth:sanctum');
 
-        Route::post('documents', [DocumentController::class, 'store'])
-            ->withoutMiddleware('auth:sanctum');
-        Route::post('documents/create', [PandaDocController::class, 'create'])
+        Route::post('documents', [PandaDocController::class, 'create'])
             ->withoutMiddleware('auth:sanctum');
 
         Route::get('pandadoc/status', [PandaDocController::class, 'status'])
