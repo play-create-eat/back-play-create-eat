@@ -8,7 +8,6 @@ use Exception;
 use Illuminate\Http\Request;
 use Log;
 
-
 class PandaDocController extends Controller
 {
     public function __construct(protected PandaDocService $pandadoc)
