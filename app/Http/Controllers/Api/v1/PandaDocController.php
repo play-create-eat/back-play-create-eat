@@ -61,14 +61,18 @@ public function create()
 
     $recipientData = [...$recipientData, 'KIDS_ARRAY' => ['value' => "Alex Malii from 30.05.2004"]];
 
+
     try {
         $document = $this->pandadoc->createDocumentFromTemplate("WVGshXQkryavX2rVoCwQf5", $recipientData);
 
-        if ($document->getId()) {
-            if ($this->pandadoc->checkDocumentStatus($document->getId())) {
-                $this->pandadoc->sendDocument($document->getId());
-                $response = $this->pandadoc->generateDocumentLink($document->getId());
-                $signingResponse = json_decode($response->getContent(), true);
+            if ($document->getId()) {
+                if ($this->pandadoc->checkDocumentStatus($document->getId())) {
+                    $this->pandadoc->sendDocument($document->getId());
+                    $response = $this->pandadoc->generateDocumentLink($document->getId());
+                    $signingResponse = json_decode($response->getContent(), true);
+
+                    return response()->json([...$signingResponse, 'document_id' => $document->getId()]);
+                }
 
                 return response()->json([...$signingResponse, 'document_id' => $document->getId()]);
             }
