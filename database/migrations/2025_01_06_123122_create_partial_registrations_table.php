@@ -14,7 +14,7 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('partial_registrations', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id');
             $table->string('first_name');
             $table->string('last_name');
             $table->enum('id_type', IdTypeEnum::values());

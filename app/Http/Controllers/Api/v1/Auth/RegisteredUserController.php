@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\v1\Auth;
 
 use App\Enums\IdTypeEnum;
+use App\Enums\PartialRegistrationStatusEnum;
 use App\Http\Controllers\Controller;
 use App\Models\Family;
 use App\Models\Invitation;
@@ -37,7 +38,7 @@ class RegisteredUserController extends Controller
      *         description="Step 1 completed successfully",
      *         @OA\JsonContent(
      *             @OA\Property(property="message", type="string", example="Step 1 completed successfully."),
-     *             @OA\Property(property="registration_id", type="integer", example=1)
+     *             @OA\Property(property="registration_id", type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000")
      *         )
      *     ),
      *     @OA\Response(
@@ -81,7 +82,7 @@ class RegisteredUserController extends Controller
      *         required=true,
      *         @OA\JsonContent(
      *             required={"registration_id", "email", "phone_number", "password", "password_confirmation"},
-     *             @OA\Property(property="registration_id", type="integer", example=1),
+     *             @OA\Property(property="registration_id", type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000"),
      *             @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
      *             @OA\Property(property="phone_number", type="string", example="1234567890"),
      *             @OA\Property(property="password", type="string", format="password", example="StrongPassword123"),
@@ -92,7 +93,8 @@ class RegisteredUserController extends Controller
      *         response=201,
      *         description="Registration completed successfully",
      *         @OA\JsonContent(
-     *             @OA\Property(property="token", type="string", example="eyJ0eXAiOiJKV1QiLCJhb...")
+     *             @OA\Property(property="message", type="string", example="Step 2 completed successfully."),
+     *             @OA\Property(property="registration_id", type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000")
      *         )
      *     ),
      *     @OA\Response(
@@ -120,40 +122,71 @@ class RegisteredUserController extends Controller
             'email'        => $validated['email'],
             'phone_number' => $validated['phone_number'],
             'password'     => Hash::make($validated['password']),
-            'status'       => 'completed',
+            'status'       => PartialRegistrationStatusEnum::Completed,
         ]);
-
-//        $user = User::create([
-//            'email'    => $partialRegistration->email,
-//            'password' => Hash::make($request->string('password')),
-//        ]);
-//
-//        $user->profile()->create([
-//            'first_name'   => $partialRegistration->first_name,
-//            'last_name'    => $partialRegistration->last_name,
-//            'phone_number' => $partialRegistration->phone_number,
-//            'id_type'      => $partialRegistration->id_type,
-//            'id_number'    => $partialRegistration->id_number,
-//        ]);
-//
-//        $family = Family::create([
-//            'name' => "$partialRegistration->last_name's Family",
-//        ]);
-//
-//        $user->update([
-//            'family_id' => $family->id
-//        ]);
-//
-//        $partialRegistration->delete();
-
-//        $token = $user->createToken($request->userAgent())->plainTextToken;
-
-//        return response()->json(['token' => $token], Response::HTTP_CREATED);
 
         return response()->json([
             'message'         => 'Step 2 completed successfully.',
             'registration_id' => $partialRegistration->id,
         ], Response::HTTP_CREATED);
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/v1/register",
+     *     summary="Complete registration",
+     *     tags={"Auth"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"registration_id"},
+     *             @OA\Property(property="registration_id", type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000"),
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Registration completed successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="token", type="string", example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     )
+     * )
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'registration_id' => ['required', 'exists:partial_registrations,id'],
+        ]);
+
+        $partialRegistration = PartialRegistration::findOrFail($validated['registration_id']);
+
+        $user = User::create([
+            'email'    => $partialRegistration->email,
+            'password' => Hash::make($request->string('password')),
+            'family_id' => $partialRegistration->family_id,
+        ]);
+
+        $user->profile()->create([
+            'first_name'   => $partialRegistration->first_name,
+            'last_name'    => $partialRegistration->last_name,
+            'phone_number' => $partialRegistration->phone_number,
+            'id_type'      => $partialRegistration->id_type,
+            'id_number'    => $partialRegistration->id_number,
+        ]);
+
+        $partialRegistration->delete();
+
+        $token = $user->createToken($request->userAgent())->plainTextToken;
+
+        return response()->json(['token' => $token], Response::HTTP_CREATED);
     }
 
     /**

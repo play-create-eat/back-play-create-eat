@@ -13,9 +13,10 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('register')
     ->middleware('guest')
     ->group(function () {
-    Route::post('step-1', [RegisteredUserController::class, 'step1'])->name('step-1');
-    Route::post('step-2', [RegisteredUserController::class, 'step2'])->name('step-2');
-})->name('register');
+        Route::post('/', [RegisteredUserController::class, 'store'])->name('register');
+        Route::post('step-1', [RegisteredUserController::class, 'step1'])->name('step-1');
+        Route::post('step-2', [RegisteredUserController::class, 'step2'])->name('step-2');
+    })->name('register');
 
 Route::post('/invite-register', [RegisteredUserController::class, 'invitation']);
 

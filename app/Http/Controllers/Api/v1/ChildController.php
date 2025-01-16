@@ -64,8 +64,8 @@ class ChildController extends Controller
  *                 example="male",
  *                 description="Gender of the child (male, female, other)"
  *             ),
- *             @OA\Property(property="registration_id", type="integer", example=1, description="Registration ID from registered parent")
- *         )
+     *             @OA\Property(property="registration_id", type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000", description="Registration ID from registered parent")
+     *         )
  *     ),
  *     @OA\Response(
  *         response=201,
@@ -104,12 +104,12 @@ class ChildController extends Controller
             'first_name' => ['required', 'string', 'max:255'],
             'last_name'  => ['required', 'string', 'max:255'],
             'birth_date' => ['required', 'date', 'before:today'],
-            'registration_id' => ['required', 'integer', 'exists:partial_registrations,id'],
+            'registration_id' => ['required', 'string', 'exists:partial_registrations,id'],
             'gender'     => ['required', 'string', new Enum(GenderEnum::class)],
         ]);
 
         $partialRegistration = PartialRegistration::find($validated['registration_id']);
-        $familyId = Family::find($partialRegistration->id)->id;
+        $familyId = Family::find($partialRegistration->family_id)->id;
         $child = Child::create([...$validated, 'family_id' => $familyId]);
 
         return response()->json($child, Response::HTTP_CREATED);
