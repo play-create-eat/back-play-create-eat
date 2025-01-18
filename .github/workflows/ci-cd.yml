@@ -1,13 +1,13 @@
 name: Laravel CI/CD
 
 on:
-  push:
-    branches: [dev]
   pull_request:
+    types: [closed]
     branches: [dev]
 
 jobs:
   laravel-tests:
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-24.04
 
     permissions:
@@ -24,9 +24,9 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready" 
-          --health-interval=10s 
-          --health-timeout=5s 
+          --health-cmd="pg_isready"
+          --health-interval=10s
+          --health-timeout=5s
           --health-retries=5
 
     steps:
@@ -69,8 +69,7 @@ jobs:
       - name: Run migrations
         run: php artisan migrate --force
 
-      - name: Deploy
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      - name: Deploy to Development Server
         run: |
           echo "Deploying to development server..."
           mkdir -p ~/.ssh
