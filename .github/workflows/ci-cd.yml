@@ -2,9 +2,9 @@ name: Laravel CI/CD
 
 on:
   push:
-    branches: [main]
+    branches: [dev]
   pull_request:
-    branches: [main]
+    branches: [dev]
 
 jobs:
   laravel-tests:
@@ -69,16 +69,16 @@ jobs:
       - name: Run migrations
         run: php artisan migrate --force
 
-      - name: Deploy to Production
+      - name: Deploy
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
-          echo "Deploying to production server..."
+          echo "Deploying to development server..."
           mkdir -p ~/.ssh
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_rsa_deploy
           chmod 600 ~/.ssh/id_rsa_deploy
           ssh -i ~/.ssh/id_rsa_deploy -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_SERVER_USER }}@${{ secrets.PRODUCTION_SERVER_IP }} << 'EOF'
             cd ${{ secrets.DEPLOY_PATH }}
-            git pull origin main
+            git pull origin dev
             composer install --no-interaction --prefer-dist --optimize-autoloader
             php artisan optimize:clear
             php artisan l5-swagger:generate
