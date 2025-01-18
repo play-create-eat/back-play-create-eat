@@ -4,11 +4,12 @@ on:
   push:
     branches: [dev]
   pull_request:
+    types: [closed]
     branches: [dev]
 
 jobs:
   laravel-tests:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     permissions:
       contents: read
@@ -24,9 +25,9 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready" 
-          --health-interval=10s 
-          --health-timeout=5s 
+          --health-cmd="pg_isready"
+          --health-interval=10s
+          --health-timeout=5s
           --health-retries=5
 
     steps:
@@ -69,8 +70,8 @@ jobs:
       - name: Run migrations
         run: php artisan migrate --force
 
-      - name: Deploy
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      - name: Deploy to Development Server
+        if: (github.ref == 'refs/heads/dev' && github.event_name == 'push') || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
         run: |
           echo "Deploying to development server..."
           mkdir -p ~/.ssh
