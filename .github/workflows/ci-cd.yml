@@ -3,15 +3,12 @@ name: Laravel CI/CD
 on:
   push:
     branches: [dev]
-  pull_request:
-    types: [closed]
-    branches: [dev]
 
 jobs:
   laravel-tests:
     if: >
-      (github.event_name == 'push' && !contains(github.event.head_commit.message, 'Merge pull request')) ||
-      (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+      !contains(github.event.head_commit.message, 'Merge pull request') ||
+      (github.event.head_commit.message && startsWith(github.event.head_commit.message, 'Merge branch'))
     runs-on: ubuntu-24.04
 
     permissions:
