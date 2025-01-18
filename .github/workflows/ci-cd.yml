@@ -9,6 +9,9 @@ on:
 
 jobs:
   laravel-tests:
+    if: >
+      (github.event_name == 'push' && !contains(github.event.head_commit.message, 'Merge pull request')) ||
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
 
     permissions:
@@ -71,7 +74,6 @@ jobs:
         run: php artisan migrate --force
 
       - name: Deploy to Development Server
-        if: (github.ref == 'refs/heads/dev' && github.event_name == 'push') || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
         run: |
           echo "Deploying to development server..."
           mkdir -p ~/.ssh
