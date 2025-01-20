@@ -23,7 +23,7 @@ class SendOtpSms
      */
     public function handle(object $event): void
     {
-        $otp = 123456;
+        $otp = 1234;
         $user = $event->user;
 
         $otp = OtpCode::create([
