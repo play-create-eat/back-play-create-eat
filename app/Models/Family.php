@@ -9,6 +9,13 @@ class Family extends Model
 {
     protected $fillable = ['name'];
 
+    protected $hidden = ['deleted_at'];
+
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
+    }
+
     public function children(): HasMany
     {
         return $this->hasMany(Child::class);

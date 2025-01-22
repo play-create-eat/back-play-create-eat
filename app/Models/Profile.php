@@ -25,6 +25,8 @@ class Profile extends Model
         'id_type'       => IdTypeEnum::class
     ];
 
+    protected $hidden = ['user_id', 'date_of_birth', 'gender', 'deleted_at'];
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
