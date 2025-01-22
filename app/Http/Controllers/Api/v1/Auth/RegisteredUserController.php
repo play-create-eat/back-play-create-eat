@@ -147,9 +147,8 @@ class RegisteredUserController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"registration_id", "password"},
+     *             required={"registration_id"},
      *             @OA\Property(property="registration_id", type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000"),
-     *             @OA\Property(property="password", type="string", format="password", example="StrongPassword123")
      *         )
      *     ),
      *     @OA\Response(
