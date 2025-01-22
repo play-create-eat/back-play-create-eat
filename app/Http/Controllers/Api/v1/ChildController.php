@@ -20,6 +20,14 @@ class ChildController extends Controller
      *     summary="Get all children of the authenticated user's family",
      *     tags={"Children"},
      *     security={{"sanctum": {}}},
+     *     @OA\Parameter (
+     *     name="registration_id",
+     *     in="query",
+     *     required=false,
+     *     description="Registration ID from registered parent",
+     *     example="123e4567-e89b-12d3-a456-426614174000",
+     *     @OA\Schema(type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000")
+     *    ),
      *     @OA\Response(
      *         response=200,
      *         description="List of children",
@@ -40,8 +48,15 @@ class ChildController extends Controller
      *     )
      * )
      */
-    public function index()
+    public function index(Request $request)
     {
+        if (!$request->user()) {
+            $request->validate([
+                'registration_id' => ['required', 'string', 'exists:partial_registrations,id'],
+            ]);
+
+            return Child::where('family_id', PartialRegistration::find($request->registration_id)->family_id)->get();
+        }
         return response()->json(auth()->user()->family->children);
     }
 
