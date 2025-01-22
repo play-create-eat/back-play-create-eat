@@ -30,7 +30,29 @@ class AuthenticatedSessionController extends Controller
      *         response=200,
      *         description="User successfully logged in",
      *         @OA\JsonContent(
-     *             @OA\Property(property="token", type="string", example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+     *             @OA\Property(property="token", type="string", example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."),
+     *             @OA\Property(property="user", type="object", properties={
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="name", type="string", example="John Doe"),
+     *                 @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
+     *                 @OA\Property(property="created_at", type="string", format="date-time", example="2021-01-01T00:00:00Z"),
+     *                 @OA\Property(property="updated_at", type="string", format="date-time", example="2021-01-01T00:00:00Z"),
+     *                 @OA\Property(property="profile", type="object", properties={
+     *                     @OA\Property(property="first_name", type="string", example="John"),
+     *                     @OA\Property(property="last_name", type="string", example="Doe"),
+     *                     @OA\Property(property="phone_number", type="string", example="1234567890"),
+     *                     @OA\Property(property="id_type", type="string", example="passport"),
+     *                     @OA\Property(property="id_number", type="string", example="123456789"),
+     *                     @OA\Property(property="created_at", type="string", format="date-time", example="2021-01-01T00:00:00Z"),
+     *                     @OA\Property(property="updated_at", type="string", format="date-time", example="2021-01-01T00:00:00Z")
+     *                 }),
+     *                 @OA\Property(property="family", type="object", properties={
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="name", type="string", example="Doe's Family"),
+     *                     @OA\Property(property="created_at", type="string", format="date-time", example="2021-01-01T00:00:00Z"),
+     *                     @OA\Property(property="updated_at", type="string", format="date-time", example="2021-01-01T00:00:00Z")
+     *                 })
+     *             })
      *         )
      *     ),
      *     @OA\Response(
@@ -45,7 +67,7 @@ class AuthenticatedSessionController extends Controller
     public function store(LoginRequest $request): JsonResponse
     {
         $request->validate([
-            'email' => ['required', 'email'],
+            'email'    => ['required', 'email'],
             'password' => ['required'],
         ]);
 
@@ -59,7 +81,7 @@ class AuthenticatedSessionController extends Controller
 
         $token = $user->createToken($request->userAgent())->plainTextToken;
 
-        return response()->json(['token' => $token]);
+        return response()->json(['token' => $token, 'user' => $user->load(['profile', 'family'])]);
     }
 
     /**

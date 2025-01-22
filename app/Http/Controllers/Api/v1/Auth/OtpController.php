@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\v1\Auth;
 
+use App\Enums\Otps\StatusEnum;
 use App\Http\Controllers\Controller;
 use App\Models\OtpCode;
 use Illuminate\Http\Request;
@@ -18,8 +19,9 @@ class OtpController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"otp"},
-     *             @OA\Property(property="otp", type="string", description="The OTP code", example="1234")
+     *             required={"identifier", "otp"},
+     *              @OA\Property(property="identifier", type="string", description="The identifier for the OTP", example="user@example.com"),
+     *              @OA\Property(property="otp", type="string", description="The OTP code", example="1234")
      *         )
      *     ),
      *     @OA\Response(
@@ -48,21 +50,23 @@ class OtpController extends Controller
     public function verify(Request $request)
     {
         $request->validate([
+            'identifier' => ['required', 'string'],
             'otp' => ['required', 'string'],
         ]);
 
-//        $user = $request->user();
-//
-//        $otp = OtpCode::where('code', $request->otp)
-//            ->where('user_id', $user->id)
-//            ->whereNull('expired_at')
-//            ->first();
+        $otp = OtpCode::where('identifier', $request->input('identifier'))
+            ->where('code', $request->input('otp'))
+            ->where('expires_at', '>=', now())
+            ->first();
 
-        if ($request->input('otp') !== '1234') {
+        if (!$otp) {
             return response()->json(['message' => 'Invalid OTP code.'], 400);
         }
 
-//        $otp->update(['expired_at' => now()]);
+        $otp->update([
+            'status' => StatusEnum::VERIFIED,
+            'expires_at' => now()
+        ]);
 
         return response()->json(['message' => 'Account verified successfully.']);
     }

@@ -1,5 +1,8 @@
 <?php
 
+use App\Enums\Otps\PurposeEnum;
+use App\Enums\Otps\StatusEnum;
+use App\Enums\Otps\TypeEnum;
 use App\Models\User;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -14,11 +17,16 @@ return new class extends Migration {
         Schema::create('otp_codes', function (Blueprint $table) {
             $table->id();
             $table->foreignIdFor(User::class)
+                ->nullable()
                 ->constrained()
-                ->cascadeOnDelete()
-                ->cascadeOnUpdate();
+                ->nullOnDelete();
+            $table->string('identifier')
+                ->nullable();
+            $table->enum('type', TypeEnum::values());
             $table->smallInteger('code');
-            $table->timestamp('expired_at');
+            $table->enum('purpose', PurposeEnum::values());
+            $table->enum('status', StatusEnum::values());
+            $table->timestamp('expires_at');
             $table->timestamps();
         });
     }
