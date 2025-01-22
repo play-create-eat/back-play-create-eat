@@ -40,8 +40,15 @@ class ChildController extends Controller
      *     )
      * )
      */
-    public function index()
+    public function index(Request $request)
     {
+        if (!$request->user()) {
+            $request->validate([
+                'registration_id' => ['required', 'string', 'exists:partial_registrations,id'],
+            ]);
+
+            return Child::where('family_id', PartialRegistration::find($request->registration_id)->family_id)->get();
+        }
         return response()->json(auth()->user()->family->children);
     }
 
