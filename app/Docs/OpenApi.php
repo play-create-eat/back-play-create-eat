@@ -12,7 +12,7 @@ namespace App\Docs;
  *     ),
  *     )
  * @OA\SecurityScheme(
- * *     securityScheme="Sanctum",
+ * *     securityScheme="sanctum",
  * *     type="http",
  * *     scheme="bearer",
  * *     bearerFormat="JWT",

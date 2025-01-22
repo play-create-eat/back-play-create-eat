@@ -12,14 +12,11 @@ use App\Models\User;
 use App\Services\OtpService;
 use App\Services\TwilloService;
 use Exception;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
 
 class ResetPasswordController extends Controller
 {
     /**
-     /**
      * @OA\Post(
      *     path="/api/v1/forgot-password",
      *     summary="Request password reset",
@@ -27,14 +24,14 @@ class ResetPasswordController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-      *             @OA\Property(property="phone_number", type="string", example="+1234567890", description="Phone number associated with the user")
+     *             @OA\Property(property="phone_number", type="string", example="+1234567890", description="Phone number associated with the user")
      *         )
      *     ),
      *     @OA\Response(
      *         response=200,
      *         description="OTP sent successfully",
      *         @OA\JsonContent(
-      *             @OA\Property(property="message", type="string", example="OTP sent successfully.")
+     *             @OA\Property(property="message", type="string", example="OTP sent successfully.")
      *         )
      *     ),
      *     @OA\Response(
@@ -62,7 +59,6 @@ class ResetPasswordController extends Controller
     }
 
     /**
-    /**
      * @OA\Post(
      *     path="/api/v1/reset-password",
      *     summary="Set new password",
@@ -70,9 +66,9 @@ class ResetPasswordController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             @OA\Property(property="otp", type="string", example="123456", description="OTP code received by the user"),
-      *             @OA\Property(property="password", type="string", format="password", example="newpassword123", description="New password"),
-      *             @OA\Property(property="password_confirmation", type="string", format="password", example="newpassword123", description="Password confirmation")
+     *             @OA\Property(property="otp", type="string", example="1234", description="OTP code received by the user"),
+     *             @OA\Property(property="password", type="string", format="password", example="newpassword123", description="New password"),
+     *             @OA\Property(property="password_confirmation", type="string", format="password", example="newpassword123", description="Password confirmation")
      *         )
      *     ),
      *     @OA\Response(
@@ -86,7 +82,7 @@ class ResetPasswordController extends Controller
      *         response=422,
      *         description="Validation error or invalid OTP",
      *         @OA\JsonContent(
-      *             @OA\Property(property="message", type="string", example="Invalid OTP."),
+     *             @OA\Property(property="message", type="string", example="Invalid OTP."),
      *             @OA\Property(property="errors", type="object", description="An object containing validation errors for specific fields")
      *         )
      *     )
