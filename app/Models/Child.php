@@ -12,7 +12,8 @@ class Child extends Model
         'first_name',
         'last_name',
         'gender',
-        'birth_date'
+        'birth_date',
+        'family_id'
     ];
 
     protected $casts = [

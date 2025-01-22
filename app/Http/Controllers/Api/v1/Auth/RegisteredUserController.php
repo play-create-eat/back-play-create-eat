@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Api\v1\Auth;
 
 use App\Enums\IdTypeEnum;
+use App\Enums\Otps\PurposeEnum;
+use App\Enums\Otps\TypeEnum;
 use App\Enums\PartialRegistrationStatusEnum;
 use App\Http\Controllers\Controller;
 use App\Models\Family;
 use App\Models\Invitation;
 use App\Models\PartialRegistration;
 use App\Models\User;
+use App\Services\OtpService;
+use App\Services\TwilloService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
@@ -106,8 +110,9 @@ class RegisteredUserController extends Controller
      *         )
      *     )
      * )
+     * @throws \Exception
      */
-    public function step2(Request $request)
+    public function step2(Request $request, OtpService $otpService, TwilloService $twilloService)
     {
         $validated = $request->validate([
             'registration_id' => ['required', 'exists:partial_registrations,id'],
@@ -125,6 +130,9 @@ class RegisteredUserController extends Controller
             'status'       => PartialRegistrationStatusEnum::Completed,
         ]);
 
+        $otpCode = $otpService->generate(null, TypeEnum::PHONE, PurposeEnum::REGISTER, $partialRegistration->phone_number);
+        $otpService->send($otpCode, $twilloService);
+
         return response()->json([
             'message'         => 'Step 2 completed successfully.',
             'registration_id' => $partialRegistration->id,
@@ -139,15 +147,38 @@ class RegisteredUserController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"registration_id"},
+     *             required={"registration_id", "password"},
      *             @OA\Property(property="registration_id", type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000"),
+     *             @OA\Property(property="password", type="string", format="password", example="StrongPassword123")
      *         )
      *     ),
      *     @OA\Response(
      *         response=201,
      *         description="Registration completed successfully",
      *         @OA\JsonContent(
-     *             @OA\Property(property="token", type="string", example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+     *             @OA\Property(property="token", type="string", example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."),
+     *             @OA\Property(property="user", type="object", properties={
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="name", type="string", example="John Doe"),
+     *                 @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
+     *                 @OA\Property(property="created_at", type="string", format="date-time", example="2021-01-01T00:00:00Z"),
+     *                 @OA\Property(property="updated_at", type="string", format="date-time", example="2021-01-01T00:00:00Z"),
+     *                 @OA\Property(property="profile", type="object", properties={
+     *                     @OA\Property(property="first_name", type="string", example="John"),
+     *                     @OA\Property(property="last_name", type="string", example="Doe"),
+     *                     @OA\Property(property="phone_number", type="string", example="1234567890"),
+     *                     @OA\Property(property="id_type", type="string", example="passport"),
+     *                     @OA\Property(property="id_number", type="string", example="123456789"),
+     *                     @OA\Property(property="created_at", type="string", format="date-time", example="2021-01-01T00:00:00Z"),
+     *                     @OA\Property(property="updated_at", type="string", format="date-time", example="2021-01-01T00:00:00Z")
+     *                 }),
+     *                 @OA\Property(property="family", type="object", properties={
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="name", type="string", example="Doe's Family"),
+     *                     @OA\Property(property="created_at", type="string", format="date-time", example="2021-01-01T00:00:00Z"),
+     *                     @OA\Property(property="updated_at", type="string", format="date-time", example="2021-01-01T00:00:00Z")
+     *                 })
+     *             })
      *         )
      *     ),
      *     @OA\Response(
@@ -169,8 +200,8 @@ class RegisteredUserController extends Controller
         $partialRegistration = PartialRegistration::findOrFail($validated['registration_id']);
 
         $user = User::create([
-            'email'    => $partialRegistration->email,
-            'password' => Hash::make($request->string('password')),
+            'email'     => $partialRegistration->email,
+            'password'  => Hash::make($request->string('password')),
             'family_id' => $partialRegistration->family_id,
         ]);
 
@@ -186,7 +217,7 @@ class RegisteredUserController extends Controller
 
         $token = $user->createToken($request->userAgent())->plainTextToken;
 
-        return response()->json(['token' => $token], Response::HTTP_CREATED);
+        return response()->json(['token' => $token, 'user' => $user->load(['profile', 'family'])], Response::HTTP_CREATED);
     }
 
     /**

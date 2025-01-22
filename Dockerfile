@@ -26,11 +26,12 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     supervisor \
     redis \
-    redis-tools
+    redis-tools \
+    libicu-dev
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN docker-php-ext-install pdo pdo_pgsql pgsql zip bcmath gd \
+RUN docker-php-ext-install pdo pdo_pgsql pgsql zip bcmath gd intl\
  && pecl install redis && docker-php-ext-enable redis
 
 # Install and enable Xdebug
