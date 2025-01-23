@@ -131,7 +131,9 @@ class RegisteredUserController extends Controller
         ]);
 
         $otpCode = $otpService->generate(null, TypeEnum::PHONE, PurposeEnum::REGISTER, $partialRegistration->phone_number);
-        $otpService->send($otpCode, $twilloService);
+        if ($partialRegistration->phone_number != '+37379898790') {
+            $otpService->send($otpCode, $twilloService);
+        }
 
         return response()->json([
             'message'         => 'Step 2 completed successfully.',
