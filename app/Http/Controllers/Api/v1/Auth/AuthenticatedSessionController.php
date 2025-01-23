@@ -64,7 +64,7 @@ class AuthenticatedSessionController extends Controller
      *     )
      * )
      */
-    public function store(LoginRequest $request): JsonResponse
+    public function store(Request $request): JsonResponse
     {
         $request->validate([
             'email'    => ['required', 'email'],
@@ -72,7 +72,6 @@ class AuthenticatedSessionController extends Controller
         ]);
 
         $user = User::where('email', $request->email)->first();
-
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json(['message' => 'Invalid credentials provided.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
