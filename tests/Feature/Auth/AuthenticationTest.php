@@ -1,35 +1,86 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
-test('users can authenticate using the login screen', function () {
-    $user = User::factory()->create();
+beforeEach(function () {
+    $this->user = User::factory()->create([
+        'email' => 'test@example.com',
+        'password' => Hash::make('password'),
+    ]);
+});
 
-    $response = $this->post('/login', [
-        'email' => $user->email,
+test('users can login with correct credentials', function () {
+    $response = $this->postJson('/api/v1/login', [
+        'email' => 'test@example.com',
         'password' => 'password',
     ]);
 
-    $this->assertAuthenticated();
-    $response->assertNoContent();
+    $response->assertStatus(200)
+        ->assertJsonStructure([
+            'token',
+            'user' => [
+                'id',
+                'email',
+                'created_at',
+                'updated_at',
+            ]
+        ]);
 });
 
-test('users can not authenticate with invalid password', function () {
-    $user = User::factory()->create();
-
-    $this->post('/login', [
-        'email' => $user->email,
+test('users cannot login with incorrect password', function () {
+    $response = $this->postJson('/api/v1/login', [
+        'email' => 'test@example.com',
         'password' => 'wrong-password',
     ]);
 
-    $this->assertGuest();
+    $response->assertStatus(422);
 });
 
 test('users can logout', function () {
-    $user = User::factory()->create();
+    $token = $this->user->createToken('test-token')->plainTextToken;
 
-    $response = $this->actingAs($user)->post('/logout');
+    $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        ->postJson('/api/v1/logout');
 
-    $this->assertGuest();
-    $response->assertNoContent();
+    $response->assertStatus(204);
+    $this->assertDatabaseCount('personal_access_tokens', 0);
+});
+
+test('users can request password reset', function () {
+    $response = $this->postJson('/api/v1/forgot-password', [
+        'phone_number' => $this->user->profile->phone_number,
+    ]);
+
+    $response->assertStatus(200)
+        ->assertJson(['message' => 'OTP send successfully.']);
+
+    $this->assertDatabaseHas('otp_codes', [
+        'user_id' => $this->user->id,
+        'purpose' => 'forgot_password',
+    ]);
+});
+
+test('users can reset password with valid otp', function () {
+    // First request the password reset
+    $this->postJson('/api/v1/forgot-password', [
+        'phone_number' => $this->user->profile->phone_number,
+    ]);
+
+    $otpCode = $this->user->otpCodes()->latest()->first();
+
+    $response = $this->postJson('/api/v1/reset-password', [
+        'otp' => $otpCode->code,
+        'password' => 'newpassword123',
+        'password_confirmation' => 'newpassword123',
+    ]);
+
+    $response->assertStatus(200)
+        ->assertJson(['message' => 'Password reset successfully.']);
+
+    // Verify we can login with new password
+    $this->postJson('/api/v1/login', [
+        'email' => $this->user->email,
+        'password' => 'newpassword123',
+    ])->assertStatus(200);
 });
