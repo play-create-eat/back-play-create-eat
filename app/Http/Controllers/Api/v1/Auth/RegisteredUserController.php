@@ -202,7 +202,7 @@ class RegisteredUserController extends Controller
 
         $user = User::create([
             'email'     => $partialRegistration->email,
-            'password'  => Hash::make($request->string('password')),
+            'password'  => $partialRegistration->password,
             'family_id' => $partialRegistration->family_id,
         ]);
 
