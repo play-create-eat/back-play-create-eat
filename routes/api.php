@@ -15,7 +15,8 @@ Route::prefix('v1')->group(function () {
             return response()->json($request->user());
         });
 
-        Route::get('children', [ChildController::class, 'index']);
+        Route::get('children', [ChildController::class, 'index'])
+        ->withoutMiddleware('auth:sanctum');
         Route::post('children', [ChildController::class, 'store'])
             ->withoutMiddleware('auth:sanctum');
         Route::delete('children/{child}', [ChildController::class, 'destroy'])->withoutMiddleware('auth:sanctum');

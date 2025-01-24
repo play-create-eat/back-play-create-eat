@@ -115,7 +115,7 @@ class RegisteredUserController extends Controller
     public function step2(Request $request, OtpService $otpService, TwilloService $twilloService)
     {
         $validated = $request->validate([
-            'registration_id' => ['required', 'exists:partial_registrations,id'],
+            'registration_id' => ['required', 'string', 'uuid', 'exists:partial_registrations,id'],
             'email'           => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'phone_number'    => ['required', 'string', 'max:255', 'unique:profiles'],
             'password'        => ['required', 'confirmed', Password::defaults()],
