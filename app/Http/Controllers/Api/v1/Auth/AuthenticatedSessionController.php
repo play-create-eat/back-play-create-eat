@@ -3,9 +3,7 @@
 namespace App\Http\Controllers\Api\v1\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Auth\LoginRequest;
 use App\Models\User;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,8 +19,8 @@ class AuthenticatedSessionController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"email", "password"},
-     *             @OA\Property(property="email", type="string", format="email", description="User's email address", example="john.doe@example.com"),
+     *             required={"phone_number", "password"},
+     *             @OA\Property(property="phone_number", type="string", description="User's phone number", example="1234567890"),
      *             @OA\Property(property="password", type="string", format="password", description="User's password", example="StrongPassword123")
      *         )
      *     ),
@@ -64,14 +62,17 @@ class AuthenticatedSessionController extends Controller
      *     )
      * )
      */
-    public function store(Request $request): JsonResponse
+    public function store(Request $request)
     {
         $request->validate([
-            'email'    => ['required', 'email'],
+            'phone_number'    => ['required', 'exists:profiles,phone_number'],
             'password' => ['required'],
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::whereHas('profile', function ($query) use ($request) {
+            $query->where('phone_number', $request->input('phone_number'));
+        })->first();
+
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json(['message' => 'Invalid credentials provided.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
@@ -103,9 +104,9 @@ class AuthenticatedSessionController extends Controller
      *     )
      * )
      */
-    public function destroy(Request $request)
+    public function destroy()
     {
-        $request->user()->currentAccessToken()->delete();
+        auth()->guard('sanctum')->user()->currentAccessToken()->delete();
 
         return response()->noContent();
     }
