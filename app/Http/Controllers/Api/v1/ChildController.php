@@ -50,14 +50,11 @@ class ChildController extends Controller
      */
     public function index(Request $request)
     {
-        if (!$request->user()) {
-            $request->validate([
-                'registration_id' => ['required', 'string', 'uuid', 'exists:partial_registrations,id'],
-            ]);
-
+        if ($request->input('registration_id')) {
             return Child::where('family_id', PartialRegistration::find($request->registration_id)->family_id)->get();
         }
-        return response()->json(auth()->user()->family->children);
+
+        return response()->json(auth()->guard('sanctum')->user()->family->children);
     }
 
     /**

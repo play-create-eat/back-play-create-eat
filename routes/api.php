@@ -1,9 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\v1\ChildController;
-use App\Http\Controllers\Api\v1\DocumentController;
 use App\Http\Controllers\Api\v1\InvitationController;
 use App\Http\Controllers\Api\v1\PandaDocController;
+use App\Http\Middleware\CheckAuthenticationOrRegistrationId;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -16,7 +16,8 @@ Route::prefix('v1')->group(function () {
         });
 
         Route::get('children', [ChildController::class, 'index'])
-        ->withoutMiddleware('auth:sanctum');
+            ->withoutMiddleware('auth:sanctum')
+            ->middleware(CheckAuthenticationOrRegistrationId::class);
         Route::post('children', [ChildController::class, 'store'])
             ->withoutMiddleware('auth:sanctum');
         Route::delete('children/{child}', [ChildController::class, 'destroy'])->withoutMiddleware('auth:sanctum');
