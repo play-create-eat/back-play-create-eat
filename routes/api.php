@@ -18,8 +18,16 @@ Route::prefix('v1')->group(function () {
         Route::get('children', [ChildController::class, 'index'])
             ->withoutMiddleware('auth:sanctum')
             ->middleware(CheckAuthenticationOrRegistrationId::class);
+
+        Route::get('children/{child}', [ChildController::class, 'show'])
+            ->withoutMiddleware('auth:sanctum')
+            ->middleware(CheckAuthenticationOrRegistrationId::class);
+
         Route::post('children', [ChildController::class, 'store'])
-            ->withoutMiddleware('auth:sanctum');
+            ->withoutMiddleware('auth:sanctum')
+            ->middleware(CheckAuthenticationOrRegistrationId::class);
+
+        Route::post('children/{child}', [ChildController::class, 'update']);
         Route::delete('children/{child}', [ChildController::class, 'destroy'])->withoutMiddleware('auth:sanctum');
 
         Route::post('documents', [PandaDocController::class, 'create'])
