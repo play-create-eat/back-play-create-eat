@@ -118,6 +118,12 @@ class ChildController extends Controller
      *                 description="Gender of the child (male, female, or other)"
      *             ),
      *             @OA\Property(property="registration_id", type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000", description="Optional Registration ID from registered parent")
+     *             @OA\Property(
+     *                  property="avatar",
+     *                  type="string",
+     *                  format="binary",
+     *                  description="Optional avatar image for the child, max size 10MB"
+     *              )
      *         )
      *     ),
      *     @OA\Response(
@@ -143,6 +149,7 @@ class ChildController extends Controller
             'birth_date'      => ['required', 'date', 'before:today'],
             'gender'          => ['required', 'string', new Enum(GenderEnum::class)],
             'registration_id' => ['sometimes', 'string', 'exists:partial_registrations,id'],
+            'avatar'          => ['sometimes', 'image', 'max:10240'],
         ]);
 
         $familyId = $request->input('registration_id')
@@ -150,6 +157,10 @@ class ChildController extends Controller
             : auth()->guard('sanctum')->user()->family->id;
 
         $child = Child::create([...$validated, 'family_id' => $familyId]);
+
+        if ($request->hasFile('avatar')) {
+            $child->addMedia($request->file('avatar'))->toMediaCollection('avatars');
+        }
 
         return response()->json(new ChildResource($child), Response::HTTP_CREATED);
     }
