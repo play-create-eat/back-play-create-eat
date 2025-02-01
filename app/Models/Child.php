@@ -5,9 +5,13 @@ namespace App\Models;
 use App\Enums\GenderEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class Child extends Model
+class Child extends Model implements HasMedia
 {
+    use InteractsWithMedia;
+
     protected $fillable = [
         'first_name',
         'last_name',
@@ -24,5 +28,13 @@ class Child extends Model
     public function family(): BelongsTo
     {
         return $this->belongsTo(Family::class);
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('avatars')
+            ->singleFile()
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->useDisk('public');
     }
 }
