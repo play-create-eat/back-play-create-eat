@@ -5,6 +5,8 @@ namespace Database\Seeders;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
@@ -13,11 +15,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $accessWallet = Permission::create(['name' => 'access wallet']);
+        $inviteMembers = Permission::create(['name' => 'invite members']);
+        $mainParent = Role::create(['name' => 'Main Parent']);
+        $mainParent->givePermissionTo([$accessWallet, $inviteMembers]);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
-    }
+        Role::create(['name' => 'Second Parent']);
+        Role::create(['name' => 'Nanny']);
+        Role::create(['name' => 'Relative']);    }
 }
