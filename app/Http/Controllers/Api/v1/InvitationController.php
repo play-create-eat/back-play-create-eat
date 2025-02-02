@@ -2,11 +2,21 @@
 
 namespace App\Http\Controllers\Api\v1;
 
+use App\Enums\IdTypeEnum;
+use App\Enums\Otps\PurposeEnum;
+use App\Enums\Otps\TypeEnum;
+use App\Enums\PartialRegistrationStatusEnum;
 use App\Http\Controllers\Controller;
-use App\Mail\InviteMemberMail;
 use App\Models\Invitation;
+use App\Models\PartialRegistration;
+use App\Models\User;
+use App\Services\OtpService;
+use App\Services\TwilloService;
 use Illuminate\Http\Request;
-use Mail;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Enum;
+use Illuminate\Validation\Rules\Password;
+use Symfony\Component\HttpFoundation\Response;
 
 class InvitationController extends Controller
 {
@@ -55,30 +65,133 @@ class InvitationController extends Controller
      *     )
      * )
      */
-    public function invite(Request $request)
+    public function invite(Request $request, OtpService $otpService, TwilloService $twilloService)
     {
         $request->validate([
-            'email' => ['required', 'email', 'unique:users,email'],
+            'phone_number' => ['required', 'unique:profiles,phone_number'],
+            'role'         => ['required', 'exists:roles,name'],
+            'permissions'  => ['nullable', 'array'],
+            'permissions.*' => ['sometimes', 'exists:permissions,name']
         ]);
 
-        $user = $request->user();
+        $user = auth()->guard('sanctum')->user();
         $familyId = $user->family_id;
 
         if (!$familyId) {
             return response()->json(['message' => 'User is not part of a family.'], 400);
         }
 
-        $code = rand(100000, 999999);
+        $code = rand(1000, 9999);
 
-        Invitation::create([
-           'code' => $code,
-           'email' => $request->email,
-           'family_id' => $familyId,
-           'creator_id' => $request->user()->id,
+        if ($request->get('phone_number') != "+37368411195") {
+            $code = 1234;
+        }
+
+        $invite = Invitation::create([
+            'code'         => $code,
+            'phone_number' => $request->get('phone_number'),
+            'role' => $request->get('role'),
+            'permissions' => $request->get('permissions'),
+            'family_id'    => $familyId,
+            'created_by'   => $user->id,
+            'expires_at'   => now()->addDay()
         ]);
 
-        Mail::to($request->email)->send(new InviteMemberMail($code));
+        if ($request->get('phone_number') === '+37368411195') {
+            $otpService->send($invite->code, $twilloService);
+        }
 
         return response()->json(['message' => 'Invitation sent successfully.']);
+    }
+
+    public function validateStep1(Request $request)
+    {
+        $validated = $request->validate([
+            'code'       => ['required', 'exists:invitations,code'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name'  => ['required', 'string', 'max:255'],
+            'id_type'    => ['required', new Enum(IdTypeEnum::class)],
+            'id_number'  => ['required', 'string', 'max:255', 'unique:profiles,id_number'],
+        ]);
+
+        $invitation = Invitation::where('code', $request->get('code'))
+            ->where('used', false)
+            ->firstOrFail();
+
+        $familyId = User::find($invitation->created_by)->family_id;
+        $partialRegistration = PartialRegistration::create([...$validated, 'family_id' => $familyId]);
+
+        return response()->json([
+            'message'         => 'Step 1 completed successfully.',
+            'registration_id' => $partialRegistration->id,
+        ], Response::HTTP_CREATED);
+    }
+
+    public function validateStep2(Request $request, OtpService $otpService, TwilloService $twilloService)
+    {
+        $request->validate([
+            'code'            => ['required', 'exists:invitations,code'],
+            'registration_id' => ['required', 'string', 'uuid', 'exists:partial_registrations,id'],
+            'email'           => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'phone_number'    => ['required', 'string', 'max:255', 'unique:profiles'],
+            'password'        => ['required', 'confirmed', Password::defaults()],
+        ]);
+
+        $partialRegistration = PartialRegistration::findOrFail($request->get('registration_id'));
+
+        $partialRegistration->update([
+            'email'        => $request->get('email'),
+            'phone_number' => $request->get('phone_number'),
+            'password'     => Hash::make($request->get('password')),
+            'status'       => PartialRegistrationStatusEnum::Completed,
+        ]);
+
+        $otpCode = $otpService->generate(null, TypeEnum::PHONE, PurposeEnum::REGISTER, $partialRegistration->phone_number);
+        if ($partialRegistration->phone_number === '+37368411195') {
+            $otpService->send($otpCode, $twilloService);
+        }
+
+        return response()->json([
+            'message'         => 'Step 2 completed successfully.',
+            'registration_id' => $partialRegistration->id,
+        ], Response::HTTP_CREATED);
+    }
+
+    public function register(Request $request)
+    {
+        $request->validate([
+            'code'            => ['required', 'exists:invitations,code'],
+            'registration_id' => ['required', 'exists:partial_registrations,id'],
+        ]);
+
+        $partialRegistration = PartialRegistration::findOrFail($request->get('registration_id'));
+
+        $user = User::create([
+            'email'     => $partialRegistration->email,
+            'password'  => $partialRegistration->password,
+            'family_id' => $partialRegistration->family_id,
+        ]);
+
+        $user->profile()->create([
+            'first_name'   => $partialRegistration->first_name,
+            'last_name'    => $partialRegistration->last_name,
+            'phone_number' => $partialRegistration->phone_number,
+            'id_type'      => $partialRegistration->id_type,
+            'id_number'    => $partialRegistration->id_number,
+        ]);
+
+        $invitation = Invitation::where('code', $request->get('code'))->firstOrFail();
+
+        $user->givePermissionTo($invitation->permissions);
+        $user->assignRole($invitation->role);
+        $invitation->update(['used' => true]);
+
+        $partialRegistration->delete();
+
+        $user->assignRole('Main Parent');
+
+        $token = $user->createToken($request->userAgent())->plainTextToken;
+
+        return response()->json(['token' => $token, 'user' => $user->load(['profile', 'family'])], Response::HTTP_CREATED);
     }
 }

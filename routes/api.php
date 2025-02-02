@@ -39,6 +39,10 @@ Route::prefix('v1')->group(function () {
         Route::post('invite', [InvitationController::class, 'invite']);
     });
 
+    Route::post('invite/register-step-1', [InvitationController::class, 'validateStep1']);
+    Route::post('invite/register-step-2', [InvitationController::class, 'validateStep2']);
+    Route::post('invite/register', [InvitationController::class, 'register']);
+
     require __DIR__ . '/auth.php';
 
     Route::post('/pandadoc/webhook', [PandaDocController::class, 'handleWebhook']);

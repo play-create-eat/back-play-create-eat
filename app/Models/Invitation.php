@@ -2,21 +2,26 @@
 
 namespace App\Models;
 
-use App\Enums\InvitationStatusEnum;
 use Illuminate\Database\Eloquent\Model;
 
 class Invitation extends Model
 {
     protected $fillable = [
         'code',
-        'family_id',
-        'creator_id',
-        'status',
-        'expired_at'
+        'phone_number',
+        'role',
+        'permissions',
+        'created_by',
+        'expires_at',
+        'used',
     ];
 
-    protected $casts = [
-        'status' => InvitationStatusEnum::class,
-        'expired_at' => 'datetime'
-    ];
+    protected function casts(): array
+    {
+        return [
+            'role'        => 'string',
+            'permissions' => 'array',
+            'expires_at'  => 'datetime',
+        ];
+    }
 }

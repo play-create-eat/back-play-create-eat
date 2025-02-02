@@ -216,6 +216,8 @@ class RegisteredUserController extends Controller
 
         $partialRegistration->delete();
 
+        $user->assignRole('Main Parent');
+
         $token = $user->createToken($request->userAgent())->plainTextToken;
 
         return response()->json(['token' => $token, 'user' => $user->load(['profile', 'family'])], Response::HTTP_CREATED);
