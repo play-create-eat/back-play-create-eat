@@ -4,15 +4,15 @@ use App\Http\Controllers\Api\v1\ChildController;
 use App\Http\Controllers\Api\v1\InvitationController;
 use App\Http\Controllers\Api\v1\PandaDocController;
 use App\Http\Middleware\CheckAuthenticationOrRegistrationId;
-use Illuminate\Http\Request;
+use App\Http\Resources\Api\v1\UserResource;
 use Illuminate\Support\Facades\Route;
 
 
 Route::prefix('v1')->group(function () {
 
     Route::middleware(['auth:sanctum'])->group(function () {
-        Route::get('user', function (Request $request) {
-            return response()->json($request->user());
+        Route::get('user', function () {
+            return new UserResource(auth()->guard('sanctum')->user()->load(['profile', 'family', 'permissions']));
         });
 
         Route::get('children', [ChildController::class, 'index'])

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\v1\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Api\v1\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -65,8 +66,8 @@ class AuthenticatedSessionController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'phone_number'    => ['required', 'exists:profiles,phone_number'],
-            'password' => ['required'],
+            'phone_number' => ['required', 'exists:profiles,phone_number'],
+            'password'     => ['required'],
         ]);
 
         $user = User::whereHas('profile', function ($query) use ($request) {
@@ -81,7 +82,10 @@ class AuthenticatedSessionController extends Controller
 
         $token = $user->createToken($request->userAgent())->plainTextToken;
 
-        return response()->json(['token' => $token, 'user' => $user->load(['profile', 'family'])]);
+        return response()->json([
+            'token' => $token,
+            'user'  => new UserResource($user->load(['profile', 'family', 'roles.permissions']))
+        ]);
     }
 
     /**

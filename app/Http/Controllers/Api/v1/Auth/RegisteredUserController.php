@@ -7,6 +7,7 @@ use App\Enums\Otps\PurposeEnum;
 use App\Enums\Otps\TypeEnum;
 use App\Enums\PartialRegistrationStatusEnum;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Api\v1\UserResource;
 use App\Models\Family;
 use App\Models\Invitation;
 use App\Models\PartialRegistration;
@@ -131,7 +132,7 @@ class RegisteredUserController extends Controller
         ]);
 
         $otpCode = $otpService->generate(null, TypeEnum::PHONE, PurposeEnum::REGISTER, $partialRegistration->phone_number);
-        if ($partialRegistration->phone_number != '+37379898790') {
+        if ($partialRegistration->phone_number === '+37368411195') {
             $otpService->send($otpCode, $twilloService);
         }
 
@@ -220,7 +221,12 @@ class RegisteredUserController extends Controller
 
         $token = $user->createToken($request->userAgent())->plainTextToken;
 
-        return response()->json(['token' => $token, 'user' => $user->load(['profile', 'family'])], Response::HTTP_CREATED);
+        return response()->json([
+            'token' => $token,
+            'user'  => new UserResource($user->load(['profile', 'family', 'roles.permissions']))
+        ],
+            Response::HTTP_CREATED
+        );
     }
 
     /**

@@ -24,7 +24,7 @@ class ResetPasswordRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'otp'      => ['required'],
+            'current_password' => ['required', 'current_password:sanctum'],
             'password' => ['required', 'confirmed', Password::defaults()],
         ];
     }

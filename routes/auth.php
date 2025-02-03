@@ -34,8 +34,10 @@ Route::post('/login', [AuthenticatedSessionController::class, 'store'])
 Route::post('forgot-password', [ResetPasswordController::class, 'forgot'])
     ->middleware('guest');
 
+Route::post('new-password', [NewPasswordController::class, 'store']);
+
 Route::post('reset-password', [ResetPasswordController::class, 'reset'])
-    ->middleware('guest');
+    ->middleware('auth:sanctum');
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth:sanctum')
