@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Api\v1\UserResource;
 use Illuminate\Http\Request;
 
 class ProfileController extends Controller
@@ -12,7 +13,7 @@ class ProfileController extends Controller
         $user = auth()->guard('sanctum')->user();
 
         $request->validate([
-            'email' => ['sometimes', 'unique:users,email'],
+            'email'        => ['sometimes', 'unique:users,email'],
             'phone_number' => ['sometimes', 'unique:profiles,phone_number']
         ]);
 
@@ -24,6 +25,6 @@ class ProfileController extends Controller
             $user->profile->update(['phone_number' => $request->get('phone_number')]);
         }
 
-        return response()->json($user->load('profile'));
+        return new UserResource($user->load('profile', 'roles.permissions'));
     }
 }
