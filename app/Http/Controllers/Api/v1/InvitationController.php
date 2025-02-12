@@ -68,9 +68,9 @@ class InvitationController extends Controller
     public function invite(Request $request, OtpService $otpService, TwilloService $twilloService)
     {
         $request->validate([
-            'phone_number' => ['required', 'unique:profiles,phone_number'],
-            'role'         => ['required', 'exists:roles,name'],
-            'permissions'  => ['nullable', 'array'],
+            'phone_number'  => ['required', 'unique:profiles,phone_number'],
+            'role'          => ['required', 'exists:roles,name'],
+            'permissions'   => ['nullable', 'array'],
             'permissions.*' => ['sometimes', 'exists:permissions,name']
         ]);
 
@@ -83,25 +83,30 @@ class InvitationController extends Controller
 
         $code = rand(1000, 9999);
 
-        if ($request->get('phone_number') != "+37368411195") {
-            $code = 1234;
-        }
+//        if ($request->get('phone_number') != "+37368411195") {
+//            $code = 1234;
+//        }
 
         $invite = Invitation::create([
             'code'         => $code,
             'phone_number' => $request->get('phone_number'),
-            'role' => $request->get('role'),
-            'permissions' => $request->get('permissions'),
+            'role'         => $request->get('role'),
+            'permissions'  => $request->get('permissions'),
             'family_id'    => $familyId,
             'created_by'   => $user->id,
             'expires_at'   => now()->addDay()
         ]);
 
-        if ($request->get('phone_number') === '+37368411195') {
-            $otpService->send($invite->code, $twilloService);
-        }
+//        if ($request->get('phone_number') === '+37368411195') {
+        $message = "Your invitation code is $invite->code. It will expire in 2 minutes.";
+        $twilloService->sendSms($invite->phone_number, $message);
+//            $otpService->send($invite->code, $twilloService);
+//        }
 
-        return response()->json(['message' => 'Invitation sent successfully.']);
+        return response()->json([
+            'message' => 'Invitation sent successfully.',
+            'code'    => $code
+        ]);
     }
 
     public function validateStep1(Request $request)
@@ -147,9 +152,9 @@ class InvitationController extends Controller
         ]);
 
         $otpCode = $otpService->generate(null, TypeEnum::PHONE, PurposeEnum::REGISTER, $partialRegistration->phone_number);
-        if ($partialRegistration->phone_number === '+37368411195') {
-            $otpService->send($otpCode, $twilloService);
-        }
+//        if ($partialRegistration->phone_number === '+37368411195') {
+        $otpService->send($otpCode, $twilloService);
+//        }
 
         return response()->json([
             'message'         => 'Step 2 completed successfully.',

@@ -13,7 +13,7 @@ return new class extends Migration {
     {
         Schema::create('invitations', function (Blueprint $table) {
             $table->id();
-            $table->string('code')->unique();
+            $table->string('code');
             $table->string('phone_number');
             $table->enum('role', ["Second Parent", "Nanny", "Relative"]);
             $table->json('permissions')

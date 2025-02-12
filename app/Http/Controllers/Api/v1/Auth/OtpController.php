@@ -68,6 +68,8 @@ class OtpController extends Controller
             'expires_at' => now()
         ]);
 
+        $otp->delete();
+
         return response()->json(['message' => 'Account verified successfully.']);
     }
 
