@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\v1\ChildController;
+use App\Http\Controllers\Api\v1\FamilyController;
 use App\Http\Controllers\Api\v1\InvitationController;
 use App\Http\Controllers\Api\v1\PandaDocController;
 use App\Http\Middleware\CheckAuthenticationOrRegistrationId;
@@ -37,6 +38,8 @@ Route::prefix('v1')->group(function () {
             ->withoutMiddleware('auth:sanctum');
 
         Route::post('invite', [InvitationController::class, 'invite']);
+
+        Route::get('user/family-members', [FamilyController::class, 'members']);
     });
 
     Route::post('invite/register-step-1', [InvitationController::class, 'validateStep1']);
