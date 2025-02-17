@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.2",
         "ext-exif": "*",
+        "bavix/laravel-wallet": "^11.3",
         "darkaonline/l5-swagger": "^8.6",
         "filament/filament": "^3.2",
         "laravel/framework": "^11.31",

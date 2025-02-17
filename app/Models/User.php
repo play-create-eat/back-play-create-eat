@@ -14,11 +14,13 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use Bavix\Wallet\Traits\CanPay;
+use Bavix\Wallet\Interfaces\Customer;
 
-class User extends Authenticatable implements HasName
+class User extends Authenticatable implements HasName, Customer
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens, HasRoles;
+    use HasFactory, Notifiable, HasApiTokens, HasRoles, CanPay;
 
     /**
      * The attributes that are mass assignable.
