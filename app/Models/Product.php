@@ -14,6 +14,7 @@ use Bavix\Wallet\Interfaces\ProductLimitedInterface;
  * @property string $name
  * @property ?string $description
  * @property ProductTypeEnum $type
+ * @property int $duration
  * @property int $price
  * @property ?int $price_weekend
  * @property double $fee_percent
@@ -30,6 +31,7 @@ class Product extends Model implements ProductLimitedInterface
         'name',
         'description',
         'type',
+        'duration',
         'price',
         'price_weekend',
         'fee_percent',
@@ -65,6 +67,7 @@ class Product extends Model implements ProductLimitedInterface
     {
         return [
             'type' => ProductTypeEnum::class,
+            'duration' => 'integer',
             'price' => 'integer',
             'price_weekend' => 'integer',
             'fee_percent' => 'decimal:2',

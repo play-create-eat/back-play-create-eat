@@ -15,6 +15,7 @@ return new class extends Migration {
             $table->string('name');
             $table->text('description')->nullable();
             $table->string('type');
+            $table->integer('duration')->unsigned()->default(0);
             $table->integer('price')->unsigned();
             $table->integer('price_weekend')->unsigned()->nullable();
             $table->decimal('fee_percent', 3, 2)->default(0);
