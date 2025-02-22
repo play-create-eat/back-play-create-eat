@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.2",
         "ext-exif": "*",
+        "archtechx/enums": "^1.1",
         "bavix/laravel-wallet": "^11.3",
         "darkaonline/l5-swagger": "^8.6",
         "filament/filament": "^3.2",

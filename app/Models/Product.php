@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\ProductTypeEnum;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\AsEnumCollection;
 use Bavix\Wallet\Traits\HasWallet;
 use Bavix\Wallet\Interfaces\Customer;
 use Bavix\Wallet\Interfaces\ProductLimitedInterface;
@@ -13,8 +14,8 @@ use Bavix\Wallet\Interfaces\ProductLimitedInterface;
  * @property int $id
  * @property string $name
  * @property ?string $description
- * @property ProductTypeEnum $type
- * @property int $duration
+ * @property ProductTypeEnum[] $features
+ * @property int $duration_time
  * @property int $price
  * @property ?int $price_weekend
  * @property double $fee_percent
@@ -30,8 +31,8 @@ class Product extends Model implements ProductLimitedInterface
     protected $fillable = [
         'name',
         'description',
-        'type',
-        'duration',
+        'features',
+        'duration_time',
         'price',
         'price_weekend',
         'fee_percent',
@@ -66,8 +67,8 @@ class Product extends Model implements ProductLimitedInterface
     protected function casts(): array
     {
         return [
-            'type' => ProductTypeEnum::class,
-            'duration' => 'integer',
+            'features' => AsEnumCollection::of(ProductTypeEnum::class),
+            'duration_time' => 'integer',
             'price' => 'integer',
             'price_weekend' => 'integer',
             'fee_percent' => 'decimal:2',
