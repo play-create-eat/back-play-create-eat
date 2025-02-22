@@ -23,7 +23,7 @@ class UserResource extends JsonResource
             'roles'   => $this->roles->map(function ($role) {
                 return [
                     'name'        => $role->name,
-                    'permissions' => [$role->permissions->pluck('name'), ...$this->getPermissionNames()],
+                    'permissions' => $role->permissions->pluck('name'), ...$this->getPermissionNames(),
                 ];
             }),
             'created_at' => Carbon::parse($this->created_at)->toIso8601String()

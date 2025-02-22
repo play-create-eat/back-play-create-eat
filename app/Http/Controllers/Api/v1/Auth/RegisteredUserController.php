@@ -217,7 +217,7 @@ class RegisteredUserController extends Controller
 
         $partialRegistration->delete();
 
-        $user->assignRole('Main Parent');
+        $user->assignRole('Administrator');
 
         $token = $user->createToken($request->userAgent())->plainTextToken;
 
