@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\v1;
 
 use App\Enums\IdTypeEnum;
 use App\Enums\Otps\PurposeEnum;
+use App\Enums\Otps\StatusEnum;
 use App\Enums\Otps\TypeEnum;
 use App\Enums\PartialRegistrationStatusEnum;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Api\v1\UserResource;
 use App\Models\Invitation;
+use App\Models\OtpCode;
 use App\Models\PartialRegistration;
 use App\Models\User;
 use App\Services\OtpService;
@@ -83,10 +86,6 @@ class InvitationController extends Controller
 
         $code = rand(1000, 9999);
 
-//        if ($request->get('phone_number') != "+37368411195") {
-//            $code = 1234;
-//        }
-
         $invite = Invitation::create([
             'code'         => $code,
             'phone_number' => $request->get('phone_number'),
@@ -97,11 +96,8 @@ class InvitationController extends Controller
             'expires_at'   => now()->addDay()
         ]);
 
-//        if ($request->get('phone_number') === '+37368411195') {
         $message = "Your invitation code is $invite->code. It will expire in 2 minutes.";
         $twilloService->sendSms($invite->phone_number, $message);
-//            $otpService->send($invite->code, $twilloService);
-//        }
 
         return response()->json([
             'message' => 'Invitation sent successfully.',
@@ -152,9 +148,7 @@ class InvitationController extends Controller
         ]);
 
         $otpCode = $otpService->generate(null, TypeEnum::PHONE, PurposeEnum::REGISTER, $partialRegistration->phone_number);
-//        if ($partialRegistration->phone_number === '+37368411195') {
         $otpService->send($otpCode, $twilloService);
-//        }
 
         return response()->json([
             'message'         => 'Step 2 completed successfully.',
@@ -170,6 +164,14 @@ class InvitationController extends Controller
         ]);
 
         $partialRegistration = PartialRegistration::findOrFail($request->get('registration_id'));
+
+        $otp = OtpCode::where('identifier', $partialRegistration->phone_number)
+            ->where('status', StatusEnum::VERIFIED)
+            ->first();
+
+        if (!$otp) {
+            return response()->json(['message' => 'Invalid OTP.'], 422);
+        }
 
         $user = User::create([
             'email'     => $partialRegistration->email,
@@ -195,6 +197,9 @@ class InvitationController extends Controller
 
         $token = $user->createToken($request->userAgent())->plainTextToken;
 
-        return response()->json(['token' => $token, 'user' => $user->load(['profile', 'family'])], Response::HTTP_CREATED);
+        return response()->json([
+            'token' => $token,
+            'user'  => new UserResource($user->load(['profile', 'family', 'roles.permissions']))
+        ]);
     }
 }
