@@ -8,8 +8,10 @@
     "require": {
         "php": "^8.2",
         "ext-exif": "*",
+        "barryvdh/laravel-dompdf": "^3.1",
         "darkaonline/l5-swagger": "^8.6",
         "filament/filament": "^3.2",
+        "intervention/image-laravel": "^1.5",
         "laravel/framework": "^11.31",
         "laravel/pulse": "^1.2",
         "laravel/sanctum": "^4.0",
