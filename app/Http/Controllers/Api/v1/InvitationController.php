@@ -96,7 +96,7 @@ class InvitationController extends Controller
             'expires_at'   => now()->addDay()
         ]);
 
-        $message = "Your invitation code is $invite->code. It will expire in 2 minutes.";
+        $message = "You’re invited to join PlayCreateEat: \nPlease use this link to join: play-create-eat://invite/$code \nOr set this code on register: $code";
         $twilloService->sendSms($invite->phone_number, $message);
 
         return response()->json([
