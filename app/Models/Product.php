@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use App\Enums\ProductTypeEnum;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Casts\AsEnumCollection;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Bavix\Wallet\Traits\HasWallet;
 use Bavix\Wallet\Interfaces\Customer;
 use Bavix\Wallet\Interfaces\ProductLimitedInterface;
@@ -14,7 +14,7 @@ use Bavix\Wallet\Interfaces\ProductLimitedInterface;
  * @property int $id
  * @property string $name
  * @property ?string $description
- * @property ProductTypeEnum[] $features
+ * @property ?ProductType[] $features
  * @property int $duration_time
  * @property int $price
  * @property ?int $price_weekend
@@ -23,15 +23,20 @@ use Bavix\Wallet\Interfaces\ProductLimitedInterface;
  * @property bool $is_available
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
+ * @property ?\Carbon\Carbon $deleted_at
  */
 class Product extends Model implements ProductLimitedInterface
 {
-    use HasWallet;
+    use HasWallet, SoftDeletes;
 
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
         'name',
         'description',
-        'features',
         'duration_time',
         'price',
         'price_weekend',
@@ -64,10 +69,14 @@ class Product extends Model implements ProductLimitedInterface
         ];
     }
 
+    public function features(): BelongsToMany
+    {
+        return $this->belongsToMany(ProductType::class, 'product_features', 'product_id', 'product_type_id');
+    }
+
     protected function casts(): array
     {
         return [
-            'features' => AsEnumCollection::of(ProductTypeEnum::class),
             'duration_time' => 'integer',
             'price' => 'integer',
             'price_weekend' => 'integer',

@@ -14,8 +14,6 @@ return new class extends Migration {
             $table->id();
             $table->string('name');
             $table->text('description')->nullable();
-            // $table->string('type');
-            $table->json('features');
             $table->integer('duration_time')->unsigned()->default(0);
             $table->integer('price')->unsigned();
             $table->integer('price_weekend')->unsigned()->nullable();
@@ -23,10 +21,9 @@ return new class extends Migration {
             $table->boolean('is_extendable')->default(false);
             $table->boolean('is_available')->default(false);
             $table->timestamps();
+            $table->softDeletes();
 
-            $table->index('features');
             $table->index('is_available');
-            $table->index(['features', 'is_available']);
         });
     }
 
