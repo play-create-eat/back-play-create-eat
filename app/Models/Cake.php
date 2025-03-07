@@ -8,7 +8,7 @@ class Cake extends Model
 {
     protected $fillable = [
         'type',
-        'recommended_weight',
+        'price_per_kg',
     ];
 
     public function registerMediaCollections(): void

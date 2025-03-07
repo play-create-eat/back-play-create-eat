@@ -14,7 +14,7 @@ class Theme extends Model implements HasMedia
         'name',
         'description',
         'type',
-        'age',
+        'category',
     ];
 
     public function registerMediaCollections(): void

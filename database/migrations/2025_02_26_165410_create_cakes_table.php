@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('cakes', function (Blueprint $table) {
             $table->id();
             $table->string('type');
-            $table->decimal('recommended_weight', 5);
+            $table->decimal('price_per_kg');
             $table->timestamps();
         });
     }

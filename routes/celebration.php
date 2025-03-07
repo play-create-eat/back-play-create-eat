@@ -19,6 +19,12 @@ Route::post('celebration/{celebration}/guests-count', [CelebrationController::cl
 
 Route::post('celebration/{celebration}/slot', [CelebrationController::class, 'slot']);
 
+Route::post('celebration/{celebration}/theme', [CelebrationController::class, 'theme']);
+
+Route::post('celebration/{celebration}/cake', [CelebrationController::class, 'cake']);
+
+Route::post('celebration/{celebration}/menu', [CelebrationController::class, 'menu']);
+
 Route::get('/themes', [ThemeController::class, 'index']);
 
 Route::get('/packages', [PackageController::class, 'index']);
@@ -35,7 +41,7 @@ Route::get('/cakes', [CakeController::class, 'index']);
 Route::get('/cakes/{cake}', [CakeController::class, 'show']);
 
 // Step 7: Select Menu
-Route::get('/menus', [MenuController::class, 'index']);
+Route::get('/menu', [MenuController::class, 'index']);
 Route::get('/menus/{menu}', [MenuController::class, 'show']);
 
 // Step 8: Generate Invitation

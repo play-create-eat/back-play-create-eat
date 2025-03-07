@@ -49,6 +49,8 @@ return new class extends Migration {
                 ->constrained()
                 ->nullOnDelete();
             $table->boolean('photo_album')->default(false);
+            $table->decimal('price', 5)
+            ->nullable();
             $table->timestamps();
         });
     }

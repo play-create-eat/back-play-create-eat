@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ThemeTypeEnum;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -15,10 +16,9 @@ return new class extends Migration {
             $table->string('name');
             $table->text('description')
                 ->nullable();
-            $table->enum('type', ['birthday'])
+            $table->enum('type', ThemeTypeEnum::values())
                 ->nullable();
-            $table->enum('age', ['1-3', '3-8', '8-12'])
-                ->nullable();
+            $table->string('category');
             $table->timestamps();
         });
     }

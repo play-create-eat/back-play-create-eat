@@ -13,6 +13,9 @@ class Package extends Model
         'weekday_price',
         'weekend_price',
         'min_children',
+        'duration_hours',
+        'cashback_percentage',
+        'bonus_playground_visit',
     ];
 
     public function features(): HasMany
