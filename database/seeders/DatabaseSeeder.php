@@ -24,5 +24,10 @@ class DatabaseSeeder extends Seeder
         Role::create(['name' => 'Parent']);
         Role::create(['name' => 'Nanny']);
         Role::create(['name' => 'Relative']);
+
+        $this->call([
+            AdminSeeder::class,
+            TableSeeder::class,
+        ]);
     }
 }
