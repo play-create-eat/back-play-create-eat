@@ -23,7 +23,7 @@ class CakeResource extends Resource
             ->schema([
                 TextInput::make('type')->required(),
                 TextInput::make('price_per_kg')->numeric()->required(),
-                FileUpload::make('images')->image()->multiple()->disk('public'),
+                FileUpload::make('images')->image()->multiple()->disk('s3'),
             ]);
     }
 
