@@ -9,7 +9,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 class Cake extends Model implements HasMedia
 {
     use InteractsWithMedia;
-
+  
     protected $fillable = [
         'type',
         'price_per_kg',
@@ -26,13 +26,15 @@ class Cake extends Model implements HasMedia
         });
     }
 
+    public function getImageAttribute(): ?string
+    {
+        return $this->getFirstMediaUrl('cake_images') ?: null;
+    }
+
+
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('cake_images')->useDisk('s3');
     }
 
-    public function getImageAttribute(): string
-    {
-        return $this->getFirstMediaUrl('cake_images');
-    }
 }
