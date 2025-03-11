@@ -4,6 +4,8 @@
 /public/hot
 /public/storage
 /public/vendor
+/public/js/filament
+/public/css/filament
 /storage/*.key
 /storage/api-docs/api-docs.json
 /storage/pail

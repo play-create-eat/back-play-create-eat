@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers\Api\v1\Auth;
 
+use App\Enums\Otps\PurposeEnum;
 use App\Enums\Otps\StatusEnum;
+use App\Enums\Otps\TypeEnum;
 use App\Http\Controllers\Controller;
 use App\Models\OtpCode;
+use App\Services\OtpService;
+use App\Services\TwilloService;
 use Illuminate\Http\Request;
 
 class OtpController extends Controller
@@ -68,6 +72,8 @@ class OtpController extends Controller
             'expires_at' => now()
         ]);
 
+        $otp->delete();
+
         return response()->json(['message' => 'Account verified successfully.']);
     }
 
@@ -101,22 +107,21 @@ class OtpController extends Controller
      *     )
      * )
      */
-    public function resend(Request $request)
+    public function resend(Request $request, OtpService $otpService, TwilloService $twilloService)
     {
-//        $user = $request->user();
-//
-//        $otp = OtpCode::where('user_id', $user->id)
-//            ->whereNull('expired_at')
-//            ->first();
-//
-//        if ($otp) {
-//            return response()->json(['message' => 'OTP code already sent.'], 400);
-//        }
-//
-//        $otp = OtpCode::create([
-//            'user_id' => $user->id,
-//            'code' => 1234,
-//        ]);
+        $request->validate([
+            'identifier' => ['required']
+        ]);
+
+        $otps = OtpCode::where('identifier', $request->input('identifier'))
+            ->where('expires_at', '>=',  now())->get();
+
+        foreach ($otps as $otp) {
+            $otp->delete();
+        }
+
+        $otp = $otpService->generate(null, TypeEnum::PHONE, PurposeEnum::REGISTER, $request->input('identifier'));
+        $otpService->send($otp, $twilloService);
 
         return response()->json(['message' => 'OTP code sent successfully.']);
     }

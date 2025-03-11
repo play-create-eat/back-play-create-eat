@@ -1,14 +1,11 @@
 <?php
 
-use App\Enums\InvitationStatusEnum;
-use App\Models\Family;
 use App\Models\User;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -16,19 +13,17 @@ return new class extends Migration
     {
         Schema::create('invitations', function (Blueprint $table) {
             $table->id();
-            $table->unsignedInteger('code')
-                ->unique();
-            $table->string('email')
+            $table->string('code');
+            $table->string('phone_number');
+            $table->enum('role', ["Parent", "Nanny", "Relative"]);
+            $table->json('permissions')
                 ->nullable();
-            $table->foreignIdFor(Family::class)
-                ->nullable();
-            $table->foreignIdFor(User::class, 'creator_id');
-            $table->enum('status', InvitationStatusEnum::values())
-                ->default(InvitationStatusEnum::PENDING->value);
-            $table->timestamp('expired_at')
-                ->nullable();
+            $table->foreignIdFor(User::class, 'created_by')
+                ->constrained()
+                ->cascadeOnDelete();
+            $table->timestamp('expires_at')->nullable();
+            $table->boolean('used')->default(false);
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 

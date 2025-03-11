@@ -7,7 +7,7 @@ use App\Enums\Otps\TypeEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\v1\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Api\v1\Auth\ResetPasswordRequest;
-use App\Models\OtpCode;
+use App\Http\Resources\Api\v1\UserResource;
 use App\Models\User;
 use App\Services\OtpService;
 use App\Services\TwilloService;
@@ -53,9 +53,9 @@ class ResetPasswordController extends Controller
         })->first();
 
         $otpCode = $otpService->generate($user, TypeEnum::PHONE, PurposeEnum::FORGOT_PASSWORD, $request->input('phone_number'));
-        if ($request->input('phone_number') != '+37379898790') {
+//        if ($request->input('phone_number') === '+37368411195') {
             $otpService->send($otpCode, $twilloService);
-        }
+//        }
 
         return response()->json(['message' => 'OTP send successfully.']);
     }
@@ -92,19 +92,8 @@ class ResetPasswordController extends Controller
      */
     public function reset(ResetPasswordRequest $request)
     {
-        $otp = OtpCode::where('code', $request->input('otp'))
-            ->where('expires_at', '>=', now())
-            ->first();
+        auth()->guard('sanctum')->user()->update(['password' => Hash::make($request->get('new_password'))]);
 
-        if (!$otp) {
-            return response()->json(['message' => 'Invalid otp.'], 422);
-        }
-
-        $otp->user->update([
-            'password' => Hash::make($request->input('password'))
-        ]);
-
-        return response()->json(['message' => 'Password reset successfully.']);
-
+        return new UserResource(auth()->guard('sanctum')->user()->load('profile', 'family', 'roles.permissions'));
     }
 }

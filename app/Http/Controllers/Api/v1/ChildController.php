@@ -107,9 +107,27 @@ class ChildController extends Controller
      *         @OA\JsonContent(
      *             type="object",
      *             required={"first_name", "last_name", "birth_date", "gender"},
-     *             @OA\Property(property="first_name", type="string", maxLength=255, example="John", description="First name of the child"),
-     *             @OA\Property(property="last_name", type="string", maxLength=255, example="Doe", description="Last name of the child"),
-     *             @OA\Property(property="birth_date", type="string", format="date", example="2015-06-15", description="Birth date of the child in YYYY-MM-DD format"),
+     *             @OA\Property(
+     *                 property="first_name",
+     *                 type="string",
+     *                 maxLength=255,
+     *                 example="John",
+     *                 description="First name of the child"
+     *             ),
+     *             @OA\Property(
+     *                 property="last_name",
+     *                 type="string",
+     *                 maxLength=255,
+     *                 example="Doe",
+     *                 description="Last name of the child"
+     *             ),
+     *             @OA\Property(
+     *                 property="birth_date",
+     *                 type="string",
+     *                 format="date",
+     *                 example="2015-06-15",
+     *                 description="Birth date of the child in YYYY-MM-DD format"
+     *             ),
      *             @OA\Property(
      *                 property="gender",
      *                 type="string",
@@ -117,13 +135,19 @@ class ChildController extends Controller
      *                 example="male",
      *                 description="Gender of the child (male, female, or other)"
      *             ),
-     *             @OA\Property(property="registration_id", type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000", description="Optional Registration ID from registered parent")
      *             @OA\Property(
-     *                  property="avatar",
-     *                  type="string",
-     *                  format="binary",
-     *                  description="Optional avatar image for the child, max size 10MB"
-     *              )
+     *                 property="registration_id",
+     *                 type="string",
+     *                 format="uuid",
+     *                 example="123e4567-e89b-12d3-a456-426614174000",
+     *                 description="Optional Registration ID from registered parent"
+     *             ),
+     *             @OA\Property(
+     *                 property="avatar",
+     *                 type="string",
+     *                 format="binary",
+     *                 description="Optional avatar image for the child, max size 10MB"
+     *             )
      *         )
      *     ),
      *     @OA\Response(
@@ -141,6 +165,7 @@ class ChildController extends Controller
      *     )
      * )
      */
+
     public function store(Request $request)
     {
         $validated = $request->validate([

@@ -3,6 +3,8 @@ services:
         build:
             context: .
             dockerfile: Dockerfile
+            platforms:
+                - linux/amd64
         container_name: app
         working_dir: /var/www/html
         volumes:
@@ -51,7 +53,7 @@ services:
         image: redis:alpine
         container_name: redis
         env_file:
-            -   .env
+            - .env
         ports:
             - "6379:6379"
         networks:
