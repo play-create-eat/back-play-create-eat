@@ -42,9 +42,9 @@ class Child extends Model implements HasMedia
 
     public function registerMediaCollections(): void
     {
-        $this->addMediaCollection('avatars')
+        $this->addMediaCollection('child_avatars')
             ->singleFile()
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
-            ->useDisk('public');
+            ->useDisk('s3');
     }
 }

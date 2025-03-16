@@ -18,11 +18,16 @@ class DatabaseSeeder extends Seeder
         Permission::create(['name' => 'access wallet']);
         Permission::create(['name' => 'invite members']);
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
-        $mainParent = Role::create(['name' => 'Main Parent']);
+        $mainParent = Role::create(['name' => 'Administrator']);
         $mainParent->givePermissionTo(['access wallet', 'invite members']);
 
-        Role::create(['name' => 'Second Parent']);
+        Role::create(['name' => 'Parent']);
         Role::create(['name' => 'Nanny']);
         Role::create(['name' => 'Relative']);
+
+        $this->call([
+            AdminSeeder::class,
+            TableSeeder::class,
+        ]);
     }
 }

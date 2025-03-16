@@ -15,7 +15,7 @@ return new class extends Migration {
             $table->id();
             $table->string('code');
             $table->string('phone_number');
-            $table->enum('role', ["Second Parent", "Nanny", "Relative"]);
+            $table->enum('role', ["Parent", "Nanny", "Relative"]);
             $table->json('permissions')
                 ->nullable();
             $table->foreignIdFor(User::class, 'created_by')
