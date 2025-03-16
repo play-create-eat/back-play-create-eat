@@ -14,19 +14,18 @@ class Admin extends Authenticatable
     use SoftDeletes;
 
     protected $fillable = [
+        'name',
         'email',
         'password',
         'email_verified_at',
         'remember_token',
         'deleted_at',
-        'family_id',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
         'email_verified_at',
-        'family_id',
         'deleted_at'
     ];
 
