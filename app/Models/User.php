@@ -5,7 +5,6 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
-use DateTimeInterface;
 use Filament\Models\Contracts\HasName;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,9 +14,12 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Bavix\Wallet\Traits\CanPay;
-use Bavix\Wallet\Interfaces\Customer;
 
-class User extends Authenticatable implements HasName, Customer
+/**
+ * @property int $id
+ * @property ?Family $family
+ */
+class User extends Authenticatable implements HasName
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, HasApiTokens, HasRoles, CanPay;

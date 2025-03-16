@@ -6,10 +6,22 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Bavix\Wallet\Traits\HasWallet;
 use Bavix\Wallet\Interfaces\Wallet;
+use Bavix\Wallet\Interfaces\Customer;
+use Bavix\Wallet\Traits\CanPay;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Family extends Model implements Wallet
+/**
+ * @property int $id
+ * @property string $name
+ * @property ?User[] $users
+ * @property ?Child[] $children
+ * @property \Carbon\Carbon $created_at
+ * @property \Carbon\Carbon $updated_at
+ * @property ?\Carbon\Carbon $deleted_at
+ */
+class Family extends Model implements Wallet, Customer
 {
-    use HasWallet;
+    use HasWallet, CanPay, SoftDeletes;
 
     protected $fillable = ['name'];
 

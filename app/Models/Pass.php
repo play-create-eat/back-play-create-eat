@@ -1,0 +1,47 @@
+<?php
+
+namespace App\Models;
+
+use Bavix\Wallet\Models\Transfer;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+/**
+ * @property int $id
+ * @property string $serial
+ * @property int $remaining_time
+ * @property bool $is_extendable
+ * @property ?Child $children
+ * @property ?\Bavix\Wallet\Models\Transfer $transfer
+ * @property ?\Carbon\Carbon $entered_at
+ * @property ?\Carbon\Carbon $exited_at
+ * @property \Carbon\Carbon $expires_at
+ * @property \Carbon\Carbon $created_at
+ * @property \Carbon\Carbon $updated_at
+ * @property ?\Carbon\Carbon $deleted_at
+ */
+class Pass extends Model
+{
+    use SoftDeletes;
+
+    protected $fillable = ['serial', 'remaining_time', 'is_extendable', 'entered_at', 'exited_at', 'expires_at'];
+
+    protected $hidden = ['deleted_at'];
+
+    public function children(): BelongsTo
+    {
+        return $this->belongsTo(Child::class);
+    }
+
+    public function transfer(): BelongsTo
+    {
+        return $this->belongsTo(Transfer::class);
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->expires_at->lte(Carbon::now());
+    }
+}
