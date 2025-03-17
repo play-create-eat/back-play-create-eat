@@ -71,4 +71,20 @@ class StripePaymentController extends Controller
     {
         return response()->json(['message' => 'Payment cancelled'], Response::HTTP_BAD_REQUEST);
     }
+
+    public function transactions(Family $family)
+    {
+        $walletTransactions = $family->mainWallet->transactions()
+            ->orderBy('created_at', 'desc')
+            ->get(['type', 'amount', 'meta', 'created_at']);
+
+        $cashbackTransactions = $family->loyaltyWallet->transactions()
+            ->orderBy('created_at', 'desc')
+            ->get(['type', 'amount', 'meta', 'created_at']);
+
+        return response()->json([
+            'wallet_transactions' => $walletTransactions,
+            'cashback_transactions' => $cashbackTransactions
+        ]);
+    }
 }

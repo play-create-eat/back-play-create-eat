@@ -1,12 +1,10 @@
 <?php
 
-use App\Http\Controllers\Api\v1\CelebrationController;
 use App\Http\Controllers\Api\v1\ChildController;
 use App\Http\Controllers\Api\v1\FamilyController;
 use App\Http\Controllers\Api\v1\InvitationController;
 use App\Http\Controllers\Api\v1\PandaDocController;
 use App\Http\Controllers\Api\v1\ProfileController;
-use App\Http\Controllers\Api\v1\ThemeController;
 use App\Http\Middleware\CheckAuthenticationOrRegistrationId;
 use App\Http\Resources\Api\v1\UserResource;
 use Illuminate\Support\Facades\Route;
@@ -58,6 +56,8 @@ Route::prefix('v1')->group(function () {
     require __DIR__ . '/auth.php';
 
     Route::post('/pandadoc/webhook', [PandaDocController::class, 'handleWebhook']);
+
+    require __DIR__ . '/stripe.php';
 });
 
 
