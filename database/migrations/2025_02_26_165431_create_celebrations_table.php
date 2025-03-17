@@ -48,8 +48,13 @@ return new class extends Migration {
                 ->nullable()
                 ->constrained()
                 ->nullOnDelete();
-            $table->boolean('photo_album')->default(false);
-            $table->decimal('price', 5)
+            $table->boolean('photographer')
+                ->default(false);
+            $table->boolean('photo_album')
+                ->default(false);
+            $table->decimal('total_amount', 5)
+            ->nullable();
+            $table->decimal('paid_amount', 5)
             ->nullable();
             $table->timestamps();
         });
