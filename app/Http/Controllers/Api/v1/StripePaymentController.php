@@ -7,6 +7,7 @@ use App\Models\Family;
 use Bavix\Wallet\Internal\Exceptions\ExceptionInterface;
 use Illuminate\Http\Request;
 use Stripe\Checkout\Session;
+use Stripe\Customer;
 use Stripe\Exception\ApiErrorException;
 use Stripe\Stripe;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,8 +17,9 @@ class StripePaymentController extends Controller
     /**
      * @throws ApiErrorException
      */
-    public function createCheckoutSession(Request $request, Family $family)
+    public function createCheckoutSession(Request $request)
     {
+        $family = auth()->guard('sanctum')->user()->family;
         $validated = $request->validate([
             'amount' => 'required|numeric|min:0',
         ]);
@@ -26,8 +28,18 @@ class StripePaymentController extends Controller
 
         Stripe::setApiKey(config('services.stripe.secret'));
 
+        if (!$family->stripe_customer_id) {
+            $customer = Customer::create([
+                'email' => auth()->guard('sanctum')->user()->email,
+                'name'  => $family->name,
+            ]);
+
+            $family->update(['stripe_customer_id' => $customer->id]);
+        }
+
         $session = Session::create([
             'payment_method_types' => ['card'],
+            'customer'             => $family->stripe_customer_id,
             'line_items'           => [
                 [
                     'price_data' => [
@@ -42,7 +54,7 @@ class StripePaymentController extends Controller
             ],
             'mode'                 => 'payment',
             'success_url'          => route('stripe.success', $family),
-            'cancel_url'           => route('stripe.cancel', $family),
+            'cancel_url'           => route('stripe.cancel'),
         ]);
 
         return response()->json(['id' => $session->id]);
@@ -85,6 +97,16 @@ class StripePaymentController extends Controller
         return response()->json([
             'wallet_transactions' => $walletTransactions,
             'cashback_transactions' => $cashbackTransactions
+        ]);
+    }
+
+    public function balance()
+    {
+        $family = auth()->guard('sanctum')->user()->family;
+
+        return response()->json([
+            'wallet_balance' => $family->mainWallet->balance,
+            'cashback_balance' => $family->loyaltyWallet->balance
         ]);
     }
 }
