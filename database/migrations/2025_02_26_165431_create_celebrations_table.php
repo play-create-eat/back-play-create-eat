@@ -52,6 +52,9 @@ return new class extends Migration {
                 ->default(false);
             $table->boolean('photo_album')
                 ->default(false);
+            $table->smallInteger('current_step');
+            $table->boolean('completed')
+                ->default(false);
             $table->decimal('total_amount', 5)
             ->nullable();
             $table->decimal('paid_amount', 5)
