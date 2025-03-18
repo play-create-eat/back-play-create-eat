@@ -24,7 +24,8 @@ class Celebration extends Model
         'cake_weight',
         'menu_id',
         'photo_album',
-        'price'
+        'total_amount',
+        'paid_amount'
     ];
 
     public function child(): BelongsTo

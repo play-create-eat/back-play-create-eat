@@ -20,6 +20,6 @@ class SlideshowImage extends Model implements HasMedia
 
     public function registerMediaCollections(): void
     {
-        $this->addMediaCollection('slideshow_images')->useDisk('public');
+        $this->addMediaCollection('slideshow_images')->useDisk('s3');
     }
 }

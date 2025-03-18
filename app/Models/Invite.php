@@ -21,7 +21,7 @@ class Invite extends Model
 
     public function registerMediaCollections(): void
     {
-        $this->addMediaCollection('invite_images')->useDisk('public');
-        $this->addMediaCollection('invite_pdfs')->useDisk('public');
+        $this->addMediaCollection('invite_images')->useDisk('s3');
+        $this->addMediaCollection('invite_pdfs')->useDisk('s3');
     }
 }

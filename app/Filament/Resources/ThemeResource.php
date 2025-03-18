@@ -4,8 +4,9 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ThemeResource\Pages;
 use App\Models\Theme;
-use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
@@ -13,6 +14,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class ThemeResource extends Resource
 {
@@ -32,8 +34,39 @@ class ThemeResource extends Resource
                     ->default('Birthday Party')
                     ->required(),
                 TextInput::make('category')->required(),
-                FileUpload::make('images')->image()->multiple()->disk('public'),
+                Grid::make()
+                    ->schema([
+                        SpatieMediaLibraryFileUpload::make('main_image')
+                            ->collection('main_images')
+                            ->image()
+                            ->disk('s3')
+                            ->label('Main Image')
+                            ->helperText('Only one main image allowed')
+                            ->maxFiles(1)
+                            ->customProperties([
+                                'main' => true,
+                            ])
+                            ->deleteUploadedFileUsing(static function (SpatieMediaLibraryFileUpload $component, string $file) {
+                                if (!$file) return;
 
+                                $mediaClass = config('media-library.media_model', Media::class);
+                                $mediaClass::findByUuid($file)?->delete();
+                            })
+                            ->columnSpan(1),
+                        SpatieMediaLibraryFileUpload::make('images')
+                            ->collection('theme_images')
+                            ->image()
+                            ->disk('s3')
+                            ->multiple()
+                            ->reorderable()
+                            ->maxFiles(5)
+                            ->deleteUploadedFileUsing(static function (SpatieMediaLibraryFileUpload $component, string $file) {
+                                if (!$file) return;
+
+                                $mediaClass = config('media-library.media_model', Media::class);
+                                $mediaClass::findByUuid($file)?->delete();
+                            })->columnSpan(1),
+                    ]),
             ]);
     }
 

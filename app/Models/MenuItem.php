@@ -15,6 +15,21 @@ class MenuItem extends Model implements HasMedia
 
     protected $fillable = ['menu_category_id', 'name', 'price', 'description'];
 
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::deleting(function ($theme) {
+            $theme->clearMediaCollection('menu_item_images');
+        });
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('menu_item_images')->useDisk('s3');
+
+    }
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(MenuCategory::class, 'menu_category_id');

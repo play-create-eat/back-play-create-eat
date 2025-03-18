@@ -118,7 +118,7 @@ class CelebrationController extends Controller
         }
 
         $celebration->update([
-            'price' => $celebration->price + $celebration->calculateMenuPrice()
+            'total_amount' => $celebration->total_amount + $celebration->calculateMenuPrice()
         ]);
 
         return response()->json($celebration->load('menuItems'));
@@ -223,5 +223,21 @@ class CelebrationController extends Controller
         }
 
         return ['status' => 'success', 'tables' => array_map(fn($table) => $table->name, $tables)];
+    }
+
+    public function photographerAndAlbum(Request $request, Celebration $celebration)
+    {
+        $validated = $request->validate([
+            'photographer' => 'required|boolean',
+            'photo_album'  => 'required|boolean'
+        ]);
+        $celebration->update($validated);
+
+        return response()->json($celebration);
+    }
+
+    public function invitation(Celebration $celebration)
+    {
+        return view('invitations.third-type', ['celebration' => $celebration]);
     }
 }

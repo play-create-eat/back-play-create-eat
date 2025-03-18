@@ -9,21 +9,23 @@ use App\Http\Controllers\Api\v1\PackageController;
 use App\Http\Controllers\Api\v1\SlideshowImageController;
 use App\Http\Controllers\Api\v1\ThemeController;
 
-Route::get('celebration/available-slots', [CelebrationController::class, 'availableSlots']);
+Route::prefix('celebration')
+    ->controller(CelebrationController::class)
+    ->group(function () {
+        Route::get('available-slots', 'availableSlots');
+        Route::post('', 'store');
 
-Route::post('celebration', [CelebrationController::class, 'store']);
-
-Route::post('celebration/{celebration}/package', [CelebrationController::class, 'package']);
-
-Route::post('celebration/{celebration}/guests-count', [CelebrationController::class, 'guestsCount']);
-
-Route::post('celebration/{celebration}/slot', [CelebrationController::class, 'slot']);
-
-Route::post('celebration/{celebration}/theme', [CelebrationController::class, 'theme']);
-
-Route::post('celebration/{celebration}/cake', [CelebrationController::class, 'cake']);
-
-Route::post('celebration/{celebration}/menu', [CelebrationController::class, 'menu']);
+        Route::prefix('{celebration}')->group(function () {
+            Route::post('package', 'package');
+            Route::post('guests-count', 'guestsCount');
+            Route::post('slot', 'slot');
+            Route::post('theme', 'theme');
+            Route::post('cake', 'cake');
+            Route::post('menu', 'menu');
+            Route::post('photographer-and-photo-album', 'photographerAndAlbum');
+            Route::get('invitations', 'invitations');
+        });
+    });
 
 Route::get('/themes', [ThemeController::class, 'index']);
 

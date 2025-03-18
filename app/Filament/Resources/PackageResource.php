@@ -32,7 +32,6 @@ class PackageResource extends Resource
                 TextInput::make('duration_hours')->numeric()->required(),
                 TextInput::make('cashback_percentage')->numeric()->maxValue(100)->default(0),
                 TextInput::make('bonus_playground_visit')->required(),
-                FileUpload::make('images')->image()->multiple()->disk('public'),
 
                 Forms\Components\Repeater::make('features')
                     ->relationship('features')
