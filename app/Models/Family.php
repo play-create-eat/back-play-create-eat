@@ -11,9 +11,11 @@ class Family extends Model
 {
     use HasWallet;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'stripe_customer_id'];
 
     protected $hidden = ['deleted_at'];
+
+    protected $casts = ['stripe_customer_id' => 'string'];
 
     public function users(): HasMany
     {
