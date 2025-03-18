@@ -4,8 +4,10 @@
 /public/hot
 /public/storage
 /public/vendor
-/public/js/filament
-/public/css/filament
+/public/js/filament/**/*
+/public/css/filament/**/*
+!/public/js/filament/.gitkeep
+!/public/css/filament/.gitkeep
 /storage/*.key
 /storage/api-docs/api-docs.json
 /storage/pail
