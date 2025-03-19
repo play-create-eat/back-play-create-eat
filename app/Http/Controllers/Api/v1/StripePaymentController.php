@@ -148,7 +148,7 @@ class StripePaymentController extends Controller
 
     private function handleSuccessfulPayment($paymentIntent)
     {
-        Log::info('Successful Payment Intent: ', $paymentIntent);
+        Log::info('Successful Payment Intent: ', $paymentIntent->toArray());
 
         $customerId = $paymentIntent['customer'];
         $amount = $paymentIntent['amount'] / 100;
@@ -168,7 +168,7 @@ class StripePaymentController extends Controller
 
     private function handleFailedPayment($paymentIntent)
     {
-        Log::warning('Failed Payment Intent: ', $paymentIntent);
+        Log::warning('Failed Payment Intent: ', $paymentIntent->toArray());
 
         $customerId = $paymentIntent['customer'];
         $family = Family::where('stripe_customer_id', $customerId)->first();
