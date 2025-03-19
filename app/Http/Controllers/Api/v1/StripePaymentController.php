@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Family;
 use Bavix\Wallet\Internal\Exceptions\ExceptionInterface;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Stripe\Exception\ApiErrorException;
+use Stripe\Stripe;
 use Stripe\StripeClient;
+use Stripe\Webhook;
 use Symfony\Component\HttpFoundation\Response;
 
 class StripePaymentController extends Controller
@@ -107,5 +110,71 @@ class StripePaymentController extends Controller
             'wallet_balance'  => $family->mainWallet->balance,
             'cashback_points' => $family->loyaltyWallet->balance
         ]);
+    }
+
+    public function handleWebhook(Request $request)
+    {
+        Stripe::setApiKey(config('services.stripe.secret'));
+
+        $endpointSecret = config('services.stripe.webhook_secret');
+        $payload = $request->getContent();
+        $sigHeader = $request->header('Stripe-Signature');
+
+        try {
+            $event = Webhook::constructEvent($payload, $sigHeader, $endpointSecret);
+
+            switch ($event->type) {
+                case 'payment_intent.succeeded':
+                    $paymentIntent = $event->data['object'];
+                    $this->handleSuccessfulPayment($paymentIntent);
+                    break;
+
+                case 'payment_intent.payment_failed':
+                    $paymentIntent = $event->data['object'];
+                    $this->handleFailedPayment($paymentIntent);
+                    break;
+
+                default:
+                    Log::info('Unhandled Stripe event: ' . $event->type);
+            }
+
+            return response()->json(['message' => 'Webhook received'], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Stripe webhook error: ' . $e->getMessage());
+            return response()->json(['error' => 'Webhook handling failed'], 400);
+        }
+    }
+
+    private function handleSuccessfulPayment($paymentIntent)
+    {
+        Log::info('Successful Payment Intent: ', $paymentIntent);
+
+        $customerId = $paymentIntent['customer'];
+        $amount = $paymentIntent['amount'] / 100;
+
+        $family = Family::where('stripe_customer_id', $customerId)->first();
+
+        if ($family) {
+            try {
+                $family->mainWallet->deposit($amount, ['description' => 'Stripe Payment']);
+            } catch (ExceptionInterface $e) {
+                Log::error('Main wallet deposit failed error: ' . $e->getMessage());
+            }
+
+            Log::info("Wallet updated for Family ID: $family->id, Amount: $amount");
+        }
+    }
+
+    private function handleFailedPayment($paymentIntent)
+    {
+        Log::warning('Failed Payment Intent: ', $paymentIntent);
+
+        $customerId = $paymentIntent['customer'];
+        $family = Family::where('stripe_customer_id', $customerId)->first();
+
+        if ($family) {
+            Log::error("Payment failed for Family ID: $family->id, Amount: " . ($paymentIntent['amount'] / 100));
+        }
     }
 }
