@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Bavix\Wallet\Models\Wallet;
 use Bavix\Wallet\Traits\HasWallet;
 use Bavix\Wallet\Traits\HasWallets;
 use Illuminate\Database\Eloquent\Model;
@@ -47,13 +48,13 @@ class Family extends Model
         return $this->hasMany(Child::class);
     }
 
-    public function mainWallet(): MorphOne
+    public function mainWallet(): Wallet
     {
-        return $this->wallet('default');
+        return $this->getWallet('default');
     }
 
-    public function loyaltyWallet(): MorphOne
+    public function loyaltyWallet(): Wallet
     {
-        return $this->wallet('cashback');
+        return $this->getWallet('cashback');
     }
 }
