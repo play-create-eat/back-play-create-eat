@@ -11,5 +11,7 @@ Route::prefix('stripe')
         Route::get('wallet/cancel', [StripePaymentController::class, 'cancelPayment'])->name('stripe.cancel');
         Route::get('wallet/transactions', [StripePaymentController::class, 'transactions'])->name('stripe.transactions');
         Route::get('wallet/balance', [StripePaymentController::class, 'balance'])->name('stripe.balance');
-        Route::post('webhook', [StripePaymentController::class, 'handleWebhook'])->name('stripe.webhook');
+        Route::post('webhook', [StripePaymentController::class, 'handleWebhook'])
+            ->name('stripe.webhook')
+            ->withoutMiddleware('auth:sanctum');
     });
