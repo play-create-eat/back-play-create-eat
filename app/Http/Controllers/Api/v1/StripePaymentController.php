@@ -6,10 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Family;
 use Bavix\Wallet\Internal\Exceptions\ExceptionInterface;
 use Illuminate\Http\Request;
-use Stripe\Checkout\Session;
-use Stripe\Customer;
 use Stripe\Exception\ApiErrorException;
-use Stripe\Stripe;
+use Stripe\StripeClient;
 use Symfony\Component\HttpFoundation\Response;
 
 class StripePaymentController extends Controller
@@ -24,40 +22,40 @@ class StripePaymentController extends Controller
             'amount' => 'required|numeric|min:0',
         ]);
 
+        $stripe = new StripeClient(config('services.stripe.secret'));
+
         $amount = $validated['amount'] * 100;
 
-        Stripe::setApiKey(config('services.stripe.secret'));
-
         if (!$family->stripe_customer_id) {
-            $customer = Customer::create([
+            $customer = $stripe->customers->create([
                 'email' => auth()->guard('sanctum')->user()->email,
                 'name'  => $family->name,
             ]);
 
             $family->update(['stripe_customer_id' => $customer->id]);
+        } else {
+            $customer = $stripe->customers->retrieve($family->stripe_customer_id);
         }
 
-        $session = Session::create([
-            'payment_method_types' => ['card'],
-            'customer'             => $family->stripe_customer_id,
-            'line_items'           => [
-                [
-                    'price_data' => [
-                        'currency'     => 'aed',
-                        'product_data' => [
-                            'name' => 'Wallet Deposit',
-                        ],
-                        'unit_amount'  => $amount,
-                    ],
-                    'quantity'   => 1,
-                ],
-            ],
-            'mode'                 => 'payment',
-            'success_url'          => route('stripe.success', $family),
-            'cancel_url'           => route('stripe.cancel'),
+        $ephemeralKey = $stripe->ephemeralKeys->create([
+            'customer' => $customer->id,
+        ], [
+            'stripe_version' => '2025-02-24.acacia',
         ]);
 
-        return response()->json(['id' => $session->id]);
+        $paymentIntent = $stripe->paymentIntents->create([
+            'amount'                    => intval($amount),
+            'currency'                  => 'aed',
+            'customer'                  => $customer->id,
+            'automatic_payment_methods' => ['enabled' => true],
+        ]);
+
+        return response()->json([
+            'paymentIntent'  => $paymentIntent->client_secret,
+            'ephemeralKey'   => $ephemeralKey->secret,
+            'customer'       => $customer->id,
+            'publishableKey' => config('services.stripe.public')
+        ]);
     }
 
     /**
