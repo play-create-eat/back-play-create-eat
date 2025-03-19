@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\ChildrenFamilyNotAssociatedException;
 use App\Models\Child;
 use App\Models\Pass;
 use App\Models\Product;
@@ -10,6 +11,7 @@ use App\Exceptions\InvalidExtendableTimeException;
 use App\Exceptions\PassNotExtendableException;
 use App\Exceptions\PassExpiredException;
 use App\Exceptions\PassRemainingTimeExceededException;
+use App\Exceptions\ProductNotAvailableException;
 use Carbon\Carbon;
 use Carbon\CarbonInterval;
 use Illuminate\Support\Facades\DB;
@@ -27,11 +29,22 @@ class PassService
         return Pass::where('serial', $serial)->firstOrFail();
     }
 
-    public function purchase(User $user, Child $children, Product $product, bool $isFree = false): Pass
+    public function purchase(User $user, Child $child, Product $product, bool $isFree = false): Pass
     {
         $user->loadMissing('family');
+        $child->loadMissing('family');
 
-        return DB::transaction(function () use ($user, $children, $product, $isFree) {
+        throw_unless($product->is_available, new ProductNotAvailableException($product));
+
+        throw_unless(
+            $children->family->is($user->family),
+            new ChildrenFamilyNotAssociatedException(
+                child: $child,
+                currentFamily: $user->family,
+            )
+        );
+
+        return DB::transaction(function () use ($user, $child, $product, $isFree) {
             if ($isFree) {
                 $transfer = $user->family->payFree($product);
             } else {
@@ -48,7 +61,7 @@ class PassService
             $pass->remaining_time = round($duration->totalMinutes);
             $pass->is_extendable = $product->is_extendable;
             $pass->expires_at = $expiresAt;
-            $pass->children()->associate($children);
+            $pass->children()->associate($child);
             $pass->transfer()->associate($transfer);
             $pass->save();
 
@@ -94,7 +107,7 @@ class PassService
     {
         $pass = static::findPassBySerial($serial);
 
-        throw_unless($pass->is_extendable, new PassNotExtendableException());
+        throw_unless($pass->is_extendable, new PassNotExtendableException($pass));
         throw_unless($minutes > 0, new InvalidExtendableTimeException($minutes));
 
         // @TODO How the payment should be charged for this ?

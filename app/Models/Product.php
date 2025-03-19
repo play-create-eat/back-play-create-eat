@@ -74,6 +74,17 @@ class Product extends Model implements ProductLimitedInterface
         return $this->belongsToMany(ProductType::class, 'product_features', 'product_id', 'product_type_id');
     }
 
+    /**
+     * Scope a query to only include available products.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeAvailable($query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where('is_available', true);
+    }
+
     protected function casts(): array
     {
         return [

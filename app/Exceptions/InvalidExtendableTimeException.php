@@ -6,8 +6,12 @@ use InvalidArgumentException;
 
 class InvalidExtendableTimeException extends InvalidArgumentException
 {
-    public function __construct($extendableTime)
+    public function __construct(int $extendableTime, string $message = '', int $code = 0)
     {
-        parent::__construct("Extendable time must be greater than 0. Given: {$extendableTime}");
+        if (empty($message)) {
+            $message = "Extendable time must be greater than 0. Given: {$extendableTime}";
+        }
+
+        parent::__construct($message, $code);
     }
 }
