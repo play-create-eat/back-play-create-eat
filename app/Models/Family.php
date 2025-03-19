@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class Family extends Model
 {
-    use HasWallet, HasWallets;
+    use HasWallets;
 
     protected $fillable = ['name', 'stripe_customer_id'];
 
@@ -48,12 +48,12 @@ class Family extends Model
         return $this->hasMany(Child::class);
     }
 
-    public function mainWallet(): Wallet
+    public function getMainWalletAttribute(): ?Wallet
     {
         return $this->getWallet('default');
     }
 
-    public function loyaltyWallet(): Wallet
+    public function getLoyaltyWalletAttribute(): ?Wallet
     {
         return $this->getWallet('cashback');
     }
