@@ -11,4 +11,5 @@ Route::prefix('stripe')
         Route::get('wallet/cancel', [StripePaymentController::class, 'cancelPayment'])->name('stripe.cancel');
         Route::get('wallet/transactions', [StripePaymentController::class, 'transactions'])->name('stripe.transactions');
         Route::get('wallet/balance', [StripePaymentController::class, 'balance'])->name('stripe.balance');
+        Route::get('webhook', [StripePaymentController::class, 'handleWebhook'])->name('stripe.webhook');
     });
