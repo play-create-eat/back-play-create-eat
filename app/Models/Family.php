@@ -29,11 +29,11 @@ class Family extends Model
 
     public function mainWallet(): MorphOne
     {
-        return $this->wallet('main');
+        return $this->getWallet('main');
     }
 
     public function loyaltyWallet(): MorphOne
     {
-        return $this->wallet('loyalty');
+        return $this->getWallet('loyalty');
     }
 }
