@@ -43,8 +43,12 @@ return new class() extends Migration
 
     public function down(): void
     {
+        Schema::table($this->transactionTable(), function (Blueprint $table) {
+            $table->dropForeign(['wallet_id']);
+        });
         Schema::disableForeignKeyConstraints();
         Schema::dropIfExists($this->table());
+        Schema::enableForeignKeyConstraints();
     }
 
     private function table(): string

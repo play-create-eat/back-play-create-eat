@@ -2,18 +2,41 @@
 
 namespace App\Models;
 
+use Bavix\Wallet\Models\Wallet;
 use Bavix\Wallet\Traits\HasWallet;
+use Bavix\Wallet\Traits\HasWallets;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class Family extends Model
 {
-    use HasWallet;
+    use HasWallets;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'stripe_customer_id'];
 
     protected $hidden = ['deleted_at'];
+
+    protected $casts = ['stripe_customer_id' => 'string'];
+
+    protected static function booted(): void
+    {
+        static::retrieved(function ($family) {
+            if (!$family->hasWallet('default')) {
+                $family->createWallet([
+                    'name' => 'Main Wallet',
+                    'slug' => 'default',
+                ]);
+            }
+
+            if (!$family->hasWallet('cashback')) {
+                $family->createWallet([
+                    'name' => 'Cashback Wallet',
+                    'slug' => 'cashback',
+                ]);
+            }
+        });
+    }
 
     public function users(): HasMany
     {
@@ -25,13 +48,13 @@ class Family extends Model
         return $this->hasMany(Child::class);
     }
 
-    public function mainWallet(): MorphOne
+    public function getMainWalletAttribute(): ?Wallet
     {
-        return $this->wallet('main');
+        return $this->getWallet('default');
     }
 
-    public function loyaltyWallet(): MorphOne
+    public function getLoyaltyWalletAttribute(): ?Wallet
     {
-        return $this->wallet('loyalty');
+        return $this->getWallet('cashback');
     }
 }
