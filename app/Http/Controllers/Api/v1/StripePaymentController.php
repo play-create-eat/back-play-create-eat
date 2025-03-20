@@ -88,11 +88,11 @@ class StripePaymentController extends Controller
     public function transactions()
     {
         $family = auth()->guard('sanctum')->user()->family;
-        $walletTransactions = $family->mainWallet->transactions()
+        $walletTransactions = $family->main_wallet->walletTransactions()
             ->orderBy('created_at', 'desc')
             ->get(['type', 'amount', 'meta', 'created_at']);
 
-        $cashbackTransactions = $family->loyaltyWallet->transactions()
+        $cashbackTransactions = $family->loyalty_wallet->walletTransactions()
             ->orderBy('created_at', 'desc')
             ->get(['type', 'amount', 'meta', 'created_at']);
 
