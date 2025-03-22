@@ -35,7 +35,7 @@ class MenuItemResource extends Resource
                 TextInput::make('name')->required(),
                 TextInput::make('price')->numeric()->required(),
                 Select::make('menu_category_id')
-                    ->relationship('category', 'title')
+                    ->relationship('category', 'name')
                     ->required()
                     ->label('Category'),
                 Textarea::make('description')->nullable(),
@@ -43,7 +43,7 @@ class MenuItemResource extends Resource
                     ->collection('menu_images')
                     ->image()
                     ->required()
-                    ->maxSize(1024),
+                    ->maxSize(10240),
             ]);
     }
 

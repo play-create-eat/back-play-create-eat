@@ -5,58 +5,87 @@ namespace App\Http\Controllers\Api\v1;
 use App\Http\Controllers\Controller;
 use App\Models\Menu;
 use App\Models\MenuCategory;
+use App\Models\MenuType;
 use Illuminate\Http\Request;
 
 class MenuController extends Controller
 {
     public function index(Request $request)
     {
-        $validated = $request->validate([
-            'category' => 'required|string|exists:menu_categories,title'
-        ]);
+        $type = $request->input('type');
 
-        $category = MenuCategory::where('title', $validated['category'])
-            ->with(['items'])
-            ->first();
+        if ($type) {
+            $menuType = MenuType::where('name', $type)
+                ->with([
+                    'menuCategories.items.tags',
+                    'menuCategories.items.media',
+                    'menuCategories.items.modifierGroups.options'
+                ])
+                ->first();
 
-        if (!$category) {
-            return response()->json(['message' => 'Category not found'], 404);
+            if (!$menuType) {
+                return response()->json(['message' => 'Menu type not found'], 404);
+            }
+
+            return response()->json([
+                'type' => $menuType->name,
+                'data' => $menuType->menuCategories->map(function ($category) {
+                    return [
+                        'title' => $category->name,
+                        'data'  => $category->items->map(fn($item) => $this->formatMenuItem($item)),
+                    ];
+                }),
+            ]);
+        } else {
+            $categories = MenuCategory::with([
+                'items.tags',
+                'items.media',
+                'items.modifierGroups.options'
+            ])->get();
+
+            return response()->json([
+                'type' => 'All',
+                'data' => $categories->map(function ($category) {
+                    return [
+                        'title' => $category->name,
+                        'data'  => $category->items->map(fn($item) => $this->formatMenuItem($item)),
+                    ];
+                }),
+            ]);
         }
-
-        return response()->json([
-            'title' => $category->title,
-            'data'  => $category->items->map(function ($item) {
-                return [
-                    'id'             => $item->id,
-                    'name'           => $item->name,
-                    'price'          => $item->price,
-                    'image'          => $item->getFirstMediaUrl('menu_images'),
-                    'description'    => $item->description,
-                    'tags'           => $item->tags->map(fn($tag) => [
-                        'id'    => $tag->id,
-                        'name'  => $tag->name,
-                        'color' => $tag->color
-                    ]),
-                    'modifierGroups' => $item->modifierGroups->map(fn($group) => [
-                        'id'        => $group->id,
-                        'title'      => $group->title,
-                        'minAmount' => $group->min_amount,
-                        'maxAmount' => $group->max_amount,
-                        'required'  => $group->required,
-                        'options'   => $group->options->map(fn($option) => [
-                            'id'            => $option->id,
-                            'name'          => $option->name,
-                            'price'         => $option->price,
-                            'nutritionInfo' => $option->nutrition_info
-                        ])
-                    ])
-                ];
-            })
-        ]);
     }
 
     public function show(Menu $menu)
     {
         return response()->json($menu->load('meals.options'));
+    }
+
+    protected function formatMenuItem($item)
+    {
+        return [
+            'id'             => $item->id,
+            'name'           => $item->name,
+            'price'          => $item->price,
+            'image'          => $item->getFirstMediaUrl('menu_images'),
+            'description'    => $item->description,
+            'tags'           => $item->tags->map(fn($tag) => [
+                'id'    => $tag->id,
+                'name'  => $tag->name,
+                'color' => $tag->color,
+            ]),
+            'modifierGroups' => $item->modifierGroups->map(fn($group) => [
+                'id'        => $group->id,
+                'title'     => $group->title,
+                'minAmount' => $group->min_amount,
+                'maxAmount' => $group->max_amount,
+                'required'  => $group->required,
+                'options'   => $group->options->map(fn($option) => [
+                    'id'            => $option->id,
+                    'name'          => $option->name,
+                    'price'         => $option->price,
+                    'nutritionInfo' => $option->nutrition_info,
+                ]),
+            ]),
+        ];
     }
 }
