@@ -22,6 +22,8 @@ class Celebration extends Model
         'celebration_date',
         'cake_id',
         'cake_weight',
+        'current_step',
+        'completed',
         'menu_id',
         'photo_album',
         'total_amount',
@@ -55,7 +57,13 @@ class Celebration extends Model
 
     public function menuItems(): BelongsToMany
     {
-        return $this->belongsToMany(MenuItem::class, 'celebration_menus')->withPivot('quantity');
+        return $this->belongsToMany(MenuItem::class, 'celebration_menus')
+            ->withPivot('quantity');
+    }
+
+    public function modifierOptions(): BelongsToMany
+    {
+        return $this->belongsToMany(ModifierOption::class, 'celebration_menu_modifiers');
     }
 
     public function tables(): HasMany
