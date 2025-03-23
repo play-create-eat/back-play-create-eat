@@ -124,13 +124,13 @@ class CelebrationController extends Controller
             'current_step' => ['required', 'integer'],
         ]);
 
-        // Clear previous selections (optional)
         $celebration->menuItems()->detach();
         $celebration->modifierOptions()->detach();
 
         foreach ($validated['menu_items'] as $item) {
             $celebration->menuItems()->attach($item['menu_item_id'], [
-                'quantity' => $item['quantity']
+                'quantity' => $item['quantity'],
+                'child_name' => $item['child_name'] ?? null,
             ]);
 
             if (!empty($item['modifier_option_ids'])) {

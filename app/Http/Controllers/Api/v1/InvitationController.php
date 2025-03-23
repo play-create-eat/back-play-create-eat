@@ -111,8 +111,6 @@ class InvitationController extends Controller
             'code'       => ['required', 'exists:invitations,code'],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name'  => ['required', 'string', 'max:255'],
-            'id_type'    => ['required', new Enum(IdTypeEnum::class)],
-            'id_number'  => ['required', 'string', 'max:255', 'unique:profiles,id_number'],
         ]);
 
         $invitation = Invitation::where('code', $request->get('code'))
@@ -183,8 +181,6 @@ class InvitationController extends Controller
             'first_name'   => $partialRegistration->first_name,
             'last_name'    => $partialRegistration->last_name,
             'phone_number' => $partialRegistration->phone_number,
-            'id_type'      => $partialRegistration->id_type,
-            'id_number'    => $partialRegistration->id_number,
         ]);
 
         $invitation = Invitation::where('code', $request->get('code'))->firstOrFail();
