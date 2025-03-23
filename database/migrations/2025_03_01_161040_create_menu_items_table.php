@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\MenuCategory;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -10,14 +11,15 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('families', function (Blueprint $table) {
+        Schema::create('menu_items', function (Blueprint $table) {
             $table->id();
+            $table->foreignIdFor(MenuCategory::class)
+                ->constrained()
+                ->cascadeOnDelete();
             $table->string('name');
-            $table->string('stripe_customer_id')
-                ->nullable()
-                ->unique();
+            $table->decimal('price', 10);
+            $table->text('description')->nullable();
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 
@@ -26,6 +28,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('families');
+        Schema::dropIfExists('menu_items');
     }
 };

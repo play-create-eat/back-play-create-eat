@@ -23,6 +23,7 @@
         "pandadoc/php-client": "^6.2",
         "spatie/laravel-medialibrary": "^11.12",
         "spatie/laravel-permission": "^6.10",
+        "stripe/stripe-php": "^16.6",
         "twilio/sdk": "^8.3"
     },
     "require-dev": {

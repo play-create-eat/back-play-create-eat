@@ -45,4 +45,10 @@ return [
         'phone_number' => env('TWILIO_PHONE_NUMBER'),
     ],
 
+    'stripe' => [
+        'secret' => env('STRIPE_SECRET', ''),
+        'public' => env('STRIPE_PUBLIC', ''),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET', ''),
+    ],
+
 ];

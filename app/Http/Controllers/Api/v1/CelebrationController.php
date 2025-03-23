@@ -19,7 +19,8 @@ class CelebrationController extends Controller
 
         $celebration = Celebration::create([
             'user_id'  => auth()->guard('sanctum')->user()->id,
-            'child_id' => $validated['child_id']
+            'child_id' => $validated['child_id'],
+            'current_step' => 1
         ]);
 
         return response()->json($celebration, Response::HTTP_CREATED);
@@ -28,14 +29,16 @@ class CelebrationController extends Controller
     public function package(Request $request, Celebration $celebration)
     {
         $validated = $request->validate([
-            'package_id' => 'required|exists:packages,id'
+            'package_id' => 'required|exists:packages,id',
+            'current_step' => 'required|integer'
         ]);
 
         $package = Package::findOrFail($validated['package_id']);
 
         $celebration->update([
             'package_id' => $validated['package_id'],
-            'price'      => Carbon::today()->isWeekend() ? $package->weekend_price : $package->weekday_price
+            'price'      => Carbon::today()->isWeekend() ? $package->weekend_price : $package->weekday_price,
+            'current_step' => $validated['current_step']
         ]);
 
         return response()->json($celebration);
@@ -45,7 +48,8 @@ class CelebrationController extends Controller
     {
         $validated = $request->validate([
             'children_count' => 'required', 'integer',
-            'parents_count'  => 'required', 'integer'
+            'parents_count'  => 'required', 'integer',
+            'current_step'   => 'required', 'integer'
         ]);
 
         $minChildren = $celebration->package->min_children;
@@ -58,7 +62,8 @@ class CelebrationController extends Controller
 
         $celebration->update([
             'children_count' => $validated['children_count'],
-            'parents_count'  => $validated['parents_count']
+            'parents_count'  => $validated['parents_count'],
+            'current_step' => $validated['current_step']
         ]);
 
         return response()->json($celebration);
@@ -68,10 +73,12 @@ class CelebrationController extends Controller
     {
         $validated = $request->validate([
             'datetime' => 'required|date_format:Y-m-d H:i',
+            'current_step' => 'required|integer'
         ]);
 
         $celebration->update([
-            'celebration_date' => $validated['datetime']
+            'celebration_date' => $validated['datetime'],
+            'current_step' => $validated['current_step']
         ]);
 
         return response()->json($celebration);
@@ -80,7 +87,8 @@ class CelebrationController extends Controller
     public function theme(Request $request, Celebration $celebration)
     {
         $validated = $request->validate([
-            'theme_id' => 'required|exists:themes,id'
+            'theme_id' => 'required|exists:themes,id',
+            'current_step' => 'required|integer'
         ]);
 
         $celebration->update(['theme_id' => $validated['theme_id']]);
@@ -92,12 +100,14 @@ class CelebrationController extends Controller
     {
         $validated = $request->validate([
             'cake_id'     => 'required|exists:cakes,id',
-            'cake_weight' => 'required|numeric'
+            'cake_weight' => 'required|numeric',
+            'current_step' => 'required|integer'
         ]);
 
         $celebration->update([
             'cake_id'     => $validated['cake_id'],
-            'cake_weight' => $validated['cake_weight']
+            'cake_weight' => $validated['cake_weight'],
+            'current_step' => $validated['current_step']
         ]);
 
         return response()->json($celebration);
@@ -106,23 +116,35 @@ class CelebrationController extends Controller
     public function menu(Request $request, Celebration $celebration)
     {
         $validated = $request->validate([
-            'items'                => 'required|array',
-            'items.*.menu_item_id' => 'required|exists:menu_items,id',
-            'items.*.quantity'     => 'required|integer|min:1'
+            'menu_items' => ['required', 'array'],
+            'menu_items.*.menu_item_id' => ['required', 'exists:menu_items,id'],
+            'menu_items.*.quantity' => ['required', 'integer', 'min:1'],
+            'menu_items.*.modifier_option_ids' => ['nullable', 'array'],
+            'menu_items.*.modifier_option_ids.*' => ['exists:modifier_options,id'],
+            'current_step' => ['required', 'integer'],
         ]);
 
+        // Clear previous selections (optional)
         $celebration->menuItems()->detach();
+        $celebration->modifierOptions()->detach();
 
-        foreach ($validated['items'] as $item) {
-            $celebration->menuItems()->attach($item['menu_item_id'], ['quantity' => $item['quantity']]);
+        foreach ($validated['menu_items'] as $item) {
+            $celebration->menuItems()->attach($item['menu_item_id'], [
+                'quantity' => $item['quantity']
+            ]);
+
+            if (!empty($item['modifier_option_ids'])) {
+                foreach ($item['modifier_option_ids'] as $modifierOptionId) {
+                    $celebration->modifierOptions()->attach($modifierOptionId);
+                }
+            }
         }
 
-        $celebration->update([
-            'price' => $celebration->price + $celebration->calculateMenuPrice()
-        ]);
+        $celebration->update(['current_step' => $validated['current_step']]);
 
-        return response()->json($celebration->load('menuItems'));
+        return response()->json(['message' => 'Menu and modifiers attached to celebration.']);
     }
+
 
     public function availableSlots(Request $request)
     {
@@ -223,5 +245,22 @@ class CelebrationController extends Controller
         }
 
         return ['status' => 'success', 'tables' => array_map(fn($table) => $table->name, $tables)];
+    }
+
+    public function photographerAndAlbum(Request $request, Celebration $celebration)
+    {
+        $validated = $request->validate([
+            'photographer' => 'required|boolean',
+            'photo_album'  => 'required|boolean',
+            'current_step' => 'required|integer'
+        ]);
+        $celebration->update($validated);
+
+        return response()->json($celebration);
+    }
+
+    public function invitation(Celebration $celebration)
+    {
+        return view('invitations.third-type', ['celebration' => $celebration]);
     }
 }
