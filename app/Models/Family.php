@@ -2,14 +2,10 @@
 
 namespace App\Models;
 
-use Bavix\Wallet\Models\Wallet;
+use Bavix\Wallet\Interfaces\Wallet;
 use Bavix\Wallet\Traits\HasWallet;
-use Bavix\Wallet\Traits\HasWallets;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphOne;
-use Bavix\Wallet\Traits\HasWallet;
-use Bavix\Wallet\Interfaces\Wallet;
 use Bavix\Wallet\Interfaces\Customer;
 use Bavix\Wallet\Traits\CanPay;
 use Illuminate\Database\Eloquent\SoftDeletes;

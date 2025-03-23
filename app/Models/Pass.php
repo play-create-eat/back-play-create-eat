@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $serial
  * @property int $remaining_time
  * @property bool $is_extendable
+ * @property ?User $user
  * @property ?Child $children
  * @property ?\Bavix\Wallet\Models\Transfer $transfer
  * @property ?\Carbon\Carbon $entered_at
@@ -29,6 +30,11 @@ class Pass extends Model
     protected $fillable = ['serial', 'remaining_time', 'is_extendable', 'entered_at', 'exited_at', 'expires_at'];
 
     protected $hidden = ['deleted_at'];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 
     public function children(): BelongsTo
     {

@@ -62,6 +62,7 @@ class PassService
             $pass->is_extendable = $product->is_extendable;
             $pass->expires_at = $expiresAt;
             $pass->children()->associate($child);
+            $pass->user()->associate($user);
             $pass->transfer()->associate($transfer);
             $pass->save();
 
