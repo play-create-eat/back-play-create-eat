@@ -15,7 +15,7 @@ class MenuController extends Controller
         $type = $request->input('type');
 
         if ($type) {
-            $menuType = MenuType::where('name', $type)
+            $menuType = MenuType::where('title', $type)
                 ->with([
                     'menuCategories.items.tags',
                     'menuCategories.items.media',
