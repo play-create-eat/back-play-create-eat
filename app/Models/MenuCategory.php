@@ -10,7 +10,7 @@ class MenuCategory extends Model
 {
     protected $fillable = ['name', 'menu_type_id'];
 
-    public function type(): BelongsTo
+    public function menuType(): BelongsTo
     {
         return $this->belongsTo(MenuType::class);
     }
