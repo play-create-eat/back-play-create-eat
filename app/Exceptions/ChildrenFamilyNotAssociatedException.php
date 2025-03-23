@@ -2,16 +2,16 @@
 
 namespace App\Exceptions;
 
-use Exception;
 use App\Models\Child;
 use App\Models\Family;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
-class ChildrenFamilyNotAssociatedException extends Exception
+class ChildrenFamilyNotAssociatedException extends HttpException
 {
     protected $child;
     protected $currentFamily;
 
-    public function __construct(Child $child, Family $currentFamily, $message = '', $code = 0)
+    public function __construct(Child $child, Family $currentFamily, $message = '', $statusCode = 403)
     {
         $this->child = $child;
         $this->currentFamily = $currentFamily;
@@ -20,7 +20,7 @@ class ChildrenFamilyNotAssociatedException extends Exception
             $message = "The child is not associated with the current family.";
         }
 
-        parent::__construct($message, $code);
+        parent::__construct($statusCode, $message);
     }
 
     public function getChild(): Child

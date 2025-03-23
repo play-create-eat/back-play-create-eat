@@ -2,14 +2,14 @@
 
 namespace App\Exceptions;
 
-use Exception;
 use App\Models\Product;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
-class ProductNotAvailableException extends Exception
+class ProductNotAvailableException extends HttpException
 {
     protected Product $product;
 
-    public function __construct(Product $product, string $message = '', int $code = 0)
+    public function __construct(Product $product, string $message = '', int $statusCode = 403)
     {
         $this->product = $product;
 
@@ -17,7 +17,7 @@ class ProductNotAvailableException extends Exception
             $message = "Product with ID {$product->id} is not available.";
         }
 
-        parent::__construct($message, $code);
+        parent::__construct($statusCode, $message);
     }
 
     public function getProduct(): Product

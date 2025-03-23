@@ -3,21 +3,21 @@
 namespace App\Exceptions;
 
 use App\Models\Pass;
-use Exception;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
-class PassNotExtendableException extends Exception
+class PassNotExtendableException extends HttpException
 {
     protected Pass $pass;
 
-    public function __construct(Pass $pass, string $message = '', int $code = 0)
+    public function __construct(Pass $pass, string $message = '', int $statusCode = 403)
     {
-        $this->pass;
+        $this->pass = $pass;
 
         if (empty($message)) {
             $message = "Pass is not extendable.";
         }
 
-        parent::__construct($message, $code);
+        parent::__construct($statusCode, $message);
     }
 
     public function getPass(): Pass

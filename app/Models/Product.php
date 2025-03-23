@@ -69,7 +69,7 @@ class Product extends Model implements ProductLimitedInterface
             'price' => $this->price,
             'price_weekend' => $this->price_weekend,
             'fee_percent' => $this->fee_percent,
-            'features' => $this->features()->pluck('id')->toArray(),
+            'features' => $this->features()->pluck('name', 'id')->toArray(),
         ];
     }
 

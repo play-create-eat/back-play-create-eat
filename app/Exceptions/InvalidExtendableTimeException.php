@@ -2,16 +2,16 @@
 
 namespace App\Exceptions;
 
-use InvalidArgumentException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
-class InvalidExtendableTimeException extends InvalidArgumentException
+class InvalidExtendableTimeException extends HttpException
 {
-    public function __construct(int $extendableTime, string $message = '', int $code = 0)
+    public function __construct(int $extendableTime, string $message = '', int $statusCode = 406)
     {
         if (empty($message)) {
             $message = "Extendable time must be greater than 0. Given: {$extendableTime}";
         }
 
-        parent::__construct($message, $code);
+        parent::__construct($statusCode. $message);
     }
 }

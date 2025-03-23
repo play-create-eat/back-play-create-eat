@@ -12,7 +12,6 @@ use App\Exceptions\PassFeatureNotAvailableException;
 use App\Exceptions\InvalidExtendableTimeException;
 use App\Exceptions\PassNotExtendableException;
 use App\Exceptions\PassExpiredException;
-use App\Exceptions\PassRemainingTimeExceededException;
 use App\Exceptions\ProductNotAvailableException;
 use App\Notifications\PassCheckInNotification;
 use App\Notifications\PassCheckOutNotification;
@@ -84,28 +83,15 @@ class PassService
     public function scan(string $serial, int $productTypeId): Pass
     {
         $pass = static::findPassBySerial($serial);
-
-        throw_if(
-            condition: $pass->isExpired(),
-            exception: new PassExpiredException($pass)
-        );
-
-        $productType = ProductType::findOrFail($productTypeId);
-
-        throw_unless(
-            condition: $this->isPassFeatureAvailable($pass, $productType),
-            exception: new PassFeatureNotAvailableException($pass, $productType)
-        );
-
         $isCheckIn = !$pass->entered_at || $pass->entered_at && $pass->exited_at;
 
         if ($isCheckIn) {
-            $pass = $this->markPassCheckIn($pass);
+            $pass = $this->markPassCheckIn($pass, $productTypeId);
         } else {
             $pass = $this->markPassCheckOut($pass);
         }
 
-        return $isCheckIn ? $this->markPassCheckIn($pass) : $this->markPassCheckOut($pass);
+        return $pass->fresh();
     }
 
     /**
@@ -146,27 +132,34 @@ class PassService
         $pass->loadMissing("transfer.deposit");
         $features = collect($pass->transfer->deposit->meta["features"] ?? []);
 
-        return $features->contains($productType->id);
+        return $features->has($productType->id);
     }
 
     /**
      * @param Pass $pass
+     * @param int $productTypeId
      * @return Pass
      * @throws \Throwable
-     * @throws PassRemainingTimeExceededException
+     * @throws PassFeatureNotAvailableException
+     * @throws PassExpiredException
      */
-    protected function markPassCheckIn(Pass $pass): Pass
+    protected function markPassCheckIn(Pass $pass, int $productTypeId): Pass
     {
+        $pass->loadMissing('user');
         throw_if(
-            condition: $pass->remaining_time <= 0,
-            exception: new PassRemainingTimeExceededException($pass)
+            condition: $pass->isExpired(),
+            exception: new PassExpiredException($pass)
         );
 
-        $pass->loadMissing('user');
-        $now = Carbon::now();
+        $productType = ProductType::findOrFail($productTypeId);
+
+        throw_unless(
+            condition: $this->isPassFeatureAvailable($pass, $productType),
+            exception: new PassFeatureNotAvailableException($pass, $productType)
+        );
 
         $pass->fill([
-            'entered_at' => $now,
+            'entered_at' => Carbon::now(),
             'exited_at' => null,
         ]);
 

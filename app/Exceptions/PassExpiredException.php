@@ -3,13 +3,13 @@
 namespace App\Exceptions;
 
 use App\Models\Pass;
-use Exception;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
-class PassExpiredException extends Exception
+class PassExpiredException extends HttpException
 {
     protected Pass $pass;
 
-    public function __construct(Pass $pass, string $message = '', int $code = 0)
+    public function __construct(Pass $pass, string $message = '', int $statusCode = 403)
     {
         $this->pass = $pass;
 
@@ -17,7 +17,7 @@ class PassExpiredException extends Exception
             $message = "The pass with {$pass->serial} has expired on {$pass->expires_at->toDateTimeString()}.";
         }
 
-        parent::__construct($message, $code);
+        parent::__construct($statusCode, $message);
     }
 
     public function getPass(): Pass

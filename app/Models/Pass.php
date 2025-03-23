@@ -59,6 +59,6 @@ class Pass extends Model
 
     public function isExpired(): bool
     {
-        return $this->expires_at->lte(Carbon::now());
+        return $this->expires_at->lte(Carbon::now()) || $this->remaining_time <= 0;
     }
 }

@@ -9,7 +9,6 @@ use App\Http\Middleware\CheckAuthenticationOrRegistrationId;
 use App\Http\Resources\Api\v1\UserResource;
 use Illuminate\Support\Facades\Route;
 
-
 Route::prefix('v1')->group(function () {
 
     Route::middleware(['auth:sanctum'])->group(function () {
@@ -42,6 +41,7 @@ Route::prefix('v1')->group(function () {
         Route::post('invite', [InvitationController::class, 'invite']);
 
         Route::get('user/family-members', [FamilyController::class, 'members']);
+        Route::get('user/family-passes', [FamilyController::class, 'passes']);
 
         Route::put('profile', [ProfileController::class, 'update']);
 
@@ -52,12 +52,12 @@ Route::prefix('v1')->group(function () {
     Route::post('invite/register-step-2', [InvitationController::class, 'validateStep2']);
     Route::post('invite/register', [InvitationController::class, 'register']);
 
-
     require __DIR__ . '/auth.php';
 
     Route::post('/pandadoc/webhook', [PandaDocController::class, 'handleWebhook']);
 
     require __DIR__ . '/stripe.php';
+    require __DIR__ . '/internal.php';
 });
 
 

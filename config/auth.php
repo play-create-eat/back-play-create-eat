@@ -48,7 +48,11 @@ return [
         'api' => [
             'driver' => 'token',
             'provider' => 'users',
-        ]
+        ],
+        'internal-api' => [
+            'driver' => 'sanctum',
+            'provider' => 'admins',
+        ],
     ],
 
     /*

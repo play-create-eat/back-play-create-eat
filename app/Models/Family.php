@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Bavix\Wallet\Interfaces\Customer;
 use Bavix\Wallet\Traits\CanPay;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -66,5 +67,17 @@ class Family extends Model implements Wallet, Customer
     public function getLoyaltyWalletAttribute(): ?Wallet
     {
         return $this->getWallet('cashback');
+    }
+
+    public function passes(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            Pass::class,
+            User::class,
+            'family_id',
+            'user_id',
+            'id',
+            'family_id',
+        );
     }
 }
