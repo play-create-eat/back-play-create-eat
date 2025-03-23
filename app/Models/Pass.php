@@ -31,6 +31,17 @@ class Pass extends Model
 
     protected $hidden = ['deleted_at'];
 
+    protected function casts(): array
+    {
+        return [
+            'remaining_time' => 'integer',
+            'is_extendable' => 'bool',
+            'entered_at'  => 'datetime',
+            'exited_at'  => 'datetime',
+            'expires_at' => 'datetime',
+        ];
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -38,7 +49,7 @@ class Pass extends Model
 
     public function children(): BelongsTo
     {
-        return $this->belongsTo(Child::class);
+        return $this->belongsTo(Child::class, 'child_id', 'id');
     }
 
     public function transfer(): BelongsTo

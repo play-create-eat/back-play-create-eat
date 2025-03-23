@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Bavix\Wallet\Interfaces\Wallet;
-use Bavix\Wallet\Traits\HasWallet;
+use Bavix\Wallet\Traits\HasWallets;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Bavix\Wallet\Interfaces\Customer;
@@ -21,7 +21,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class Family extends Model implements Wallet, Customer
 {
-    use HasWallet, CanPay, SoftDeletes;
+    use HasWallets, CanPay, SoftDeletes;
 
     protected $fillable = ['name', 'stripe_customer_id'];
 

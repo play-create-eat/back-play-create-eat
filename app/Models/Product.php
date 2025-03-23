@@ -65,7 +65,11 @@ class Product extends Model implements ProductLimitedInterface
     {
         return [
             'title' => $this->name,
-            'description' => 'Purchase of Product #' . $this->id,
+            'description' => $this->description,
+            'price' => $this->price,
+            'price_weekend' => $this->price_weekend,
+            'fee_percent' => $this->fee_percent,
+            'features' => $this->features()->pluck('id')->toArray(),
         ];
     }
 

@@ -14,7 +14,7 @@ class PassExpiredException extends Exception
         $this->pass = $pass;
 
         if (empty($message)) {
-            $message = "The pass with {$pass->serial} has expired on {$pass->expired_at->toDateTimeString()}.";
+            $message = "The pass with {$pass->serial} has expired on {$pass->expires_at->toDateTimeString()}.";
         }
 
         parent::__construct($message, $code);

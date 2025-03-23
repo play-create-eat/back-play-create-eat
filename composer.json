@@ -5,6 +5,12 @@
     "description": "The skeleton application for the Laravel framework.",
     "keywords": ["laravel", "framework"],
     "license": "MIT",
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/laravel-shift/onesignal.git"
+        }
+    ],
     "require": {
         "php": "^8.2",
         "ext-exif": "*",
@@ -24,7 +30,8 @@
         "spatie/laravel-medialibrary": "^11.12",
         "spatie/laravel-permission": "^6.10",
         "stripe/stripe-php": "^16.6",
-        "twilio/sdk": "^8.3"
+        "twilio/sdk": "^8.3",
+        "laravel-notification-channels/onesignal": "dev-l12-compatibility"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

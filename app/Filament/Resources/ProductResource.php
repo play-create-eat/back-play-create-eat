@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProductResource\Pages;
 use App\Models\Product;
+use Carbon\CarbonInterval;
 use Bavix\Wallet\Services\FormatterServiceInterface;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\TextInput;
@@ -11,6 +12,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Group;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Support\Enums\FontFamily;
@@ -22,6 +24,8 @@ use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Table;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Infolists;
+use Filament\Infolists\Infolist;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\HtmlString;
@@ -39,70 +43,80 @@ class ProductResource extends Resource
     {
         return $form
             ->schema([
-                Section::make('Details')
-                    ->description('Description')
+                Group::make()
                     ->schema([
-                        TextInput::make('name')
-                            ->autocomplete(false)
-                            ->minLength(3)
-                            ->maxLength(255)
-                            ->required(),
-                        Textarea::make('description'),
-                        Toggle::make('is_available')
-                            ->default(true)
-                            ->onColor('success'),
-                        Toggle::make('is_extendable')
-                            ->default(false)
-                            ->onColor('success'),
-                    ]),
-                Section::make('Product configuration')
-                    ->description('Description')
-                    ->schema([
-                        CheckboxList::make('features')
-                            ->relationship(titleAttribute: 'name')
-                            ->columns(2)
-                            ->required(),
-                        Select::make('duration_time')
-                            ->options([
-                                60 => '1 hour',
-                                120 => '2 hours',
-                                1440 => '1 day',
-                                7200 => '5 days',
-                                14400 => '10 days',
-                                28800 => '20 days',
-                            ])
-                            ->required(),
+                        Section::make('Details')
+                            ->schema([
+                                TextInput::make('name')
+                                    ->autocomplete(false)
+                                    ->minLength(3)
+                                    ->maxLength(255)
+                                    ->required(),
+                                Textarea::make('description'),
+                            ]),
+                        Section::make('Configuration')
+                            ->schema([
+                                Select::make('duration_time')
+                                    ->options([
+                                        60 => '1 hour',
+                                        120 => '2 hours',
+                                        1440 => '1 day',
+                                        7200 => '5 days',
+                                        14400 => '10 days',
+                                        28800 => '20 days',
+                                    ])
+                                    ->required(),
+                                CheckboxList::make('features')
+                                    ->relationship(titleAttribute: 'name')
+                                    ->columns(2)
+                                    ->required(),
+                            ]),
 
-                    ]),
-                Section::make('Product prices')
-                    ->description('Description')
+                    ])
+                    ->columnSpan(['lg' => 2]),
+                Group::make()
                     ->schema([
-                        TextInput::make('price')
-                            ->formatStateUsing(fn(?string $state): string => $state ? app(FormatterServiceInterface::class)->floatValue($state, 2) : '')
-                            ->dehydrateStateUsing(fn(string $state): string => app(FormatterServiceInterface::class)->intValue($state, 2))
-                            ->mask(RawJs::make('$money($input)'))
-                            ->stripCharacters(',')
-                            ->numeric()
-                            ->prefix('$')
-                            ->minValue(0)
-                            ->required(),
-                        TextInput::make('price_weekend')
-                            ->formatStateUsing(fn(?string $state): string => $state ? app(FormatterServiceInterface::class)->floatValue($state, 2) : '')
-                            ->dehydrateStateUsing(fn(string $state): string => $state ? app(FormatterServiceInterface::class)->intValue($state, 2) : null)
-                            ->mask(RawJs::make('$money($input)'))
-                            ->stripCharacters(',')
-                            ->numeric()
-                            ->prefix('$')
-                            ->minValue(0),
-                        TextInput::make('fee_percent')
-                            ->numeric()
-                            ->prefix('%')
-                            ->minValue(0)
-                            ->maxValue(100)
-                            ->step(0.1),
-                    ]),
+                        Section::make('Prices')
+                            ->schema([
+                                TextInput::make('price')
+                                    ->formatStateUsing(fn(?string $state): string => $state ? app(FormatterServiceInterface::class)->floatValue($state, 2) : '')
+                                    ->dehydrateStateUsing(fn(string $state): string => app(FormatterServiceInterface::class)->intValue($state, 2))
+                                    ->mask(RawJs::make('$money($input)'))
+                                    ->stripCharacters(',')
+                                    ->numeric()
+                                    ->prefix('$')
+                                    ->minValue(0)
+                                    ->required(),
+                                TextInput::make('price_weekend')
+                                    ->formatStateUsing(fn(?string $state): string => $state ? app(FormatterServiceInterface::class)->floatValue($state, 2) : '')
+                                    ->dehydrateStateUsing(fn(string $state): string => $state ? app(FormatterServiceInterface::class)->intValue($state, 2) : null)
+                                    ->mask(RawJs::make('$money($input)'))
+                                    ->stripCharacters(',')
+                                    ->numeric()
+                                    ->prefix('$')
+                                    ->minValue(0),
+                                TextInput::make('fee_percent')
+                                    ->numeric()
+                                    ->prefix('%')
+                                    ->minValue(0)
+                                    ->maxValue(100)
+                                    ->step(0.1),
+                            ]),
+                        Section::make('Status')
+                            ->schema([
+                                Toggle::make('is_available')
+                                    ->default(true)
+                                    ->onColor('success'),
+                                Toggle::make('is_extendable')
+                                    ->default(false)
+                                    ->onColor('success'),
+                            ]),
+                    ])
+                    ->columnSpan(['lg' => 1]),
 
-            ]);
+
+            ])
+            ->columns(3);
     }
 
     public static function table(Table $table): Table
@@ -112,7 +126,7 @@ class ProductResource extends Resource
                 if ($record->trashed()) {
                     return null;
                 }
-                return self::getUrl('edit', ['record' => $record]);
+                return self::getUrl('view', ['record' => $record]);
             })
             ->columns([
                 Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
@@ -176,6 +190,60 @@ class ProductResource extends Resource
             ]);
     }
 
+//    public static function infolist(Infolist $infolist): Infolist
+//    {
+//        return $infolist
+//            ->schema([
+//                Infolists\Components\Group::make()
+//                    ->schema([
+//                        Infolists\Components\Section::make('Details')
+//                            ->schema([
+//                                Infolists\Components\TextEntry::make('name'),
+//                                Infolists\Components\TextEntry::make('description'),
+//                            ]),
+//                        Infolists\Components\Section::make('Configuration')
+//                            ->schema([
+//                                Infolists\Components\TextEntry::make('duration_time')
+//                                    ->formatStateUsing(fn(?int $state): string => $state ? CarbonInterval::minutes($state)->cascade()->forHumans() : 'N/A'),
+//                                Infolists\Components\RepeatableEntry::make('features')
+//                                    ->contained(false)
+//                                    ->schema([
+//                                        Infolists\Components\TextEntry::make('name'),
+//                                    ])
+//                                    ->columns(2),
+//                            ]),
+//                    ])
+//                    ->columnSpan(['lg' => 2]),
+//
+//                Infolists\Components\Group::make()
+//                    ->schema([
+//                        Infolists\Components\Section::make('Prices')
+//                            ->schema([
+//                                Infolists\Components\TextEntry::make('price')
+//                                    ->numeric()
+//                                    ->prefix('$')
+//                                    ->formatStateUsing(fn(?string $state): string => $state ? app(FormatterServiceInterface::class)->floatValue($state, 2) : ''),
+//                                Infolists\Components\TextEntry::make('price_weekend')
+//                                    ->numeric()
+//                                    ->prefix('$')
+//                                    ->formatStateUsing(fn(?string $state): string => $state ? app(FormatterServiceInterface::class)->floatValue($state, 2) : ''),
+//                                Infolists\Components\TextEntry::make('fee_percent')
+//                                    ->numeric()
+//                                    ->prefix('%'),
+//                            ]),
+//                        Infolists\Components\Section::make('Status')
+//                            ->schema([
+//                                Infolists\Components\IconEntry::make('is_available'),
+//                                Infolists\Components\IconEntry::make('is_extendable'),
+//                            ]),
+//                    ])
+//                    ->columnSpan(['lg' => 1]),
+//
+//
+//            ])
+//            ->columns(3);
+//    }
+
     public static function getRelations(): array
     {
         return [
@@ -189,6 +257,7 @@ class ProductResource extends Resource
             'index' => Pages\ListProducts::route('/'),
             'create' => Pages\CreateProduct::route('/create'),
             'edit' => Pages\EditProduct::route('/{record}/edit'),
+            'view' => Pages\ViewProduct::route('/{record}'),
         ];
     }
 }

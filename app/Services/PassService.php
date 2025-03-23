@@ -2,16 +2,20 @@
 
 namespace App\Services;
 
-use App\Exceptions\ChildrenFamilyNotAssociatedException;
 use App\Models\Child;
 use App\Models\Pass;
 use App\Models\Product;
+use App\Models\ProductType;
 use App\Models\User;
+use App\Exceptions\ChildrenFamilyNotAssociatedException;
+use App\Exceptions\PassFeatureNotAvailableException;
 use App\Exceptions\InvalidExtendableTimeException;
 use App\Exceptions\PassNotExtendableException;
 use App\Exceptions\PassExpiredException;
 use App\Exceptions\PassRemainingTimeExceededException;
 use App\Exceptions\ProductNotAvailableException;
+use App\Notifications\PassCheckInNotification;
+use App\Notifications\PassCheckOutNotification;
 use Carbon\Carbon;
 use Carbon\CarbonInterval;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +25,7 @@ class PassService
 {
     public static function generateSerial(): string
     {
-        return 'SN-' . Str::orderedUuid();
+        return Str::upper('SN-' . Str::orderedUuid());
     }
 
     public static function findPassBySerial(string $serial): Pass
@@ -37,7 +41,7 @@ class PassService
         throw_unless($product->is_available, new ProductNotAvailableException($product));
 
         throw_unless(
-            $children->family->is($user->family),
+            $child->family->is($user->family),
             new ChildrenFamilyNotAssociatedException(
                 child: $child,
                 currentFamily: $user->family,
@@ -70,52 +74,129 @@ class PassService
         });
     }
 
-    public function scan(string $serial, string $productTypeId): Pass
+    /**
+     * @param string $serial
+     * @param int $productTypeId
+     * @return Pass
+     * @throws \Throwable
+     * @throws PassExpiredException
+     */
+    public function scan(string $serial, int $productTypeId): Pass
     {
         $pass = static::findPassBySerial($serial);
 
-        throw_if($pass->isExpired(), new PassExpiredException($pass));
+        throw_if(
+            condition: $pass->isExpired(),
+            exception: new PassExpiredException($pass)
+        );
 
-        $now = Carbon::now();
+        $productType = ProductType::findOrFail($productTypeId);
 
-        // Scan for exit
-        if ($pass->entered_at) {
-            $timeLapsed = $pass->started_at->diffInMinutes($now);
+        throw_unless(
+            condition: $this->isPassFeatureAvailable($pass, $productType),
+            exception: new PassFeatureNotAvailableException($pass, $productType)
+        );
 
-            $pass->entered_at = null;
-            $pass->exited_at = $now;
-            $pass->remaining_time -= $timeLapsed;
+        $isCheckIn = !$pass->entered_at || $pass->entered_at && $pass->exited_at;
 
-            if ($pass->remaining_time <= 0) {
-                $pass->expires_at = $now;
-            }
-
-            $pass->save();
-            return $pass;
+        if ($isCheckIn) {
+            $pass = $this->markPassCheckIn($pass);
+        } else {
+            $pass = $this->markPassCheckOut($pass);
         }
 
-        // Scan for enter
-        throw_if($pass->remaining_time <= 0, new PassRemainingTimeExceededException($pass));
-
-        $pass->entered_at = $now;
-        $pass->exited_at = null;
-        $pass->save();
-
-        return $pass;
+        return $isCheckIn ? $this->markPassCheckIn($pass) : $this->markPassCheckOut($pass);
     }
 
+    /**
+     * @TODO Work in progress
+     *
+     * @param string $serial
+     * @param int $minutes
+     * @return Pass
+     * @throws \Throwable
+     * @throws PassNotExtendableException
+     * @throws InvalidExtendableTimeException
+     */
     public function extend(string $serial, int $minutes): Pass
     {
         $pass = static::findPassBySerial($serial);
 
-        throw_unless($pass->is_extendable, new PassNotExtendableException($pass));
-        throw_unless($minutes > 0, new InvalidExtendableTimeException($minutes));
+        throw_unless(
+            condition: $pass->is_extendable,
+            exception: new PassNotExtendableException($pass)
+        );
+
+        throw_unless(
+            condition: $minutes > 0,
+            exception: new InvalidExtendableTimeException($minutes)
+        );
 
         // @TODO How the payment should be charged for this ?
         // @TODO Check if need to pay for extra remaining time
 
         $pass->remaining_time += $minutes;
         $pass->save();
+
+        return $pass;
+    }
+
+    public function isPassFeatureAvailable(Pass $pass, ProductType $productType): bool
+    {
+        $pass->loadMissing("transfer.deposit");
+        $features = collect($pass->transfer->deposit->meta["features"] ?? []);
+
+        return $features->contains($productType->id);
+    }
+
+    /**
+     * @param Pass $pass
+     * @return Pass
+     * @throws \Throwable
+     * @throws PassRemainingTimeExceededException
+     */
+    protected function markPassCheckIn(Pass $pass): Pass
+    {
+        throw_if(
+            condition: $pass->remaining_time <= 0,
+            exception: new PassRemainingTimeExceededException($pass)
+        );
+
+        $pass->loadMissing('user');
+        $now = Carbon::now();
+
+        $pass->fill([
+            'entered_at' => $now,
+            'exited_at' => null,
+        ]);
+
+        $pass->save();
+        $pass->user->notify(new PassCheckInNotification($pass));
+
+        return $pass;
+    }
+
+    /**
+     * @param Pass $pass
+     * @return Pass
+     */
+    protected function markPassCheckOut(Pass $pass): Pass
+    {
+        $pass->loadMissing('user');
+        $now = Carbon::now();
+        $timeLapsed = round($pass->entered_at->diffInMinutes($now));
+
+        $pass->fill([
+            'exited_at' => $now,
+            'remaining_time' => $pass->remaining_time - $timeLapsed,
+        ]);
+
+        if ($pass->remaining_time <= 0) {
+            $pass->expires_at = $now;
+        }
+
+        $pass->save();
+        $pass->user->notify(new PassCheckOutNotification($pass));
 
         return $pass;
     }
