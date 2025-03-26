@@ -22,6 +22,7 @@ return new class extends Migration {
                 ->constrained()
                 ->cascadeOnDelete();
             $table->integer('quantity')->default(1);
+            $table->string('child_name')->nullable();
             $table->timestamps();
         });
 

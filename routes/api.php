@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\v1\FamilyController;
 use App\Http\Controllers\Api\v1\InvitationController;
 use App\Http\Controllers\Api\v1\PandaDocController;
 use App\Http\Controllers\Api\v1\ProfileController;
+use App\Http\Controllers\Api\v1\TimelineController;
 use App\Http\Middleware\CheckAuthenticationOrRegistrationId;
 use App\Http\Resources\Api\v1\UserResource;
 use Illuminate\Support\Facades\Route;
@@ -46,6 +47,9 @@ Route::prefix('v1')->group(function () {
         Route::put('profile', [ProfileController::class, 'update']);
 
         require __DIR__ . '/celebration.php';
+
+        Route::get('/timelines', [TimelineController::class, 'index']);
+
     });
 
     Route::post('invite/register-step-1', [InvitationController::class, 'validateStep1']);

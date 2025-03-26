@@ -22,13 +22,10 @@ return new class extends Migration {
             $table->string('first_name');
             $table->string('last_name');
             $table->string('phone_number');
-            $table->date('date_of_birth')
-                ->nullable();
-            $table->enum('gender', GenderEnum::values())
-                ->nullable();
-            $table->string('id_number');
-            $table->enum('id_type', IdTypeEnum::values());
-
+            $table->date('date_of_birth')->nullable();
+            $table->enum('gender', GenderEnum::values())->nullable();
+            $table->string('id_number')->nullable();
+            $table->enum('id_type', IdTypeEnum::values())->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

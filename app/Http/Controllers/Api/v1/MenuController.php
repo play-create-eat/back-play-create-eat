@@ -15,11 +15,11 @@ class MenuController extends Controller
         $type = $request->input('type');
 
         if ($type) {
-            $menuType = MenuType::where('name', $type)
+            $menuType = MenuType::where('title', $type)
                 ->with([
-                    'menuCategories.items.tags',
-                    'menuCategories.items.media',
-                    'menuCategories.items.modifierGroups.options'
+                    'categories.items.tags',
+                    'categories.items.media',
+                    'categories.items.modifierGroups.options'
                 ])
                 ->first();
 
@@ -28,8 +28,8 @@ class MenuController extends Controller
             }
 
             return response()->json([
-                'type' => $menuType->name,
-                'data' => $menuType->menuCategories->map(function ($category) {
+                'type' => $menuType->title,
+                'data' => $menuType->categories->map(function ($category) {
                     return [
                         'title' => $category->name,
                         'data'  => $category->items->map(fn($item) => $this->formatMenuItem($item)),
@@ -53,11 +53,6 @@ class MenuController extends Controller
                 }),
             ]);
         }
-    }
-
-    public function show(Menu $menu)
-    {
-        return response()->json($menu->load('meals.options'));
     }
 
     protected function formatMenuItem($item)
@@ -87,5 +82,10 @@ class MenuController extends Controller
                 ]),
             ]),
         ];
+    }
+
+    public function show(Menu $menu)
+    {
+        return response()->json($menu->load('meals.options'));
     }
 }
