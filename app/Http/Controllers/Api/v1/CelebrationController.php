@@ -5,10 +5,15 @@ namespace App\Http\Controllers\Api\v1;
 use App\Http\Controllers\Controller;
 use App\Models\Celebration;
 use App\Models\Package;
+use App\Models\SlideshowImage;
 use App\Models\Table;
 use App\Models\TableBooking;
+use Bavix\Wallet\Internal\Exceptions\ExceptionInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
+use Spatie\MediaLibrary\MediaCollections\Exceptions\FileDoesNotExist;
+use Spatie\MediaLibrary\MediaCollections\Exceptions\FileIsTooBig;
 use Symfony\Component\HttpFoundation\Response;
 
 class CelebrationController extends Controller
@@ -18,8 +23,8 @@ class CelebrationController extends Controller
         $validated = $request->validate(['child_id' => 'required|exists:children,id']);
 
         $celebration = Celebration::create([
-            'user_id'  => auth()->guard('sanctum')->user()->id,
-            'child_id' => $validated['child_id'],
+            'user_id'      => auth()->guard('sanctum')->user()->id,
+            'child_id'     => $validated['child_id'],
             'current_step' => 1
         ]);
 
@@ -29,15 +34,15 @@ class CelebrationController extends Controller
     public function package(Request $request, Celebration $celebration)
     {
         $validated = $request->validate([
-            'package_id' => 'required|exists:packages,id',
+            'package_id'   => 'required|exists:packages,id',
             'current_step' => 'required|integer'
         ]);
 
         $package = Package::findOrFail($validated['package_id']);
 
         $celebration->update([
-            'package_id' => $validated['package_id'],
-            'price'      => Carbon::today()->isWeekend() ? $package->weekend_price : $package->weekday_price,
+            'package_id'   => $validated['package_id'],
+            'price'        => Carbon::today()->isWeekend() ? $package->weekend_price : $package->weekday_price,
             'current_step' => $validated['current_step']
         ]);
 
@@ -63,7 +68,7 @@ class CelebrationController extends Controller
         $celebration->update([
             'children_count' => $validated['children_count'],
             'parents_count'  => $validated['parents_count'],
-            'current_step' => $validated['current_step']
+            'current_step'   => $validated['current_step']
         ]);
 
         return response()->json($celebration);
@@ -72,13 +77,13 @@ class CelebrationController extends Controller
     public function slot(Request $request, Celebration $celebration)
     {
         $validated = $request->validate([
-            'datetime' => 'required|date_format:Y-m-d H:i',
+            'datetime'     => 'required|date_format:Y-m-d H:i',
             'current_step' => 'required|integer'
         ]);
 
         $celebration->update([
             'celebration_date' => $validated['datetime'],
-            'current_step' => $validated['current_step']
+            'current_step'     => $validated['current_step']
         ]);
 
         return response()->json($celebration);
@@ -87,7 +92,7 @@ class CelebrationController extends Controller
     public function theme(Request $request, Celebration $celebration)
     {
         $validated = $request->validate([
-            'theme_id' => 'required|exists:themes,id',
+            'theme_id'     => 'required|exists:themes,id',
             'current_step' => 'required|integer'
         ]);
 
@@ -99,14 +104,14 @@ class CelebrationController extends Controller
     public function cake(Request $request, Celebration $celebration)
     {
         $validated = $request->validate([
-            'cake_id'     => 'required|exists:cakes,id',
-            'cake_weight' => 'required|numeric',
+            'cake_id'      => 'required|exists:cakes,id',
+            'cake_weight'  => 'required|numeric',
             'current_step' => 'required|integer'
         ]);
 
         $celebration->update([
-            'cake_id'     => $validated['cake_id'],
-            'cake_weight' => $validated['cake_weight'],
+            'cake_id'      => $validated['cake_id'],
+            'cake_weight'  => $validated['cake_weight'],
             'current_step' => $validated['current_step']
         ]);
 
@@ -116,12 +121,12 @@ class CelebrationController extends Controller
     public function menu(Request $request, Celebration $celebration)
     {
         $validated = $request->validate([
-            'menu_items' => ['required', 'array'],
-            'menu_items.*.menu_item_id' => ['required', 'exists:menu_items,id'],
-            'menu_items.*.quantity' => ['required', 'integer', 'min:1'],
-            'menu_items.*.modifier_option_ids' => ['nullable', 'array'],
+            'menu_items'                         => ['required', 'array'],
+            'menu_items.*.menu_item_id'          => ['required', 'exists:menu_items,id'],
+            'menu_items.*.quantity'              => ['required', 'integer', 'min:1'],
+            'menu_items.*.modifier_option_ids'   => ['nullable', 'array'],
             'menu_items.*.modifier_option_ids.*' => ['exists:modifier_options,id'],
-            'current_step' => ['required', 'integer'],
+            'current_step'                       => ['required', 'integer'],
         ]);
 
         $celebration->menuItems()->detach();
@@ -129,7 +134,7 @@ class CelebrationController extends Controller
 
         foreach ($validated['menu_items'] as $item) {
             $celebration->menuItems()->attach($item['menu_item_id'], [
-                'quantity' => $item['quantity'],
+                'quantity'   => $item['quantity'],
                 'child_name' => $item['child_name'] ?? null,
             ]);
 
@@ -209,6 +214,106 @@ class CelebrationController extends Controller
         return false;
     }
 
+    public function photographer(Request $request, Celebration $celebration)
+    {
+        $validated = $request->validate([
+            'photographer' => 'required|boolean',
+            'current_step' => 'required|integer'
+        ]);
+
+        $celebration->update($validated);
+
+        return response()->json($celebration);
+    }
+
+    public function album(Request $request, Celebration $celebration)
+    {
+        $validated = $request->validate([
+            'photo_album'  => 'required|boolean',
+            'current_step' => 'required|integer'
+        ]);
+
+        $celebration->update($validated);
+
+        return response()->json($celebration);
+    }
+
+    /**
+     * @throws FileIsTooBig
+     * @throws FileDoesNotExist
+     */
+    public function slideshow(Request $request, Celebration $celebration)
+    {
+        $validated = $request->validate([
+            'photos.*'     => 'required|image|mimes:jpg,jpeg,png|max:20000',
+            'current_step' => 'required|integer'
+        ]);
+
+        $slideshow = SlideshowImage::firstOrCreate(['celebration_id' => $celebration->id]);
+
+        if ($slideshow->getMedia('slideshow_images')->count() >= 20) {
+            return response()->json(['message' => 'Maximum 20 photos allowed.'], 400);
+        }
+
+        foreach ($request->file('photos') as $photo) {
+            $slideshow->addMedia($photo)->toMediaCollection('slideshow_images');
+        }
+
+        $celebration->update(['current_step' => $validated['current_step']]);
+
+        return response()->json(['message' => 'Photos uploaded successfully!', 'images' => $slideshow->getMedia('slideshow_images')]);
+    }
+
+    public function confirm(Celebration $celebration)
+    {
+        return response()->json($celebration->load('child', 'cake', 'package', 'theme', 'menuItems'));
+    }
+
+    public function pay(Request $request, Celebration $celebration)
+    {
+        $validated = $request->validate([
+            'amount' => 'required|numeric'
+        ]);
+
+        $family = auth()->guard('sanctum')->user()->family;
+
+        $mainWallet = $family->main_wallet;
+        $cashbackWallet = $family->loyalty_wallet;
+
+        if ($mainWallet->balance < $validated['amount']) {
+            return response()->json(['message' => 'Insufficient funds in main wallet.'], 400);
+        }
+
+        try {
+            $mainWallet->withdraw($validated['amount'], ['description' => "Partial payment for celebration $celebration->id."]);
+            $celebration->update(['paid_amount' => $validated['amount']]);
+        } catch (ExceptionInterface $e) {
+            Log::error($e->getMessage());
+            return response()->json(['message' => 'Failed to withdraw funds from main wallet.'], 400);
+        }
+
+        $cashbackPercent = $celebration->package->cashback_percentage;
+
+        $cashback = round($validated['amount'] * ($cashbackPercent / 100), 2);
+
+        if ($cashback > 0) {
+            try {
+                $cashbackWallet->deposit($cashback, ['description' => "Cashback from payment for celebration $celebration->id."]);
+            } catch (ExceptionInterface $e) {
+                Log::error($e->getMessage());
+                return response()->json(['message' => 'Failed to deposit cashback to loyalty wallet.'], 400);
+            }
+        }
+
+        return response()->json([
+            'message'          => 'Payment successful',
+            'paid_amount'      => $validated['amount'],
+            'cashback_earned'  => $cashback,
+            'wallet_balance'   => $mainWallet->balance,
+            'cashback_balance' => $cashbackWallet->balance,
+        ]);
+    }
+
     private function assignTable(Celebration $celebration)
     {
         if ($celebration->children_count < 15) {
@@ -245,22 +350,5 @@ class CelebrationController extends Controller
         }
 
         return ['status' => 'success', 'tables' => array_map(fn($table) => $table->name, $tables)];
-    }
-
-    public function photographerAndAlbum(Request $request, Celebration $celebration)
-    {
-        $validated = $request->validate([
-            'photographer' => 'required|boolean',
-            'photo_album'  => 'required|boolean',
-            'current_step' => 'required|integer'
-        ]);
-        $celebration->update($validated);
-
-        return response()->json($celebration);
-    }
-
-    public function invitation(Celebration $celebration)
-    {
-        return view('invitations.third-type', ['celebration' => $celebration]);
     }
 }
