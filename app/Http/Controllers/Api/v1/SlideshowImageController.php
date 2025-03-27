@@ -12,49 +12,14 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class SlideshowImageController extends Controller
 {
-    /**
-     * @throws FileIsTooBig
-     * @throws FileDoesNotExist
-     */
-    public function uploadPhotos(Request $request)
+    public function getPhotos(Celebration $celebration)
     {
-        $request->validate([
-            'celebration_id' => 'required|exists:celebrations,id',
-            'photos.*' => 'required|image|mimes:jpg,jpeg,png|max:5120',
-        ]);
-
-        $celebration = Celebration::findOrFail($request->celebration_id);
-        $slideshow = SlideshowImage::firstOrCreate(['celebration_id' => $celebration->id]);
-
-        if ($slideshow->getMedia('slideshow_images')->count() >= 20) {
-            return response()->json(['message' => 'Maximum 20 photos allowed.'], 400);
-        }
-
-        foreach ($request->file('photos') as $photo) {
-            $slideshow->addMedia($photo)->toMediaCollection('slideshow_images');
-        }
-
-        return response()->json(['message' => 'Photos uploaded successfully!', 'images' => $slideshow->getMedia('slideshow_images')]);
-    }
-
-    public function getPhotos($celebrationId)
-    {
-        $slideshow = SlideshowImage::where('celebration_id', $celebrationId)->first();
+        $slideshow = SlideshowImage::where('celebration_id', $celebration->id)->first();
 
         if (!$slideshow) {
             return response()->json(['images' => []]);
         }
 
         return response()->json(['images' => $slideshow->getMedia('slideshow_images')]);
-    }
-
-    public function deletePhoto(Request $request)
-    {
-        $request->validate(['photo_id' => 'required|integer']);
-
-        $photo = Media::findOrFail($request->photo_id);
-        $photo->delete();
-
-        return response()->json(['message' => 'Photo deleted successfully!']);
     }
 }
