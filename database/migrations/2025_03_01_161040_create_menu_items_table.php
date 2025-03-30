@@ -1,8 +1,6 @@
 <?php
 
-use App\Models\Celebration;
-use App\Models\MenuItem;
-use App\Models\ModifierOption;
+use App\Models\MenuCategory;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -13,20 +11,16 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('celebration_menus', function (Blueprint $table) {
+        Schema::create('menu_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignIdFor(Celebration::class)
+            $table->foreignIdFor(MenuCategory::class)
                 ->constrained()
                 ->cascadeOnDelete();
-            $table->foreignIdFor(MenuItem::class)
-                ->constrained()
-                ->cascadeOnDelete();
-            $table->integer('quantity')->default(1);
-            $table->string('child_name')->nullable();
+            $table->string('name');
+            $table->decimal('price', 10);
+            $table->text('description')->nullable();
             $table->timestamps();
         });
-
-
     }
 
     /**
@@ -34,6 +28,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('celebration_menus');
+        Schema::dropIfExists('menu_items');
     }
 };

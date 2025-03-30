@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Celebration extends Model
 {
@@ -22,6 +23,8 @@ class Celebration extends Model
         'celebration_date',
         'cake_id',
         'cake_weight',
+        'current_step',
+        'completed',
         'menu_id',
         'photo_album',
         'total_amount',
@@ -56,7 +59,13 @@ class Celebration extends Model
 
     public function menuItems(): BelongsToMany
     {
-        return $this->belongsToMany(MenuItem::class, 'celebration_menus')->withPivot('quantity');
+        return $this->belongsToMany(MenuItem::class, 'celebration_menus')
+            ->withPivot('quantity');
+    }
+
+    public function modifierOptions(): BelongsToMany
+    {
+        return $this->belongsToMany(ModifierOption::class, 'celebration_menu_modifiers');
     }
 
     public function tables(): HasMany
@@ -77,5 +86,10 @@ class Celebration extends Model
 
             return $basePrice + $modifiersPrice;
         });
+    }
+
+    public function slideshow(): HasOne
+    {
+        return $this->hasOne(SlideshowImage::class);
     }
 }

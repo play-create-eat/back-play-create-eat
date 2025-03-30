@@ -12,48 +12,16 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class SlideshowImageController extends Controller
 {
-    /**
-     * @throws FileIsTooBig
-     * @throws FileDoesNotExist
-     */
-    public function store(Request $request)
+    public function destroy(Celebration $celebration, Media $media)
     {
-        $request->validate([
-            'celebration_id' => 'required|exists:celebrations,id',
-            'photos.*' => 'required|image|mimes:jpg,jpeg,png|max:5120',
-        ]);
+        $slideshow = SlideshowImage::where('celebration_id', $celebration->id)->first();
 
-        $celebration = Celebration::findOrFail($request->celebration_id);
-        $slideshow = SlideshowImage::firstOrCreate(['celebration_id' => $celebration->id]);
-
-        if ($slideshow->getMedia('slideshow_images')->count() >= 20) {
-            return response()->json(['message' => 'Maximum 20 photos allowed.'], 400);
+        if (!$slideshow || $media->model_id !== $slideshow->id || $media->collection_name !== 'slideshow_images') {
+            return response()->json(['message' => 'Image not found or not allowed.'], 404);
         }
 
-        foreach ($request->file('photos') as $photo) {
-            $slideshow->addMedia($photo)->toMediaCollection('slideshow_images');
-        }
+        $media->delete();
 
-        return response()->json(['message' => 'Photos uploaded successfully!', 'images' => $slideshow->getMedia('slideshow_images')]);
-    }
-
-    public function getPhotos($celebrationId)
-    {
-        $slideshow = SlideshowImage::where('celebration_id', $celebrationId)->first();
-
-        if (!$slideshow) {
-            return response()->json(['images' => []]);
-        }
-
-        return response()->json(['images' => $slideshow->getMedia('slideshow_images')]);
-    }
-
-    public function destroy(Request $request)
-    {
-        $request->validate(['image_id' => 'required|integer']);
-        $image = Media::findOrFail($request->image_id);
-        $image->delete();
-
-        return response()->json(['message' => 'Photo deleted successfully!']);
+        return response()->json(['message' => 'Image deleted successfully.']);
     }
 }
