@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Celebration extends Model
 {
@@ -84,5 +85,10 @@ class Celebration extends Model
 
             return $basePrice + $modifiersPrice;
         });
+    }
+
+    public function slideshow(): HasOne
+    {
+        return $this->hasOne(SlideshowImage::class);
     }
 }
