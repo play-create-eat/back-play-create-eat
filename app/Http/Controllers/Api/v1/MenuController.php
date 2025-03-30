@@ -27,14 +27,18 @@ class MenuController extends Controller
                 return response()->json(['message' => 'Menu type not found'], 404);
             }
 
+            $items = $menuType->categories->flatMap(function ($category) {
+                return $category->items->map(function ($item) use ($category) {
+                    return array_merge(
+                        $this->formatMenuItem($item),
+                        ['category' => $category->name]
+                    );
+                });
+            });
+
             return response()->json([
-                'type' => $menuType->title,
-                'data' => $menuType->categories->map(function ($category) {
-                    return [
-                        'title' => $category->name,
-                        'data'  => $category->items->map(fn($item) => $this->formatMenuItem($item)),
-                    ];
-                }),
+                'type'  => $menuType->title,
+                'items' => $items,
             ]);
         } else {
             $categories = MenuCategory::with([
@@ -43,14 +47,18 @@ class MenuController extends Controller
                 'items.modifierGroups.options'
             ])->get();
 
+            $items = $categories->flatMap(function ($category) {
+                return $category->items->map(function ($item) use ($category) {
+                    return array_merge(
+                        $this->formatMenuItem($item),
+                        ['category' => $category->name]
+                    );
+                });
+            });
+
             return response()->json([
-                'type' => 'All',
-                'data' => $categories->map(function ($category) {
-                    return [
-                        'title' => $category->name,
-                        'data'  => $category->items->map(fn($item) => $this->formatMenuItem($item)),
-                    ];
-                }),
+                'type'  => 'All',
+                'items' => $items,
             ]);
         }
     }
