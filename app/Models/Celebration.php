@@ -28,7 +28,8 @@ class Celebration extends Model
         'menu_id',
         'photo_album',
         'total_amount',
-        'paid_amount'
+        'paid_amount',
+        'current_step'
     ];
 
     public function child(): BelongsTo

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\v1\ChildController;
 use App\Http\Controllers\Api\v1\FamilyController;
 use App\Http\Controllers\Api\v1\InvitationController;
+use App\Http\Controllers\Api\v1\InviteController;
 use App\Http\Controllers\Api\v1\PandaDocController;
 use App\Http\Controllers\Api\v1\ProfileController;
 use App\Http\Controllers\Api\v1\TimelineController;
@@ -62,6 +63,8 @@ Route::prefix('v1')->group(function () {
     Route::post('/pandadoc/webhook', [PandaDocController::class, 'handleWebhook']);
 
     require __DIR__ . '/stripe.php';
+
+    Route::get('svg', [InviteController::class, 'store']);
 });
 
 

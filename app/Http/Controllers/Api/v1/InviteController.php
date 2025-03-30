@@ -4,72 +4,77 @@ namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Celebration;
-use App\Models\Invite;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\InvitationTemplate;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Intervention\Image\Laravel\Facades\Image;
+use Illuminate\Support\Carbon;
+use Imagick;
+use ImagickException;
+use Spatie\MediaLibrary\MediaCollections\Exceptions\FileDoesNotExist;
+use Spatie\MediaLibrary\MediaCollections\Exceptions\FileIsTooBig;
+use Throwable;
 
 class InviteController extends Controller
 {
-    public function store(Request $request)
+    public function index()
     {
-        $request->validate([
-            'celebration_id' => 'required|exists:celebrations,id',
-        ]);
+        $invitations = InvitationTemplate::all();
 
-        $celebration = Celebration::with('theme')->findOrFail($request->celebration_id);
-        $theme = $celebration->theme->name ?? 'Default Theme';
-
-        $imagePath = $this->generateInviteImage($celebration, $theme);
-        $pdfPath = $this->generateInvitePDF($celebration, $theme);
-
-        $invite = Invite::create([
-            'celebration_id' => $celebration->id,
-            'child_name' => $celebration->child->name,
-            'theme' => $theme,
-            'invite_image' => $imagePath,
-            'invite_pdf' => $pdfPath,
-        ]);
-
-        return response()->json($invite, 201);
+        return  response()->json($invitations);
     }
 
-    public function show()
+    public function store()
     {
-
+        return view('invitations.background.index');
     }
 
-    private function generateInviteImage($celebration, $theme)
+    /**
+     * @throws ImagickException
+     * @throws Throwable
+     * @throws FileIsTooBig
+     * @throws FileDoesNotExist
+     */
+    public function generate(Celebration $celebration, InvitationTemplate $template)
     {
-        $childName = $celebration->child->name;
+        $invitationData = (object)[
+            'background_color' => $template->background_color ?? '#ffffff',
+            'text_color'       => $template->text_color ?? '#000000',
+            'logo_color'       => $template->logo_color ?? '#000000',
+            'decoration_type'  => $template->decoration_type,
+            'child_name'       => $celebration->child->first_name,
+            'date'             => Carbon::parse($celebration->celebration_date)->format('d F Y'),
+            'hour'             => Carbon::parse($celebration->celebration_date)->format('H:i'),
+            'place'            => 'Wadi Al Safa 4 (Beside Global Village)',
+        ];
 
-        $backgroundPath = storage_path("app/public/theme_templates/{$theme}.png");
-        $img = Image::read(file_get_contents($backgroundPath));
+        $html = view('invitations.background.index', [
+            'invitation' => $invitationData,
+        ])->render();
 
-        $img->text($childName, 350, 500, function($font) {
-            $font->file(storage_path('fonts/arial.ttf'));
-            $font->size(50);
-            $font->color('#FFFFFF');
-            $font->align('center');
-        });
+        $pdf = app('dompdf.wrapper');
+        $pdf->loadHTML($html)->setPaper([0, 0, 310, 428]);
+        $pdfPath = storage_path('app/public/temp_' . $template->id . '.pdf');
+        file_put_contents($pdfPath, $pdf->output());
 
-        $imagePath = "invitations/{$celebration->id}_{$theme}.png";
-        Storage::disk('public')->put($imagePath, $img->encode());
+        $pngPath = storage_path('app/public/temp_' . $template->id . '.png');
+        $imagick = new Imagick();
+        $imagick->setResolution(300, 300);
+        $imagick->readImage($pdfPath);
+        $imagick->setImageFormat('png');
+        $imagick->writeImage($pngPath);
+        $imagick->clear();
 
-        return $imagePath;
-    }
+        $template->clearMediaCollection('invitation');
 
-    private function generateInvitePDF($celebration, $theme)
-    {
-        $childName = $celebration->child->name;
-        $data = ['child_name' => $childName, 'theme' => $theme];
+        $template
+            ->addMedia($pngPath)
+            ->preservingOriginal()
+            ->toMediaCollection('invitation');
 
-        $pdf = Pdf::loadView('pdf.invite', $data);
-        $pdfPath = "invitations/{$celebration->id}_{$theme}.pdf";
+        $invitationUrl = $template->getFirstMediaUrl('invitation');
 
-        Storage::disk('public')->put($pdfPath, $pdf->output());
+        unlink($pdfPath);
+        unlink($pngPath);
 
-        return $pdfPath;
+        return response()->json(['url' => $invitationUrl]);
     }
 }

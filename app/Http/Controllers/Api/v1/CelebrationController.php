@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Celebration;
+use App\Models\InvitationTemplate;
 use App\Models\Package;
 use App\Models\SlideshowImage;
 use App\Models\Table;

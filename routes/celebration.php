@@ -26,8 +26,11 @@ Route::prefix('celebration')
             Route::post('photographer', 'photographer');
             Route::get('album', 'album');
             Route::post('slideshow', 'slideshow');
+            Route::post('invitations/{template}', [InviteController::class, 'generate']);
         });
     });
+
+Route::get('invitation-templates', [InviteController::class, 'index']);
 
 Route::get('/themes', [ThemeController::class, 'index']);
 

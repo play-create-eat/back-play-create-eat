@@ -31,7 +31,12 @@ RUN apt-get update && apt-get install -y \
     libexif-dev \
     g++ \
     make \
-    autoconf
+    autoconf \
+    ghostscript \
+    imagemagick \
+    libmagickwand-dev --no-install-recommends
+
+RUN sed -i 's/<policy domain="coder" rights="none" pattern="PDF" \/>/<policy domain="coder" rights="read|write" pattern="PDF" \/>/' /etc/ImageMagick-6/policy.xml || true
 
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -45,7 +50,8 @@ RUN docker-php-ext-install \
         intl \
         exif && \
     docker-php-ext-configure exif --enable-exif && \
-    pecl install redis && docker-php-ext-enable redis
+    pecl install redis && docker-php-ext-enable redis && \
+    pecl install imagick && docker-php-ext-enable imagick
 
 # Install and enable Xdebug
 RUN pecl install xdebug \
