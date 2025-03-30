@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Exceptions\InvalidPassActivationDateException;
+use DateTime;
+use App\Exceptions\InsufficientCashbackBalanceException;
 use App\Models\Child;
 use App\Models\Pass;
 use App\Models\Product;
@@ -15,6 +18,8 @@ use App\Exceptions\PassExpiredException;
 use App\Exceptions\ProductNotAvailableException;
 use App\Notifications\PassCheckInNotification;
 use App\Notifications\PassCheckOutNotification;
+use Bavix\Wallet\Models\Transfer;
+use Bavix\Wallet\Objects\Cart;
 use Carbon\Carbon;
 use Carbon\CarbonInterval;
 use Illuminate\Support\Facades\DB;
@@ -32,7 +37,14 @@ class PassService
         return Pass::where('serial', $serial)->firstOrFail();
     }
 
-    public function purchase(User $user, Child $child, Product $product, bool $isFree = false): Pass
+    public function purchase(
+        User     $user,
+        Child    $child,
+        Product  $product,
+        bool     $isFree = false,
+        int      $loyaltyPointAmount = 0,
+        DateTime $activationDate = null
+    ): Pass
     {
         $user->loadMissing('family');
         $child->loadMissing('family');
@@ -47,11 +59,11 @@ class PassService
             )
         );
 
-        return DB::transaction(function () use ($user, $child, $product, $isFree) {
+        return DB::transaction(function () use ($user, $child, $product, $activationDate, $isFree, $loyaltyPointAmount) {
             if ($isFree) {
                 $transfer = $user->family->payFree($product);
             } else {
-                $transfer = $user->family->pay($product);
+                $transfer = $this->payWithLoyaltyPoints($user, $product, $loyaltyPointAmount);
             }
 
             $duration = CarbonInterval::minutes($product->duration_time);
@@ -63,6 +75,7 @@ class PassService
             $pass->serial = static::generateSerial();
             $pass->remaining_time = round($duration->totalMinutes);
             $pass->is_extendable = $product->is_extendable;
+            $pass->activation_date = $activationDate ?: today();
             $pass->expires_at = $expiresAt;
             $pass->children()->associate($child);
             $pass->user()->associate($user);
@@ -146,9 +159,15 @@ class PassService
     protected function markPassCheckIn(Pass $pass, int $productTypeId): Pass
     {
         $pass->loadMissing('user');
+
         throw_if(
             condition: $pass->isExpired(),
             exception: new PassExpiredException($pass)
+        );
+
+        throw_unless(
+            condition: $pass->activation_date->isToday(),
+            exception: throw new InvalidPassActivationDateException($pass)
         );
 
         $productType = ProductType::findOrFail($productTypeId);
@@ -192,5 +211,50 @@ class PassService
         $pass->user->notify(new PassCheckOutNotification($pass));
 
         return $pass;
+    }
+
+    /**
+     * @throws \Bavix\Wallet\Internal\Exceptions\ExceptionInterface
+     * @throws \Throwable
+     */
+    protected function payWithLoyaltyPoints(User $user, Product $product, int $loyaltyPointAmount = 0): Transfer
+    {
+        $family = $user->loadMissing('family')->family;
+        $productPrice = $product->getAmountProduct($family);
+
+        if ($loyaltyPointAmount > 0) {
+            $loyaltyWallet = $family->loyalty_wallet;
+
+            if ($loyaltyPointAmount > $productPrice) {
+                $loyaltyPointAmount = $productPrice;
+            }
+
+            throw_if($loyaltyWallet->balance < $loyaltyPointAmount, new InsufficientCashbackBalanceException(
+                amount: $loyaltyPointAmount,
+                balance: $loyaltyWallet->balance,
+            ));
+
+            $loyaltyWallet->withdraw(
+                amount: $loyaltyPointAmount,
+                meta: [
+                    'description' => 'Loyalty points redeemed successfully for product discount.',
+                    'product_id' => $product->id,
+                    'product_name' => $product->name,
+                    'product_price' => $productPrice,
+                ],
+            );
+
+            $productPrice = max(0, $productPrice - $loyaltyPointAmount);
+        }
+
+        $cart = app(Cart::class)
+            ->withItem($product, pricePerItem: $productPrice)
+            ->withMeta([
+                'loyalty_points_used' => $loyaltyPointAmount,
+            ]);
+
+        $family->payCart($cart);
+
+        return $family->pay($product);
     }
 }

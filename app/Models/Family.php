@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $name
  * @property ?User[] $users
  * @property ?Child[] $children
+ * @property ?Wallet $main_wallet
+ * @property ?Wallet $loyalty_wallet
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  * @property ?\Carbon\Carbon $deleted_at

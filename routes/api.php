@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\v1\ChildController;
 use App\Http\Controllers\Api\v1\FamilyController;
 use App\Http\Controllers\Api\v1\InvitationController;
 use App\Http\Controllers\Api\v1\PandaDocController;
+use App\Http\Controllers\Api\v1\ProductController;
 use App\Http\Controllers\Api\v1\ProfileController;
 use App\Http\Controllers\Api\v1\TimelineController;
 use App\Http\Middleware\CheckAuthenticationOrRegistrationId;
@@ -43,6 +44,9 @@ Route::prefix('v1')->group(function () {
 
         Route::get('user/family-members', [FamilyController::class, 'members']);
         Route::get('user/family-passes', [FamilyController::class, 'passes']);
+
+        Route::get('product', [ProductController::class, 'index']);
+        Route::post('product/purchase', [ProductController::class, 'purchase']);
 
         Route::put('profile', [ProfileController::class, 'update']);
 

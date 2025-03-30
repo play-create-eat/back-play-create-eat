@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Api\v1;
 use App\Filament\Resources\ProductResource;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\v1\ProductPurchaseRequest;
+use App\Http\Resources\Api\v1\FamilyPassResource;
 use App\Models\Child;
 use App\Models\Product;
 use App\Services\PassService;
+use Carbon\Carbon;
+use Illuminate\Validation\Rule;
 
 /**
  * @OA\Schema(
@@ -45,39 +48,9 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $products = Product::with(['features'])->where('is_available', true)->get();
+        $products = Product::available()->with(['features'])->get();
 
         return response()->json(ProductResource::collection($products));
-    }
-
-    /**
-     * @OA\Get(
-     *     path="/api/v1/product/{id}",
-     *     summary="Get details of a specific product",
-     *     tags={"Product"},
-     *     security={{"sanctum": {}}},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         description="ID of the product",
-     *         @OA\Schema(type="integer", example=1)
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Details of the product",
-     *         @OA\JsonContent(ref="#/components/schemas/ProductResource")
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Product not found",
-     *         @OA\JsonContent(@OA\Property(property="message", type="string", example="Product not found."))
-     *     )
-     * )
-     */
-    public function show(Product $product)
-    {
-        return new ProductResource($product);
     }
 
     /**
@@ -90,14 +63,16 @@ class ProductController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"child_id", "product_id"},
+     *             required={"child_id", "product_id", "date"},
      *             @OA\Property(property="child_id", type="integer", format="int64", description="The ID of the child", minimum=1, example=1),
-*    *             @OA\Property(property="product_id", type="integer", format="int64", description="The ID of the product", minimum=0, example=456)
+     *    *             @OA\Property(property="product_id", type="integer", format="int64", description="The ID of the product", minimum=0, example=456)
+     *             @OA\Property(property="date", type="string", format="date", description="The activation date for the product in YYYY-MM-DD format", example="2025-03-24")
+     *             @OA\Property(property="loyalty_points_amount", type="integer", format="int64", description="Loyalty point used for discount", minimum=0, example=100)
      *         )
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Product and pass successfully purchased",
+     *         description="Pass successfully purchased",
      *         @OA\JsonContent(
      *             @OA\Property(property="message", type="string", example="Invitation sent successfully.")
      *         )
@@ -128,15 +103,30 @@ class ProductController extends Controller
      */
     public function purchase(ProductPurchaseRequest $request)
     {
-        $user = auth()->guard('sanctum')->user();
+        $user = auth()->guard('sanctum')->user()->load('family');
+
+        $request->validate([
+            'child_id' => 'required|integer',
+            'product_id' => 'required|integer',
+            'date' => [
+                'required',
+                Rule::date()->afterOrEqual(today()),
+            ],
+            'loyalty_points_amount' => 'required|integer|min:0',
+        ]);
 
         $child = Child::findOrFail($request->input('child_id'));
-        $product = Product::findOrFail($request->input('product_id'));
+        $product = Product::available()->findOrFail($request->input('product_id'));
+        $loyaltyPointAmount = (int)$request->input('loyalty_points_amount');
 
         $pass = app(PassService::class)->purchase(
             user: $user,
             child: $child,
             product: $product,
+            loyaltyPointAmount: $loyaltyPointAmount,
+            activationDate: Carbon::parse($request->input('date'))
         );
+
+        return new FamilyPassResource($pass);
     }
 }

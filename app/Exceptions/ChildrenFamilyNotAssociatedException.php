@@ -11,7 +11,7 @@ class ChildrenFamilyNotAssociatedException extends HttpException
     protected $child;
     protected $currentFamily;
 
-    public function __construct(Child $child, Family $currentFamily, $message = '', $statusCode = 403)
+    public function __construct(Child $child, Family $currentFamily, string $message = '', int $statusCode = 403)
     {
         $this->child = $child;
         $this->currentFamily = $currentFamily;

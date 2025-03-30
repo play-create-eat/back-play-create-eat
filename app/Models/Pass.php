@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property ?\Carbon\Carbon $entered_at
  * @property ?\Carbon\Carbon $exited_at
  * @property \Carbon\Carbon $expires_at
+ * @property \Carbon\Carbon $activation_date
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  * @property ?\Carbon\Carbon $deleted_at
@@ -36,9 +37,10 @@ class Pass extends Model
         return [
             'remaining_time' => 'integer',
             'is_extendable' => 'bool',
-            'entered_at'  => 'datetime',
-            'exited_at'  => 'datetime',
+            'entered_at' => 'datetime',
+            'exited_at' => 'datetime',
             'expires_at' => 'datetime',
+            'activation_date' => 'date',
         ];
     }
 
