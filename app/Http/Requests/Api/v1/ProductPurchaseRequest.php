@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Api\v1;
 
-use Illuminate\Database\Query\Builder;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -25,16 +24,13 @@ class ProductPurchaseRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'child_id' => [
+            'child_id' => 'required|integer',
+            'product_id' => 'required|integer',
+            'date' => [
                 'required',
-                Rule::exists('children', 'id'),
+                Rule::date()->afterOrEqual(today()),
             ],
-            'product_id' => [
-                'required',
-                Rule::exists('products')->where(function (Builder $query, mixed $value) {
-                    $query->available()->where('id', $value);
-                }),
-            ],
+            'loyalty_points_amount' => 'required|integer|min:0',
         ];
     }
 }

@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers\Api\v1;
 
-use App\Filament\Resources\ProductResource;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\v1\ProductPurchaseRequest;
 use App\Http\Resources\Api\v1\FamilyPassResource;
+use App\Http\Resources\Api\v1\ProductResource;
 use App\Models\Child;
 use App\Models\Product;
 use App\Services\PassService;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 /**
@@ -46,11 +47,31 @@ class ProductController extends Controller
      *     )
      * )
      */
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::available()->with(['features'])->get();
+        $filters = $request->validate([
+            'limit' => ['integer', 'min:1', 'max:50'],
+            'duration' => ['array', 'min:1', Rule::in(array_keys(config('passes.durations')))],
+            'feature' => ['array', 'min:1'],
+            'feature.*' => ['integer'],
+        ]);
 
-        return response()->json(ProductResource::collection($products));
+        $limit = $filters['limit'] ?? 10;
+
+        $products = Product::available()
+            ->with(['features'])
+            ->when($request->filled('duration'), function ($query) use ($request) {
+                $query->whereIn('duration_time', $request->input('duration'));
+            })
+            ->when($request->filled('feature'), function ($query) use ($request) {
+                $query->whereHas('features', function ($query) use ($request) {
+                    $query->whereIn('id', $request->input('feature'));
+                });
+            })
+            ->limit($limit)
+            ->get();
+
+        return ProductResource::collection($products);
     }
 
     /**
@@ -104,17 +125,6 @@ class ProductController extends Controller
     public function purchase(ProductPurchaseRequest $request)
     {
         $user = auth()->guard('sanctum')->user()->load('family');
-
-        $request->validate([
-            'child_id' => 'required|integer',
-            'product_id' => 'required|integer',
-            'date' => [
-                'required',
-                Rule::date()->afterOrEqual(today()),
-            ],
-            'loyalty_points_amount' => 'required|integer|min:0',
-        ]);
-
         $child = Child::findOrFail($request->input('child_id'));
         $product = Product::available()->findOrFail($request->input('product_id'));
         $loyaltyPointAmount = (int)$request->input('loyalty_points_amount');
