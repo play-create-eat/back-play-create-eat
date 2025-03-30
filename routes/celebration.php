@@ -23,9 +23,11 @@ Route::prefix('celebration')
             Route::post('cake', 'cake');
             Route::post('menu', 'menu');
             Route::post('photographer-and-photo-album', 'photographerAndAlbum');
-            Route::get('invitations', 'invitations');
+            Route::post('invitations/{template}', [InviteController::class, 'generate']);
         });
     });
+
+Route::get('invitation-templates', [InviteController::class, 'index']);
 
 Route::get('/themes', [ThemeController::class, 'index']);
 
@@ -51,9 +53,9 @@ Route::post('/invites', [InviteController::class, 'store']);
 Route::get('/invites/{celebration}', [InviteController::class, 'show']);
 
 // Step 9: Upload Slideshow Photos
-Route::post('/slideshow/upload', [SlideshowImageController::class, 'uploadPhotos']);
-Route::get('/slideshow/{celebration}', [SlideshowImageController::class, 'getPhotos']);
-Route::delete('/slideshow/photo', [SlideshowImageController::class, 'deletePhoto']);
+Route::post('/slideshow/upload', [SlideshowImageController::class, 'store']);
+Route::get('/slideshow/{celebration}', [SlideshowImageController::class, 'index']);
+Route::delete('/slideshow/{slideshow_image}', [SlideshowImageController::class, 'deletePhoto']);
 Route::get('/slideshow/generate/{celebration}', [SlideshowImageController::class, 'generateSlideshow']);
 
 // Step 10: Confirm & Proceed to Payment

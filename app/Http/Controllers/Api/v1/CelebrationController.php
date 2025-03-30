@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Celebration;
+use App\Models\InvitationTemplate;
 use App\Models\Package;
 use App\Models\Table;
 use App\Models\TableBooking;
@@ -19,7 +20,8 @@ class CelebrationController extends Controller
 
         $celebration = Celebration::create([
             'user_id'  => auth()->guard('sanctum')->user()->id,
-            'child_id' => $validated['child_id']
+            'child_id' => $validated['child_id'],
+            'current_step' => 1,
         ]);
 
         return response()->json($celebration, Response::HTTP_CREATED);
@@ -238,6 +240,6 @@ class CelebrationController extends Controller
 
     public function invitation(Celebration $celebration)
     {
-        return view('invitations.third-type', ['celebration' => $celebration]);
+        return  \response()->json(InvitationTemplate::all());
     }
 }

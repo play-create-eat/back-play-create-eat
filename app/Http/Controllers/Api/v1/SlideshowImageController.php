@@ -16,7 +16,7 @@ class SlideshowImageController extends Controller
      * @throws FileIsTooBig
      * @throws FileDoesNotExist
      */
-    public function uploadPhotos(Request $request)
+    public function store(Request $request)
     {
         $request->validate([
             'celebration_id' => 'required|exists:celebrations,id',
@@ -48,12 +48,11 @@ class SlideshowImageController extends Controller
         return response()->json(['images' => $slideshow->getMedia('slideshow_images')]);
     }
 
-    public function deletePhoto(Request $request)
+    public function destroy(Request $request)
     {
-        $request->validate(['photo_id' => 'required|integer']);
-
-        $photo = Media::findOrFail($request->photo_id);
-        $photo->delete();
+        $request->validate(['image_id' => 'required|integer']);
+        $image = Media::findOrFail($request->image_id);
+        $image->delete();
 
         return response()->json(['message' => 'Photo deleted successfully!']);
     }
