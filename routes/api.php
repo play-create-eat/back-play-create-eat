@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\v1\ChildController;
 use App\Http\Controllers\Api\v1\FamilyController;
 use App\Http\Controllers\Api\v1\InvitationController;
+use App\Http\Controllers\Api\v1\InviteController;
 use App\Http\Controllers\Api\v1\PandaDocController;
 use App\Http\Controllers\Api\v1\ProductController;
 use App\Http\Controllers\Api\v1\ProfileController;
@@ -59,11 +60,10 @@ Route::prefix('v1')->group(function () {
     Route::post('invite/register-step-1', [InvitationController::class, 'validateStep1']);
     Route::post('invite/register-step-2', [InvitationController::class, 'validateStep2']);
     Route::post('invite/register', [InvitationController::class, 'register']);
+    Route::post('/pandadoc/webhook', [PandaDocController::class, 'handleWebhook']);
+    Route::get('svg', [InviteController::class, 'store']);
 
     require __DIR__ . '/auth.php';
-
-    Route::post('/pandadoc/webhook', [PandaDocController::class, 'handleWebhook']);
-
     require __DIR__ . '/stripe.php';
     require __DIR__ . '/internal.php';
 });
