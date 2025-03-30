@@ -167,7 +167,7 @@ class PassService
 
         throw_unless(
             condition: $pass->activation_date->isToday(),
-            exception: throw new InvalidPassActivationDateException($pass)
+            exception: new InvalidPassActivationDateException($pass)
         );
 
         $productType = ProductType::findOrFail($productTypeId);
