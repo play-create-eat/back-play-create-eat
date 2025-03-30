@@ -52,8 +52,8 @@ Route::post('/invites', [InviteController::class, 'store']);
 Route::get('/invites/{celebration}', [InviteController::class, 'show']);
 
 // Step 9: Upload Slideshow Photos
-Route::get('/slideshow/{celebration}', [SlideshowImageController::class, 'getPhotos']);
-Route::delete('/slideshow/photo', [SlideshowImageController::class, 'deletePhoto']);
+Route::get('/slideshow/{celebration}', [SlideshowImageController::class, 'index']);
+Route::delete('/slideshow/photo', [SlideshowImageController::class, 'destroy']);
 
 // Step 10: Confirm & Proceed to Payment
 Route::post('/celebrations/confirm', [CelebrationController::class, 'confirm']);

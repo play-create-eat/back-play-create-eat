@@ -12,14 +12,16 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class SlideshowImageController extends Controller
 {
-    public function getPhotos(Celebration $celebration)
+    public function destroy(Celebration $celebration, Media $media)
     {
         $slideshow = SlideshowImage::where('celebration_id', $celebration->id)->first();
 
-        if (!$slideshow) {
-            return response()->json(['images' => []]);
+        if (!$slideshow || $media->model_id !== $slideshow->id || $media->collection_name !== 'slideshow_images') {
+            return response()->json(['message' => 'Image not found or not allowed.'], 404);
         }
 
-        return response()->json(['images' => $slideshow->getMedia('slideshow_images')]);
+        $media->delete();
+
+        return response()->json(['message' => 'Image deleted successfully.']);
     }
 }

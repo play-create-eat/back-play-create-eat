@@ -18,6 +18,23 @@ use Symfony\Component\HttpFoundation\Response;
 
 class CelebrationController extends Controller
 {
+
+    public function index(Request $request)
+    {
+        $request->validate([
+            'completed' => 'boolean',
+        ]);
+
+        $query = Celebration::with('child', 'package', 'theme', 'menuItems', 'cake', 'modifierOptions', 'slideshow')
+            ->where('user_id', auth()->guard('sanctum')->user()->id);
+
+        if ($request->filled('completed') && $request->boolean('completed')) {
+            $query->where('completed', true);
+        }
+
+        return response()->json($query->orderByDesc('created_at')->get());
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate(['child_id' => 'required|exists:children,id']);
