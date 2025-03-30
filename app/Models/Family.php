@@ -2,17 +2,29 @@
 
 namespace App\Models;
 
-use Bavix\Wallet\Models\Wallet;
-use Bavix\Wallet\Traits\HasWallet;
+use Bavix\Wallet\Interfaces\Wallet;
 use Bavix\Wallet\Traits\HasWallets;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Bavix\Wallet\Interfaces\Customer;
+use Bavix\Wallet\Traits\CanPay;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Family extends Model
+/**
+ * @property int $id
+ * @property string $name
+ * @property ?User[] $users
+ * @property ?Child[] $children
+ * @property ?Wallet $main_wallet
+ * @property ?Wallet $loyalty_wallet
+ * @property \Carbon\Carbon $created_at
+ * @property \Carbon\Carbon $updated_at
+ * @property ?\Carbon\Carbon $deleted_at
+ */
+class Family extends Model implements Wallet, Customer
 {
-    use HasWallets;
+    use HasWallets, CanPay, SoftDeletes;
 
     protected $fillable = ['name', 'stripe_customer_id'];
 
@@ -57,5 +69,17 @@ class Family extends Model
     public function getLoyaltyWalletAttribute(): ?Wallet
     {
         return $this->getWallet('cashback');
+    }
+
+    public function passes(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            Pass::class,
+            User::class,
+            'family_id',
+            'user_id',
+            'id',
+            'family_id',
+        );
     }
 }

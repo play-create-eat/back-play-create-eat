@@ -8,6 +8,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
+/**
+ * @property int $id
+ * @property string $first_name
+ * @property string $last_name
+ * @property \App\Enums\GenderEnum $gender
+ * @property \Carbon\Carbon $birth_date
+ * @property ?\App\Models\Family $family
+ * @property \Carbon\Carbon $created_at
+ * @property \Carbon\Carbon $updated_at
+ */
 class Child extends Model implements HasMedia
 {
     use InteractsWithMedia;
