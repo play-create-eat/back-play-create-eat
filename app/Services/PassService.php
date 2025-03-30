@@ -253,8 +253,8 @@ class PassService
                 'loyalty_points_used' => $loyaltyPointAmount,
             ]);
 
-        $family->payCart($cart);
+        list($transfer) = array_values($family->payCart($cart));
 
-        return $family->pay($product);
+        return $transfer;
     }
 }
