@@ -28,8 +28,8 @@ class CelebrationController extends Controller
         $query = Celebration::with('child', 'package', 'theme', 'menuItems', 'cake', 'modifierOptions', 'slideshow')
             ->where('user_id', auth()->guard('sanctum')->user()->id);
 
-        if ($request->filled('completed') && $request->boolean('completed')) {
-            $query->where('completed', true);
+        if ($request->filled('completed')) {
+            $query->where('completed', $request->boolean('completed'));
         }
 
         return response()->json($query->orderByDesc('created_at')->get());
@@ -37,6 +37,14 @@ class CelebrationController extends Controller
 
     public function store(Request $request)
     {
+        $celebrations = Celebration::where('user_id', auth()->guard('sanctum')->user()->id)
+            ->where('completed', false)
+            ->get();
+
+        foreach ($celebrations as $celebration) {
+            $celebration->delete();
+        }
+
         $validated = $request->validate(['child_id' => 'required|exists:children,id']);
 
         $celebration = Celebration::create([
@@ -137,6 +145,7 @@ class CelebrationController extends Controller
 
     public function menu(Request $request, Celebration $celebration)
     {
+        // TODO: Attach and make request to attach parents menu to celebration
         $validated = $request->validate([
             'menu_items'                         => ['required', 'array'],
             'menu_items.*.menu_item_id'          => ['required', 'exists:menu_items,id'],
@@ -170,6 +179,8 @@ class CelebrationController extends Controller
 
     public function availableSlots(Request $request)
     {
+        // TODO: add attach to package by time (get duration hours)
+
         $validated = $request->validate([
             'date'           => ['required', 'date', 'after_or_equal:today'],
             'children_count' => ['required', 'integer', 'min:1']
@@ -288,6 +299,7 @@ class CelebrationController extends Controller
 
     public function pay(Request $request, Celebration $celebration)
     {
+        // TODO: add request for rest payment for celebration
         $validated = $request->validate([
             'amount' => 'required|numeric'
         ]);

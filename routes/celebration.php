@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\v1\ThemeController;
 Route::prefix('celebration')
     ->controller(CelebrationController::class)
     ->group(function () {
+        Route::get('', 'index');
         Route::get('available-slots', 'availableSlots');
         Route::post('', 'store');
 
@@ -53,7 +54,7 @@ Route::get('/invites/{celebration}', [InviteController::class, 'show']);
 
 // Step 9: Upload Slideshow Photos
 Route::get('/slideshow/{celebration}', [SlideshowImageController::class, 'index']);
-Route::delete('/slideshow/photo', [SlideshowImageController::class, 'destroy']);
+Route::delete('/slideshow/image/{media}', [SlideshowImageController::class, 'destroy']);
 
 // Step 10: Confirm & Proceed to Payment
 Route::post('/celebrations/confirm', [CelebrationController::class, 'confirm']);
