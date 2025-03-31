@@ -86,9 +86,9 @@ class ProductController extends Controller
      *         @OA\JsonContent(
      *             required={"child_id", "product_id", "date"},
      *             @OA\Property(property="child_id", type="integer", format="int64", description="The ID of the child", minimum=1, example=1),
-     *    *             @OA\Property(property="product_id", type="integer", format="int64", description="The ID of the product", minimum=0, example=456)
-     *             @OA\Property(property="date", type="string", format="date", description="The activation date for the product in YYYY-MM-DD format", example="2025-03-24")
-     *             @OA\Property(property="loyalty_points_amount", type="integer", format="int64", description="Loyalty point used for discount", minimum=0, example=100)
+     *    *        @OA\Property(property="product_id", type="integer", format="int64", description="The ID of the product", minimum=0, example=456),
+     *             @OA\Property(property="date", type="string", format="date", description="The activation date for the product in YYYY-MM-DD format", example="2025-03-24"),
+     *             @OA\Property(property="loyalty_points_amount", type="integer", format="int64", description="Loyalty point used for discount", minimum=0, example=100),
      *         )
      *     ),
      *     @OA\Response(
