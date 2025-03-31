@@ -8,7 +8,7 @@ use App\Models\ProductType;
 
 /**
  * @OA\Schema(
- *     schema="Internal/ProductTypeResource",
+ *     schema="ProductTypeResource",
  *     type="object",
  *     title="Product Type Resource",
  *     description="Internal Product Type resource object",
@@ -28,7 +28,7 @@ class ProductTypeController extends Controller
      *     @OA\Response(
      *         response=200,
      *         description="List of product types",
-     *         @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/Internal/ProductTypeResource"))
+     *         @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/ProductTypeResource"))
      *     ),
      *     @OA\Response(
      *         response=401,
