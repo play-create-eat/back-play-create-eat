@@ -9,7 +9,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 class Cake extends Model implements HasMedia
 {
     use InteractsWithMedia;
-  
+
     protected $fillable = [
         'type',
         'price_per_kg',
