@@ -27,10 +27,6 @@ class ModifierGroupResource extends Resource
     {
         return $form
             ->schema([
-                Select::make('menu_item_id')
-                    ->relationship('menuItem', 'name')
-                    ->required()
-                    ->label('Associated Menu Item'),
                 TextInput::make('title')
                     ->required()
                     ->label('Modifier Group Name'),
@@ -64,7 +60,6 @@ class ModifierGroupResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('menuItem.name')->sortable()->searchable()->label('Menu Item'),
                 TextColumn::make('title')->sortable()->searchable()->label('Modifier Group Name'),
                 TextColumn::make('min_amount')->sortable()->searchable()->label('Minimum Amount'),
                 TextColumn::make('max_amount')->sortable()->searchable()->label('Maximum Amount'),

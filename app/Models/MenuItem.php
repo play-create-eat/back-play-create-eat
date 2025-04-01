@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -13,7 +12,13 @@ class MenuItem extends Model implements HasMedia
 {
     use InteractsWithMedia;
 
-    protected $fillable = ['menu_category_id', 'name', 'price', 'description'];
+    protected $fillable = [
+        'menu_category_id',
+        'menu_type_id',
+        'name',
+        'price',
+        'description'
+    ];
 
     protected static function boot(): void
     {
@@ -40,13 +45,18 @@ class MenuItem extends Model implements HasMedia
         return $this->belongsToMany(MenuTag::class, 'menu_item_menu_tags');
     }
 
-    public function modifierGroups(): HasMany
+    public function modifierGroups(): BelongsToMany
     {
-        return $this->hasMany(ModifierGroup::class);
+        return $this->belongsToMany(ModifierGroup::class, 'menu_item_modifier_group');
     }
 
     public function celebrations(): BelongsToMany
     {
         return $this->belongsToMany(Celebration::class, 'celebration_menu_items')->withPivot('quantity');
+    }
+
+    public function type(): BelongsTo
+    {
+        return $this->belongsTo(MenuType::class);
     }
 }

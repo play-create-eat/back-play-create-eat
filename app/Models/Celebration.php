@@ -60,7 +60,8 @@ class Celebration extends Model
     public function menuItems(): BelongsToMany
     {
         return $this->belongsToMany(MenuItem::class, 'celebration_menus')
-            ->withPivot('quantity');
+            ->withPivot(['quantity', 'audience'])
+            ->withTimestamps();
     }
 
     public function modifierOptions(): BelongsToMany

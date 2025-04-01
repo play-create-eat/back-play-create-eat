@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\MenuCategory;
-use App\Models\MenuType;
+use App\Models\MenuItem;
+use App\Models\ModifierGroup;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -12,19 +12,14 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('menu_items', function (Blueprint $table) {
+        Schema::create('menu_item_modifier_group', function (Blueprint $table) {
             $table->id();
-            $table->foreignIdFor(MenuCategory::class)
-                ->nullable()
+            $table->foreignIdFor(MenuItem::class)
                 ->constrained()
                 ->cascadeOnDelete();
-            $table->foreignIdFor(MenuType::class)
-                ->nullable()
+            $table->foreignIdFor(ModifierGroup::class)
                 ->constrained()
                 ->cascadeOnDelete();
-            $table->string('name');
-            $table->decimal('price', 10);
-            $table->text('description')->nullable();
             $table->timestamps();
         });
     }
@@ -34,6 +29,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('menu_items');
+        Schema::dropIfExists('menu_item_modifier_group');
     }
 };
