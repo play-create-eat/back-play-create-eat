@@ -69,7 +69,7 @@ class MenuController extends Controller
             'id'             => $item->id,
             'name'           => $item->name,
             'price'          => $item->price,
-            'image'          => $item->getFirstMediaUrl('menu_images'),
+            'image'          => $item->getFirstMediaUrl('menu_item_images'),
             'description'    => $item->description,
             'tags'           => $item->tags->map(fn($tag) => [
                 'id'    => $tag->id,
@@ -90,10 +90,5 @@ class MenuController extends Controller
                 ]),
             ]),
         ];
-    }
-
-    public function show(Menu $menu)
-    {
-        return response()->json($menu->load('meals.options'));
     }
 }
