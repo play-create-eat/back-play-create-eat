@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Celebration;
-use App\Models\InvitationTemplate;
 use App\Models\Package;
 use App\Models\SlideshowImage;
 use App\Models\Table;
@@ -12,10 +11,12 @@ use App\Models\TableBooking;
 use Bavix\Wallet\Internal\Exceptions\ExceptionInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileDoesNotExist;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileIsTooBig;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 class CelebrationController extends Controller
 {
@@ -144,37 +145,89 @@ class CelebrationController extends Controller
         return response()->json($celebration);
     }
 
+    /**
+     * @throws Throwable
+     */
     public function menu(Request $request, Celebration $celebration)
     {
         // TODO: Attach and make request to attach parents menu to celebration
         $validated = $request->validate([
-            'menu_items'                         => ['required', 'array'],
-            'menu_items.*.menu_item_id'          => ['required', 'exists:menu_items,id'],
-            'menu_items.*.quantity'              => ['required', 'integer', 'min:1'],
-            'menu_items.*.modifier_option_ids'   => ['nullable', 'array'],
-            'menu_items.*.modifier_option_ids.*' => ['exists:modifier_options,id'],
-            'current_step'                       => ['required', 'integer'],
+            'menu_items'                         => 'required|array',
+            'menu_items.*.menu_item_id'          => 'required|exists:menu_items,id',
+            'menu_items.*.quantity'              => 'required|integer|min:1',
+            'menu_items.*.audience'              => 'required|in:children,parents',
+            'menu_items.*.modifier_option_ids'   => 'nullable|array',
+            'menu_items.*.modifier_option_ids.*' => 'exists:modifier_options,id'
         ]);
 
         $celebration->menuItems()->detach();
         $celebration->modifierOptions()->detach();
 
-        foreach ($validated['menu_items'] as $item) {
-            $celebration->menuItems()->attach($item['menu_item_id'], [
-                'quantity'   => $item['quantity'],
-                'child_name' => $item['child_name'] ?? null,
-            ]);
+        DB::transaction(function () use ($validated, $celebration) {
+            foreach ($validated['menu_items'] as $item) {
+                $celebration->menuItems()->attach($item['menu_item_id'], [
+                    'quantity' => $item['quantity'],
+                    'audience' => $item['audience']
+                ]);
 
-            if (!empty($item['modifier_option_ids'])) {
-                foreach ($item['modifier_option_ids'] as $modifierOptionId) {
-                    $celebration->modifierOptions()->attach($modifierOptionId);
+                if (!empty($item['modifier_option_ids'])) {
+                    foreach ($item['modifier_option_ids'] as $optionId) {
+                        $celebration->modifierOptions()->attach($optionId);
+                    }
                 }
             }
-        }
+        });
 
-        $celebration->update(['current_step' => $validated['current_step']]);
+        $celebration->update(['current_step' => 5]);
+        $celebration->load([
+            'menuItems.tags',
+            'menuItems.type',
+            'menuItems.category',
+            'menuItems.modifierGroups.options',
+            'modifierOptions.modifierGroup'
+        ]);
 
-        return response()->json(['message' => 'Menu and modifiers attached to celebration.']);
+        return response()->json([
+            'message'          => 'Menu added to celebration successfully.',
+            'menu'             => $celebration->menuItems->map(function ($item) {
+                return [
+                    'id'             => $item->id,
+                    'name'           => $item->name,
+                    'price'          => $item->price,
+                    'audience'       => $item->pivot->audience,
+                    'quantity'       => $item->pivot->quantity,
+                    'image'          => $item->getFirstMediaUrl('menu_images'),
+                    'tags'           => $item->tags->map(fn($tag) => [
+                        'id'    => $tag->id,
+                        'name'  => $tag->name,
+                        'color' => $tag->color
+                    ]),
+                    'modifierGroups' => $item->modifierGroups->map(function ($group) {
+                        return [
+                            'id'        => $group->id,
+                            'title'     => $group->title,
+                            'minAmount' => $group->min_amount,
+                            'maxAmount' => $group->max_amount,
+                            'required'  => $group->required,
+                            'options'   => $group->options->map(fn($opt) => [
+                                'id'            => $opt->id,
+                                'name'          => $opt->name,
+                                'price'         => $opt->price,
+                                'nutritionInfo' => $opt->nutrition_info
+                            ])
+                        ];
+                    })
+                ];
+            }),
+            'modifier_options' => $celebration->modifierOptions->map(function ($opt) {
+                return [
+                    'id'    => $opt->id,
+                    'name'  => $opt->name,
+                    'group' => $opt->modifierGroup->title ?? null,
+                    'price' => $opt->price
+                ];
+            })
+        ]);
     }
 
 
@@ -290,7 +343,12 @@ class CelebrationController extends Controller
 
         $celebration->update(['current_step' => $validated['current_step']]);
 
-        return response()->json(['message' => 'Photos uploaded successfully!', 'images' => $slideshow->getMedia('slideshow_images')]);
+        return response()->json([
+            'message' => 'Photos uploaded successfully!',
+            'images' => $slideshow->getMedia('slideshow_images')->map(function ($media) {
+                return $media->getUrl();
+            }),
+        ]);
     }
 
     public function confirm(Celebration $celebration)
