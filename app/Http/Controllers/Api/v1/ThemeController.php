@@ -9,7 +9,7 @@ class ThemeController extends Controller
 {
     public function index()
     {
-        $themes = Theme::with(['media'])->get()->groupBy(['type', 'category']);
+        $themes = Theme::all();
         return response()->json($themes);
     }
 
