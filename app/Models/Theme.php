@@ -17,7 +17,7 @@ class Theme extends Model implements HasMedia
         'category',
     ];
     protected $hidden = ['media'];
-    protected $appends = ['image'];
+    protected $appends = ['main_image_url', 'images'];
 
     protected static function boot(): void
     {
@@ -40,14 +40,16 @@ class Theme extends Model implements HasMedia
             ->useDisk('s3');
     }
 
-    public function getImageAttribute(): string
+    public function getImagesAttribute()
     {
-        return $this->getFirstMediaUrl('theme_images');
+        return $this->getMedia('theme_images')->map(function ($media) {
+            return $media->getUrl();
+        });
     }
 
     public function getMainImageUrlAttribute(): ?string
     {
-        return $this->getMedia('menu_images')
+        return $this->getMedia('main_images')
             ->where('custom_properties.main', true)
             ->first()
             ?->getUrl();

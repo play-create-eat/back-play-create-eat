@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Celebration;
 use App\Models\MenuCategory;
 use App\Models\MenuItem;
 use App\Models\MenuTag;
@@ -17,113 +18,100 @@ class MenuSeeder extends Seeder
      */
     public function run(): void
     {
-        $sharingTable   = MenuType::firstOrCreate(['title' => 'Sharing Table']);
-        $individualBox  = MenuType::firstOrCreate(['title' => 'Individual Box']);
-        $parentsMenu    = MenuType::firstOrCreate(['title' => 'Parents Menu']);
+        $types = [
+            'Sharing Table',
+            'Individual Box',
+            'Parents Menu'
+        ];
 
-        $pizzaCat   = MenuCategory::firstOrCreate(['name' => 'Pizza', 'menu_type_id' => $sharingTable->id]);
-        $boxCat     = MenuCategory::firstOrCreate(['name' => 'Boxes', 'menu_type_id' => $individualBox->id]);
-        $saladCat   = MenuCategory::firstOrCreate(['name' => 'Salads', 'menu_type_id' => $parentsMenu->id]);
-        $mainDishCat = MenuCategory::firstOrCreate(['name' => 'Main Dishes', 'menu_type_id' => $parentsMenu->id]);
+        $menuTypes = collect($types)->mapWithKeys(function ($name) {
+            return [$name => MenuType::firstOrCreate(['title' => $name])];
+        });
 
-        $tags = collect([
+        $categories = [
+            ['name' => 'Pizza', 'type' => 'Sharing Table'],
+            ['name' => 'Boxes', 'type' => 'Individual Box'],
+            ['name' => 'Salads', 'type' => 'Parents Menu'],
+            ['name' => 'Main Dishes', 'type' => 'Parents Menu'],
+            ['name' => 'Appetizers', 'type' => 'Sharing Table'],
+        ];
+
+        $menuCategories = collect($categories)->mapWithKeys(function ($cat) use ($menuTypes) {
+            return [$cat['name'] => MenuCategory::firstOrCreate([
+                'name' => $cat['name'],
+                'menu_type_id' => $menuTypes[$cat['type']]->id,
+            ])];
+        });
+
+        $tagsData = [
             ['name' => 'Vegetarian', 'color' => '#4CAF50'],
             ['name' => 'Spicy', 'color' => '#FF5722'],
             ['name' => 'Healthy', 'color' => '#8BC34A'],
             ['name' => 'Kids Favorite', 'color' => '#FFC107'],
-        ])->mapWithKeys(fn($tag) => [$tag['name'] => MenuTag::firstOrCreate($tag)]);
+        ];
+        $tags = collect($tagsData)->mapWithKeys(fn($tag) => [$tag['name'] => MenuTag::firstOrCreate($tag)]);
 
-        $modifierGroups = collect([
+        $modifierPresets = [
             [
                 'title' => 'Main Course',
-                'required' => true,
                 'min_amount' => 1,
                 'max_amount' => 1,
+                'required' => true,
                 'options' => ['Nuggets', 'Mini Burger', 'Grilled Cheese']
             ],
             [
                 'title' => 'Side Dish',
-                'required' => true,
                 'min_amount' => 1,
                 'max_amount' => 2,
+                'required' => true,
                 'options' => ['Fries', 'Mashed Potatoes', 'Steamed Rice']
             ],
             [
                 'title' => 'Dessert',
-                'required' => false,
                 'min_amount' => 0,
                 'max_amount' => 1,
+                'required' => false,
                 'options' => ['Ice Cream', 'Chocolate Cake']
             ]
-        ]);
+        ];
 
-        $groupModels = collect();
-
-        foreach ($modifierGroups as $groupData) {
+        $modifierGroups = collect($modifierPresets)->map(function ($preset) {
             $group = ModifierGroup::create([
-                'menu_item_id' => null,
-                'title' => $groupData['title'],
-                'required' => $groupData['required'],
-                'min_amount' => $groupData['min_amount'],
-                'max_amount' => $groupData['max_amount'],
+                'title' => $preset['title'],
+                'min_amount' => $preset['min_amount'],
+                'max_amount' => $preset['max_amount'],
+                'required' => $preset['required'],
             ]);
 
-            foreach ($groupData['options'] as $optionName) {
+            foreach ($preset['options'] as $name) {
                 ModifierOption::create([
                     'modifier_group_id' => $group->id,
-                    'name' => $optionName,
+                    'name' => $name,
                     'price' => rand(0, 20),
                     'nutrition_info' => json_encode([
                         'calories' => rand(100, 300),
-                        'protein'  => rand(5, 20),
-                    ]),
+                        'protein' => rand(5, 20)
+                    ])
                 ]);
             }
 
-            $groupModels->push($group);
-        }
+            return $group;
+        });
 
-        foreach (range(1, 5) as $i) {
-            $childType = [$sharingTable->id, $individualBox->id][array_rand([0, 1])];
-            $category = $childType === $sharingTable->id ? $pizzaCat : $boxCat;
-
+        $menuItems = collect();
+        foreach (range(1, 10) as $i) {
+            $cat = $menuCategories->values()->random();
             $item = MenuItem::create([
-                'name'             => fake()->word() . ' Box',
-                'price'            => rand(80, 150),
-                'description'      => fake()->sentence(),
-                'menu_type_id'     => $childType,
-                'menu_category_id' => $category->id,
+                'name' => fake()->word() . ' ' . fake()->randomElement(['Box', 'Plate', 'Bites']),
+                'description' => fake()->sentence(),
+                'price' => rand(100, 200),
+                'menu_type_id' => $cat->menuType->id,
+                'menu_category_id' => $cat->id,
             ]);
 
-            if ($tags->count() > 0) {
-                $item->tags()->sync($tags->random(rand(0, min(2, $tags->count())))->pluck('id'));
-            }
-
-            if ($groupModels->count() > 0) {
-                $item->modifierGroups()->sync(
-                    $groupModels->shuffle()->take(rand(1, $groupModels->count()))->pluck('id')
-                );
-            }
-        }
-
-        foreach (range(1, 5) as $i) {
-            $item = MenuItem::create([
-                'name'             => fake()->word() . ' Plate',
-                'price'            => rand(120, 200),
-                'description'      => fake()->sentence(),
-                'menu_type_id'     => $parentsMenu->id,
-                'menu_category_id' => $mainDishCat->id,
-            ]);
-
-            if ($tags->count() > 0) {
-                $item->tags()->sync($tags->random(rand(0, min(2, $tags->count())))->pluck('id'));
-            }
-
-            if ($groupModels->count() > 0) {
-                $item->modifierGroups()->sync(
-                    $groupModels->shuffle()->take(rand(1, $groupModels->count()))->pluck('id')
-                );
-            }
+            $item->tags()->sync($tags->random(rand(0, min(2, $tags->count())))->pluck('id'));
+            $item->modifierGroups()->sync($modifierGroups->random(rand(1, $modifierGroups->count()))->pluck('id'));
+            $menuItems->push($item);
         }
     }
 }
