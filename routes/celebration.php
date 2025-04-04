@@ -13,18 +13,19 @@ Route::prefix('celebration')
     ->controller(CelebrationController::class)
     ->group(function () {
         Route::get('', 'index');
-        Route::get('available-slots', 'availableSlots');
         Route::post('', 'store');
 
         Route::prefix('{celebration}')->group(function () {
             Route::post('package', 'package');
+            Route::get('timelines', 'timelines');
             Route::post('guests-count', 'guestsCount');
+            Route::get('slots', 'slots');
             Route::post('slot', 'slot');
             Route::post('theme', 'theme');
             Route::post('cake', 'cake');
             Route::post('menu', 'menu');
             Route::post('photographer', 'photographer');
-            Route::get('album', 'album');
+            Route::post('album', 'album');
             Route::post('slideshow', 'slideshow');
             Route::post('invitations/{template}', [InviteController::class, 'generate']);
         });

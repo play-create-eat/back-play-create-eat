@@ -13,7 +13,8 @@ return new class extends Migration {
         Schema::create('packages', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->text('description')->nullable();
+            $table->text('description')
+                ->nullable();
             $table->decimal('weekday_price');
             $table->decimal('weekend_price');
             $table->integer('min_children');
