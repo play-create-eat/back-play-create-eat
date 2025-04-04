@@ -306,6 +306,8 @@ class CelebrationController extends Controller
             $slideshow->addMedia($photo)->toMediaCollection('slideshow_images');
         }
 
+        $slideshow->refresh();
+
         $celebration->update(['current_step' => $validated['current_step']]);
 
         return response()->json([
