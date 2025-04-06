@@ -80,6 +80,6 @@ class Family extends Model implements Wallet, Customer
             'user_id',
             'id',
             'family_id',
-        );
+        )->distinct();
     }
 }
