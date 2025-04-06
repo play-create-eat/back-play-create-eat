@@ -152,11 +152,11 @@ class PandaDocController extends Controller
     public function handleWebhook(Request $request)
     {
         Log::info(json_encode($request->all()));
-        PartialRegistration::where('phone_number', $request->input('recipients.0.phone_number'))
+        $partialRegistration = PartialRegistration::where('phone_number', $request->input('recipients.0.phone_number'))
             ->update([
                 'document_signed' => true,
             ]);
 
-        return response()->json(['message' => 'Webhook received.']);
+        return response()->json(['message' => 'Webhook received.', 'partial_registration' => $partialRegistration]);
     }
 }
