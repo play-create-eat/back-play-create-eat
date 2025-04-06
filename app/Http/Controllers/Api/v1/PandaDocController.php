@@ -9,7 +9,6 @@ use App\Models\PartialRegistration;
 use App\Services\PandaDocService;
 use Exception;
 use Illuminate\Http\Request;
-use Log;
 
 class PandaDocController extends Controller
 {
@@ -154,12 +153,33 @@ class PandaDocController extends Controller
 
     public function handleWebhook(Request $request)
     {
-        Log::info(json_encode($request->all()));
-        $partialRegistration = PartialRegistration::where('id', $request->input('data.metadata.registration_id'))->firstOrFail();
+        $payload = $request->all();
+
+        if (!is_array($payload) || !isset($payload[0])) {
+            return response()->json(['error' => 'Invalid webhook format'], 400);
+        }
+
+        $metadata = $payload[0]['data']['metadata'] ?? [];
+        $registrationId = $metadata['registration_id'] ?? null;
+
+        if (!$registrationId) {
+            return response()->json(['error' => 'Missing registration_id'], 400);
+        }
+
+        $partialRegistration = PartialRegistration::where('id', $registrationId)->first();
+
+        if (!$partialRegistration) {
+            return response()->json(['error' => 'Partial registration not found'], 404);
+        }
+
         $partialRegistration->update([
             'document_signed' => true,
         ]);
 
-        return response()->json(['message' => 'Webhook received.', 'partial_registration' => $partialRegistration]);
+        return response()->json([
+            'message'              => 'Webhook received.',
+            'partial_registration' => $partialRegistration,
+        ]);
     }
+
 }
