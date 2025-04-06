@@ -21,6 +21,7 @@ class FamilyPassResource extends JsonResource
             'remaining_time' => (int)$this->remaining_time,
             'is_extendable' => (bool)$this->is_extendable,
             'is_expired' => $this->isExpired(),
+
             'children' => new FamilyPassChildrenResource($this->whenLoaded('children')),
             ...$this->whenLoaded('transfer', function ($transfer) {
                 $features = collect($transfer->deposit ? $transfer->deposit->meta["features"] : [])
@@ -38,6 +39,7 @@ class FamilyPassResource extends JsonResource
                     'features' => $features,
                 ];
             }, []),
+            'activation_date' => Carbon::parse($this->activation_date)->toDateString(),
             'expires_at' => Carbon::parse($this->expires_at)->toIso8601String(),
             'created_at' => Carbon::parse($this->created_at)->toIso8601String()
         ];
