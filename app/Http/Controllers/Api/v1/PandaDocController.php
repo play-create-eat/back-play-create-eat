@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers\Api\v1;
 
+use App\Enums\IdTypeEnum;
 use App\Http\Controllers\Controller;
+use App\Models\Child;
+use App\Models\PartialRegistration;
 use App\Services\PandaDocService;
 use Exception;
 use Illuminate\Http\Request;
@@ -49,21 +52,40 @@ class PandaDocController extends Controller
      *     )
      * )
      */
-    public function create()
+    public function create(Request $request)
     {
+        $validated = $request->validate([
+            'registration_id' => 'required|string|uuid|exists:partial_registrations,id',
+        ]);
+
+        $partialRegistration = PartialRegistration::findOrFail($validated['registration_id']);
+
         $recipientData = [
-            "FIRST_NAME"      => ["value" => "John"],
-            "LAST_NAME"       => ["value" => "Doe"],
-            "PHONE_NUMBER"    => ["value" => "+971501234567"],
+            "FULL_NAME"       => ["value" => $partialRegistration->first_name . ' ' . $partialRegistration->last_name],
+            "PHONE_NUMBER"    => ["value" => $partialRegistration->phone_number],
             "EMAIL_ADDRESS"   => ["value" => "tech@playcreateeat.ae"],
-            "PASSPORT_NUMBER" => ["value" => "P1234567"],
+            "UAE_RESIDENT"    => ["value" => $partialRegistration->id_type === IdTypeEnum::EMIRATES ? "yes" : "no"],
+            "DOCUMENT_NUMBER" => ["value" => $partialRegistration->id_number],
         ];
 
-        $recipientData = [...$recipientData, 'KIDS_ARRAY' => ['value' => "Alex Malii from 30.05.2004"]];
+        $familyId = PartialRegistration::findOrFail($partialRegistration->id)->family_id;
+        $children = Child::where('family_id', $familyId)->get(['first_name', 'last_name']);
+        $childrenBirthdays = Child::where('family_id', $familyId)->pluck('birth_date');
 
+        $childrenArray = $children->map(function ($child) {
+            return $child->first_name . ' ' . $child->last_name;
+        })->toArray();
+
+        $childrenBirthdays = $childrenBirthdays->map(function ($birthday) {
+            return $birthday->format('d.m.Y');
+        })->toArray();
+
+        $recipientData['CHILDS_NAME'] = ["value" => implode(', ', $childrenArray)];
+
+        $recipientData['CHILDS_BDAY'] = ["value" => implode(', ', $childrenBirthdays)];
 
         try {
-            $document = $this->pandadoc->createDocumentFromTemplate("WVGshXQkryavX2rVoCwQf5", $recipientData);
+            $document = $this->pandadoc->createDocumentFromTemplate("TCU3dCAZFjRSctucKaapjK", $recipientData);
 
             if ($document->getId()) {
 
@@ -130,6 +152,10 @@ class PandaDocController extends Controller
     public function handleWebhook(Request $request)
     {
         Log::info(json_encode($request->all()));
+        PartialRegistration::where('phone_number', $request->input('recipients.0.phone_number'))
+            ->update([
+                'document_signed' => true,
+            ]);
 
         return response()->json(['message' => 'Webhook received.']);
     }
