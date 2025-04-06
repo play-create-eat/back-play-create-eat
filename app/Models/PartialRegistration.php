@@ -19,7 +19,8 @@ class PartialRegistration extends Model
         'phone_number',
         'password',
         'status',
-        'family_id'
+        'family_id',
+        'document_signed'
     ];
 
     protected $casts = [
