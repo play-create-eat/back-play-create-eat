@@ -39,8 +39,8 @@ class MenuItemResource extends Resource
                     ->required()
                     ->label('Category'),
                 Textarea::make('description')->nullable(),
-                SpatieMediaLibraryFileUpload::make('menu_images')
-                    ->collection('menu_images')
+                SpatieMediaLibraryFileUpload::make('menu_item_images')
+                    ->collection('menu_item_images')
                     ->image()
                     ->required()
                     ->maxSize(10240),
