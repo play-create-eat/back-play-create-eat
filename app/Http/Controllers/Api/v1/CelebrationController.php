@@ -6,8 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Celebration;
 use App\Models\Package;
 use App\Models\SlideshowImage;
-use App\Models\Table;
-use App\Models\TableBooking;
 use App\Services\SlotService;
 use App\Services\TableService;
 use Bavix\Wallet\Internal\Exceptions\ExceptionInterface;
