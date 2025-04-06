@@ -177,8 +177,7 @@ class PandaDocController extends Controller
         ]);
 
         return response()->json([
-            'message'              => 'Webhook received.',
-            'partial_registration' => $partialRegistration,
+            'message'              => 'Webhook received.'
         ]);
     }
 
