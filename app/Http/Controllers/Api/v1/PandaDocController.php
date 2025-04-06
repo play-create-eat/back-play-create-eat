@@ -61,11 +61,12 @@ class PandaDocController extends Controller
         $partialRegistration = PartialRegistration::findOrFail($validated['registration_id']);
 
         $recipientData = [
-            "FULL_NAME"       => ["value" => $partialRegistration->first_name . ' ' . $partialRegistration->last_name],
-            "PHONE_NUMBER"    => ["value" => $partialRegistration->phone_number],
-            "EMAIL_ADDRESS"   => ["value" => "tech@playcreateeat.ae"],
-            "UAE_RESIDENT"    => ["value" => $partialRegistration->id_type === IdTypeEnum::EMIRATES ? "yes" : "no"],
-            "DOCUMENT_NUMBER" => ["value" => $partialRegistration->id_number],
+            "FULL_NAME"            => ["value" => $partialRegistration->first_name . ' ' . $partialRegistration->last_name],
+            "PHONE_NUMBER"         => ["value" => $partialRegistration->phone_number],
+            "EMAIL_ADDRESS"        => ["value" => "tech@playcreateeat.ae"],
+            "EMAIL_ADDRESS_CUSTOM" => ["value" => $partialRegistration->email],
+            "UAE_RESIDENT"         => ["value" => $partialRegistration->id_type === IdTypeEnum::EMIRATES ? "yes" : "no"],
+            "DOCUMENT_NUMBER"      => ["value" => $partialRegistration->id_number],
         ];
 
         $familyId = PartialRegistration::findOrFail($partialRegistration->id)->family_id;
@@ -84,8 +85,10 @@ class PandaDocController extends Controller
 
         $recipientData['CHILDS_BDAY'] = ["value" => implode(', ', $childrenBirthdays)];
 
+        $metadata = (object)['registration_id' => $partialRegistration->id];
+
         try {
-            $document = $this->pandadoc->createDocumentFromTemplate("TCU3dCAZFjRSctucKaapjK", $recipientData);
+            $document = $this->pandadoc->createDocumentFromTemplate("TCU3dCAZFjRSctucKaapjK", $recipientData, $metadata);
 
             if ($document->getId()) {
 
@@ -152,7 +155,7 @@ class PandaDocController extends Controller
     public function handleWebhook(Request $request)
     {
         Log::info(json_encode($request->all()));
-        $partialRegistration = PartialRegistration::where('phone_number', $request->input('recipients.0.phone_number'))->firstOrFail();
+        $partialRegistration = PartialRegistration::find($request->input('metadata.registration_id'));
         $partialRegistration->update([
             'document_signed' => true,
         ]);

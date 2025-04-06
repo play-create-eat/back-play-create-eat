@@ -31,7 +31,7 @@ class PandaDocService
     /**
      * @throws Exception
      */
-    public function createDocumentFromTemplate($templateId, $recipientData): DocumentCreateResponse
+    public function createDocumentFromTemplate($templateId, $recipientData, object $metadata): DocumentCreateResponse
     {
         $recipient = (new DocumentCreateRequestRecipients())
             ->setEmail($recipientData['EMAIL_ADDRESS']['value'])
@@ -46,7 +46,8 @@ class PandaDocService
             ->setTemplateUuid($templateId)
             ->setRecipients([$recipient])
             ->setFields($recipientData)
-            ->setParseFormFields(true);
+            ->setParseFormFields(true)
+            ->setMetadata($metadata);
 
         try {
             return $this->documentsApi->createDocument($documentRequest);
