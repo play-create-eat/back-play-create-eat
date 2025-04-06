@@ -29,6 +29,8 @@ class FamilyController extends Controller
         $request->validate([
             'limit' => ['integer', 'min:1', 'max:50'],
             'status' => [new Enum(FamilyPassStatusEnum::class)],
+            'children' => ['array', 'min:1'],
+            'children.*' => ['integer'],
         ]);
 
         $family = auth()->guard('sanctum')->user()->family;
@@ -39,11 +41,14 @@ class FamilyController extends Controller
                 $status = FamilyPassStatusEnum::tryFrom($request->input('status'));
 
                 return match ($status) {
-                    FamilyPassStatusEnum::Active => $query->whereDate('activation_date', '=',  $now),
+                    FamilyPassStatusEnum::Active => $query->whereDate('activation_date', '=', $now),
                     FamilyPassStatusEnum::Feature => $query->whereDate('activation_date', '>', $now),
                     FamilyPassStatusEnum::Expired => $query->whereDate('activation_date', '<', $now),
                     default => $query,
                 };
+            })
+            ->when($request->filled('children'), function ($query) use ($request) {
+                $query->whereIn('child_id', $request->input('children'));
             })
             ->paginate($request->input('limit') ?? 20);
 
