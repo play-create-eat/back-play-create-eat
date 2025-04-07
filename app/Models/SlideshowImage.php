@@ -30,7 +30,10 @@ class SlideshowImage extends Model implements HasMedia
     public function getImagesAttribute()
     {
         return $this->getMedia('slideshow_images')->map(function ($media) {
-            return $media->getUrl();
+            return [
+                'id'  => $media->id,
+                'url' => $media->getUrl()
+            ];
         });
     }
 }

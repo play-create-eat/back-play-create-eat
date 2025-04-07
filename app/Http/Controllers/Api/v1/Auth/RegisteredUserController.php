@@ -133,7 +133,7 @@ class RegisteredUserController extends Controller
 
         $otpCode = $otpService->generate(null, TypeEnum::PHONE, PurposeEnum::REGISTER, $partialRegistration->phone_number);
 //        if ($partialRegistration->phone_number === '+37368411195') {
-            $otpService->send($otpCode, $twilloService);
+        $otpService->send($otpCode, $twilloService);
 //        }
 
         return response()->json([
@@ -200,6 +200,12 @@ class RegisteredUserController extends Controller
         ]);
 
         $partialRegistration = PartialRegistration::findOrFail($validated['registration_id']);
+
+        if (!$partialRegistration->document_signed) {
+            return response()->json([
+                'message' => 'Please sign the document before completing registration.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
 
         $user = User::create([
             'email'     => $partialRegistration->email,
