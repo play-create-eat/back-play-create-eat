@@ -16,34 +16,37 @@ class FamilyPassResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'serial' => $this->serial,
-            'remaining_time' => (int)$this->remaining_time,
-            'is_extendable' => (bool)$this->is_extendable,
-            'is_expired' => $this->isExpired(),
-
+            'id'                => $this->id,
+            'serial'            => $this->serial,
+            'remaining_time'    => (int)$this->remaining_time,
+            'is_extendable'     => (bool)$this->is_extendable,
+            'is_expired'        => $this->isExpired(),
             'children' => new FamilyPassChildrenResource($this->whenLoaded('children')),
             ...$this->whenLoaded('transfer', function ($transfer) {
                 $features = collect($transfer->deposit ? $transfer->deposit->meta["features"] : [])
                     ->map(fn(string $name, int $id) => ['id' => $id, 'name' => $name])->values();
 
-                $discount = (int)$transfer->deposit->meta['loyalty_points_used'] ?? null;
-                
+                $loyalty_points = (int)($transfer->deposit->meta['loyalty_points_used'] ?? 0);
+                $discount = (float)($transfer->deposit->meta['discount_percent'] ?? .0);
+                $fee = (float)($transfer->deposit->meta['discount_percent'] ?? .0);
+
                 $meta = $transfer->deposit ? [
-                    'product' => collect($transfer->deposit->meta)->only(['title', 'description']),
-                    'amount' => (int)$transfer->deposit->amount,
+                    'product'   => collect($transfer->deposit->meta)->only(['title', 'description']),
+                    'amount'    => (int)$transfer->deposit->amount,
                 ] : [];
 
                 return [
                     ...$meta,
-                    'discount' => $discount,
-                    'status' => $transfer->status,
-                    'features' => $features,
+                    'discount_percent'  => $discount,
+                    'fee_percent'       => $fee,
+                    'loyalty_points'    => $loyalty_points,
+                    'status'            => $transfer->status,
+                    'features'          => $features,
                 ];
             }, []),
-            'activation_date' => Carbon::parse($this->activation_date)->toDateString(),
-            'expires_at' => Carbon::parse($this->expires_at)->toIso8601String(),
-            'created_at' => Carbon::parse($this->created_at)->toIso8601String()
+            'activation_date'   => Carbon::parse($this->activation_date)->toDateString(),
+            'expires_at'        => Carbon::parse($this->expires_at)->toIso8601String(),
+            'created_at'        => Carbon::parse($this->created_at)->toIso8601String()
         ];
     }
 }

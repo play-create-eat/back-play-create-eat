@@ -88,6 +88,12 @@ class ProductResource extends Resource
                                     ->numeric()
                                     ->prefix('$')
                                     ->minValue(0),
+                                TextInput::make('discount_percent')
+                                    ->numeric()
+                                    ->prefix('%')
+                                    ->minValue(0)
+                                    ->maxValue(100)
+                                    ->step(0.1),
                                 TextInput::make('fee_percent')
                                     ->numeric()
                                     ->prefix('%')
@@ -138,6 +144,10 @@ class ProductResource extends Resource
                     )
                     ->sortable()
                 ,
+                Tables\Columns\TextColumn::make('discount_percent')
+                    ->label('Discount')
+                    ->fontFamily(FontFamily::Mono)
+                    ->prefix('%'),
                 Tables\Columns\IconColumn::make('is_available')
                     ->label('Available')
                     ->boolean()

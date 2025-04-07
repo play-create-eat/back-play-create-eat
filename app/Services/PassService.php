@@ -251,6 +251,8 @@ class PassService
             ->withItem($product, pricePerItem: $productPrice)
             ->withMeta([
                 'loyalty_points_used' => $loyaltyPointAmount,
+                'discount_percent'    => $product->discount_percent,
+                'fee_percent'         => $product->fee_percent,
             ]);
 
         list($transfer) = array_values($family->payCart($cart));
