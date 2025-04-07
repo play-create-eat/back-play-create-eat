@@ -23,15 +23,16 @@ class ProductResource extends JsonResource
         }
 
         return [
-            'id'            => $this->id,
-            'name'          => $this->name,
-            'description'   => $this->description,
-            'price'         => $this->getPriceByDate($date),
-            'price_base'    => $this->price,
-            'price_weekend' => $this->price_weekend,
-            'fee_percent'   => $this->fee_percent,
-            'is_extendable' => $this->is_extendable,
-            'features'      => ProductFeatureResource::collection($this->whenLoaded('features')),
+            'id'                => $this->id,
+            'name'              => $this->name,
+            'description'       => $this->description,
+            'price'             => $this->getFinalPrice($date),
+            'price_base'        => $this->price,
+            'price_weekend'     => $this->price_weekend,
+            'discount_percent'  => (double)$this->discount_percent,
+            'fee_percent'       => (double)$this->fee_percent,
+            'is_extendable'     => $this->is_extendable,
+            'features'          => ProductFeatureResource::collection($this->whenLoaded('features')),
         ];
     }
 }
