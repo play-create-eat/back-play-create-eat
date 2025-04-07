@@ -50,9 +50,10 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $filters = $request->validate([
-            'limit' => ['integer', 'min:1', 'max:50'],
-            'duration' => ['array', 'min:1', Rule::in(array_keys(config('passes.durations')))],
-            'feature' => ['array', 'min:1'],
+            'limit'     => ['integer', 'min:1', 'max:50'],
+            'duration'  => ['array', 'min:1', Rule::in(array_keys(config('passes.durations')))],
+            'date'      => ['date', 'after_or_equal:today'],
+            'feature'   => ['array', 'min:1'],
             'feature.*' => ['integer'],
         ]);
 

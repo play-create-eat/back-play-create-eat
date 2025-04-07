@@ -52,24 +52,18 @@ class Product extends Model implements ProductLimitedInterface
 
     public function getAmountProduct(Customer $customer): int
     {
-        $isWeekend = Carbon::now()->isWeekend();
-
-        if ($isWeekend && $this->price_weekend) {
-            return $this->price_weekend;
-        }
-
-        return $this->price;
+        return $this->getPriceByDate(Carbon::now());
     }
 
     public function getMetaProduct(): ?array
     {
         return [
-            'title' => $this->name,
-            'description' => $this->description,
-            'price' => $this->price,
+            'title'         => $this->name,
+            'description'   => $this->description,
+            'price'         => $this->price,
             'price_weekend' => $this->price_weekend,
-            'fee_percent' => $this->fee_percent,
-            'features' => $this->features()->pluck('name', 'id')->toArray(),
+            'fee_percent'   => $this->fee_percent,
+            'features'      => $this->features()->pluck('name', 'id')->toArray(),
         ];
     }
 
@@ -87,6 +81,11 @@ class Product extends Model implements ProductLimitedInterface
     public function scopeAvailable($query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('is_available', true);
+    }
+
+    public function getPriceByDate(Carbon $date = null): int
+    {
+        return (int)($date && $date->isWeekend() && $this->price_weekend > 0) ? $this->price_weekend : $this->price;
     }
 
     protected function casts(): array
