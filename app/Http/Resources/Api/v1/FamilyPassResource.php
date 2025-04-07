@@ -27,6 +27,8 @@ class FamilyPassResource extends JsonResource
                 $features = collect($transfer->deposit ? $transfer->deposit->meta["features"] : [])
                     ->map(fn(string $name, int $id) => ['id' => $id, 'name' => $name])->values();
 
+                $discount = (int)$transfer->deposit->meta['loyalty_points_used'] ?? null;
+                
                 $meta = $transfer->deposit ? [
                     'product' => collect($transfer->deposit->meta)->only(['title', 'description']),
                     'amount' => (int)$transfer->deposit->amount,
@@ -34,7 +36,7 @@ class FamilyPassResource extends JsonResource
 
                 return [
                     ...$meta,
-                    'discount' => (int)$transfer->discount,
+                    'discount' => $discount,
                     'status' => $transfer->status,
                     'features' => $features,
                 ];
