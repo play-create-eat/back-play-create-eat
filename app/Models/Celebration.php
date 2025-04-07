@@ -93,4 +93,9 @@ class Celebration extends Model
     {
         return $this->hasOne(SlideshowImage::class);
     }
+
+    public function invitation(): HasOne
+    {
+        return $this->hasOne(Invite::class);
+    }
 }

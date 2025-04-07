@@ -5,7 +5,6 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\PackageResource\Pages;
 use App\Models\Package;
 use Filament\Forms;
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
@@ -46,7 +45,18 @@ class PackageResource extends Resource
                             ->label('Feature Status'),
                     ])
                     ->minItems(1)
-                    ->addActionLabel('Add Feature')
+                    ->addActionLabel('Add Feature'),
+
+                Forms\Components\Repeater::make('timelines')
+                    ->relationship('timelines')
+                    ->schema([
+                        TextInput::make('title')->required(),
+                        TextInput::make('duration')
+                            ->label('Duration (minutes)')
+                            ->numeric()
+                            ->suffix('min')
+                            ->required(),
+                    ])->addActionLabel('Add timeline'),
             ]);
     }
 

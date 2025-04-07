@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -46,8 +45,8 @@ class Package extends Model implements HasMedia
         });
     }
 
-    public function timelines(): BelongsToMany
+    public function timelines(): HasMany
     {
-        return $this->belongsToMany(Timeline::class, 'package_timeline');
+        return $this->hasMany(Timeline::class);
     }
 }

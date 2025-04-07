@@ -9,11 +9,11 @@ class PackageController extends Controller
 {
     public function index()
     {
-        return response()->json(Package::with('features')->get());
+        return response()->json(Package::with(['features', 'timelines'])->get());
     }
 
     public function show(Package $package)
     {
-        return response()->json($package->load('features'));
+        return response()->json($package->load(['features', 'timelines']));
     }
 }

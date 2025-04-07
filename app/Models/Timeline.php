@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Timeline extends Model
 {
@@ -17,8 +17,8 @@ class Timeline extends Model
         'is_premium' => 'boolean',
     ];
 
-    public function packages(): BelongsToMany
+    public function packages(): BelongsTo
     {
-        return $this->belongsToMany(Package::class, 'package_timeline');
+        return $this->belongsTo(Package::class);
     }
 }

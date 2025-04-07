@@ -25,6 +25,7 @@ class CelebrationController extends Controller
     {
         $request->validate([
             'completed' => 'boolean',
+            'unpaid'    => 'boolean',
         ]);
 
         $query = Celebration::with('child', 'package', 'theme', 'menuItems', 'cake', 'modifierOptions', 'slideshow')
@@ -34,7 +35,31 @@ class CelebrationController extends Controller
             $query->where('completed', $request->boolean('completed'));
         }
 
+        if ($request->filled('unpaid')) {
+            $query->where('paid_amount', '<', 'total_amount');
+        }
+
         return response()->json($query->orderByDesc('created_at')->get());
+    }
+
+    public function show(Celebration $celebration)
+    {
+        $celebration->load([
+            'child',
+            'package',
+            'cake',
+            'theme',
+            'menuItems.tags',
+            'menuItems.type',
+            'menuItems.category',
+            'menuItems.modifierGroups.options',
+            'modifierOptions.modifierGroup',
+            'invitation',
+            'slideshow',
+
+        ]);
+
+        return response()->json($celebration);
     }
 
     public function store(Request $request)
@@ -73,7 +98,7 @@ class CelebrationController extends Controller
             'current_step' => $validated['current_step']
         ]);
 
-        return response()->json($celebration);
+        return response()->json($celebration->load('package', 'package.timelines'));
     }
 
     public function guestsCount(Request $request, Celebration $celebration)
@@ -179,35 +204,34 @@ class CelebrationController extends Controller
      */
     public function menu(Request $request, Celebration $celebration)
     {
-        // TODO: Attach and make request to attach parents menu to celebration
         $validated = $request->validate([
             'menu_items'                         => 'required|array',
             'menu_items.*.menu_item_id'          => 'required|exists:menu_items,id',
             'menu_items.*.quantity'              => 'required|integer|min:1',
             'menu_items.*.audience'              => 'required|in:children,parents',
             'menu_items.*.modifier_option_ids'   => 'nullable|array',
-            'menu_items.*.modifier_option_ids.*' => 'exists:modifier_options,id'
+            'menu_items.*.modifier_option_ids.*' => 'exists:modifier_options,id',
+            'current_step'                       => 'required|integer'
         ]);
 
-        $celebration->menuItems()->detach();
-        $celebration->modifierOptions()->detach();
 
         DB::transaction(function () use ($validated, $celebration) {
             foreach ($validated['menu_items'] as $item) {
                 $celebration->menuItems()->attach($item['menu_item_id'], [
-                    'quantity' => $item['quantity'],
-                    'audience' => $item['audience']
+                    'quantity'   => $item['quantity'],
+                    'audience'   => $item['audience'],
+                    'child_name' => $item['child_name'] ?? null,
                 ]);
 
                 if (!empty($item['modifier_option_ids'])) {
                     foreach ($item['modifier_option_ids'] as $optionId) {
-                        $celebration->modifierOptions()->attach($optionId);
+                        $celebration->modifierOptions()->syncWithoutDetaching($optionId);
                     }
                 }
             }
         });
 
-        $celebration->update(['current_step' => 5]);
+        $celebration->update(['current_step' => $validated['current_step']]);
         $celebration->load([
             'menuItems.tags',
             'menuItems.type',
@@ -218,36 +242,40 @@ class CelebrationController extends Controller
 
         return response()->json([
             'message'          => 'Menu added to celebration successfully.',
-            'menu'             => $celebration->menuItems->map(function ($item) {
-                return [
-                    'id'             => $item->id,
-                    'name'           => $item->name,
-                    'price'          => $item->price,
-                    'audience'       => $item->pivot->audience,
-                    'quantity'       => $item->pivot->quantity,
-                    'image'          => $item->getFirstMediaUrl('menu_item_images'),
-                    'tags'           => $item->tags->map(fn($tag) => [
-                        'id'    => $tag->id,
-                        'name'  => $tag->name,
-                        'color' => $tag->color
-                    ]),
-                    'modifierGroups' => $item->modifierGroups->map(function ($group) {
+            'menu'             => $celebration->menuItems
+                ->groupBy(fn($item) => $item->pivot->audience)
+                ->map(function ($items) {
+                    return $items->map(function ($item) {
                         return [
-                            'id'        => $group->id,
-                            'title'     => $group->title,
-                            'minAmount' => $group->min_amount,
-                            'maxAmount' => $group->max_amount,
-                            'required'  => $group->required,
-                            'options'   => $group->options->map(fn($opt) => [
-                                'id'            => $opt->id,
-                                'name'          => $opt->name,
-                                'price'         => $opt->price,
-                                'nutritionInfo' => $opt->nutrition_info
-                            ])
+                            'id'             => $item->id,
+                            'name'           => $item->name,
+                            'price'          => $item->price,
+                            'audience'       => $item->pivot->audience,
+                            'quantity'       => $item->pivot->quantity,
+                            'image'          => $item->getFirstMediaUrl('menu_item_images'),
+                            'tags'           => $item->tags->map(fn($tag) => [
+                                'id'    => $tag->id,
+                                'name'  => $tag->name,
+                                'color' => $tag->color
+                            ]),
+                            'modifierGroups' => $item->modifierGroups->map(function ($group) {
+                                return [
+                                    'id'        => $group->id,
+                                    'title'     => $group->title,
+                                    'minAmount' => $group->min_amount,
+                                    'maxAmount' => $group->max_amount,
+                                    'required'  => $group->required,
+                                    'options'   => $group->options->map(fn($opt) => [
+                                        'id'            => $opt->id,
+                                        'name'          => $opt->name,
+                                        'price'         => $opt->price,
+                                        'nutritionInfo' => $opt->nutrition_info
+                                    ])
+                                ];
+                            })
                         ];
-                    })
-                ];
-            }),
+                    });
+                }),
             'modifier_options' => $celebration->modifierOptions->map(function ($opt) {
                 return [
                     'id'    => $opt->id,
@@ -257,6 +285,7 @@ class CelebrationController extends Controller
                 ];
             })
         ]);
+
     }
 
     public function photographer(Request $request, Celebration $celebration)
@@ -311,7 +340,10 @@ class CelebrationController extends Controller
         return response()->json([
             'message' => 'Photos uploaded successfully!',
             'images'  => $slideshow->getMedia('slideshow_images')->map(function ($media) {
-                return $media->getUrl();
+                return [
+                    'id'  => $media->id,
+                    'url' => $media->getUrl()
+                ];
             }),
         ]);
     }
