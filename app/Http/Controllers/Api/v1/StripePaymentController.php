@@ -3,62 +3,25 @@
 namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Celebration;
 use App\Models\Family;
+use App\Models\Payment;
+use App\Services\StripeService;
 use Bavix\Wallet\Internal\Exceptions\ExceptionInterface;
+use DB;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Stripe\Exception\ApiErrorException;
 use Stripe\Stripe;
-use Stripe\StripeClient;
 use Stripe\Webhook;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 class StripePaymentController extends Controller
 {
-    /**
-     * @throws ApiErrorException
-     */
-    public function createCheckoutSession(Request $request)
+    public function createCheckoutSession(Request $request, StripeService $stripeService)
     {
-        $family = auth()->guard('sanctum')->user()->family;
-        $validated = $request->validate([
-            'amount' => 'required|numeric|min:0',
-        ]);
-
-        $stripe = new StripeClient(config('services.stripe.secret'));
-
-        $amount = $validated['amount'] * 100;
-
-        if (!$family->stripe_customer_id) {
-            $customer = $stripe->customers->create([
-                'email' => auth()->guard('sanctum')->user()->email,
-                'name'  => $family->name,
-            ]);
-
-            $family->update(['stripe_customer_id' => $customer->id]);
-        } else {
-            $customer = $stripe->customers->retrieve($family->stripe_customer_id);
-        }
-
-        $ephemeralKey = $stripe->ephemeralKeys->create([
-            'customer' => $customer->id,
-        ], [
-            'stripe_version' => '2025-02-24.acacia',
-        ]);
-
-        $paymentIntent = $stripe->paymentIntents->create([
-            'amount'                    => intval($amount),
-            'currency'                  => 'aed',
-            'customer'                  => $customer->id,
-            'automatic_payment_methods' => ['enabled' => true],
-        ]);
-
-        return response()->json([
-            'paymentIntent'  => $paymentIntent->client_secret,
-            'ephemeralKey'   => $ephemeralKey->secret,
-            'customer'       => $customer->id,
-            'publishableKey' => config('services.stripe.public')
-        ]);
+        $stripeService->walletTopUpSession($request, auth()->guard('sanctum')->user()->family);
     }
 
     /**
@@ -70,13 +33,13 @@ class StripePaymentController extends Controller
             'amount' => 'required|numeric|min:0',
         ]);
 
-        $amount = $validated['amount'] / 100;
+        $amount = $validated['amount'];
 
-        $family->mainWallet->deposit($amount);
+        $family->main_wallet->deposit($amount);
 
         return response()->json([
             'message'        => 'Deposit successful',
-            'wallet_balance' => $family->mainWallet->balance
+            'wallet_balance' => $family->loyalty_wallet->balance
         ]);
     }
 
@@ -107,8 +70,8 @@ class StripePaymentController extends Controller
         $family = auth()->guard('sanctum')->user()->family;
 
         return response()->json([
-            'wallet_balance'  => $family->mainWallet->balance,
-            'cashback_points' => $family->loyaltyWallet->balance
+            'wallet_balance'  => $family->main_wallet->balance,
+            'cashback_points' => $family->loyalty_wallet->balance
         ]);
     }
 
@@ -138,9 +101,9 @@ class StripePaymentController extends Controller
                     Log::info('Unhandled Stripe event: ' . $event->type);
             }
 
-            return response()->json(['message' => 'Webhook received'], 200);
+            return response()->json(['message' => 'Webhook received']);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Stripe webhook error: ' . $e->getMessage());
             return response()->json(['error' => 'Webhook handling failed'], 400);
         }
@@ -148,22 +111,53 @@ class StripePaymentController extends Controller
 
     private function handleSuccessfulPayment($paymentIntent)
     {
-        Log::info('Successful Payment Intent: ', $paymentIntent->toArray());
-
         $customerId = $paymentIntent['customer'];
-        $amount = $paymentIntent['amount'] / 100;
-
         $family = Family::where('stripe_customer_id', $customerId)->first();
 
-        if ($family) {
-            try {
-                $family->mainWallet->deposit($amount, ['description' => 'Stripe Payment']);
-            } catch (ExceptionInterface $e) {
-                Log::error('Main wallet deposit failed error: ' . $e->getMessage());
-            }
-
-            Log::info("Wallet updated for Family ID: $family->id, Amount: $amount");
+        if (!$family) {
+            return;
         }
+
+        $amount = $paymentIntent['amount'];
+        $payment = Payment::find($paymentIntent['metadata']['payment_id']);
+        try {
+            $family->main_wallet->deposit($amount, ['description' => 'Stripe Payment']);
+            if (!$payment) {
+                return;
+            }
+            if ($payment->payable instanceof Celebration) {
+                DB::transaction(function () use ($payment, $paymentIntent) {
+                    $total = $payment->amount - $paymentIntent['metadata']['cashback_amount'];
+
+                    $payment->family->loyalty_wallet->withdraw($paymentIntent['metadata']['cashback_amount'], [
+                        'name' => 'Cashback payment for ' . $payment->payable_type,
+                        'id'   => $payment->id,
+                    ]);
+
+                    $payment->family->main_wallet->withdraw($total, [
+                        'name' => 'Payment for ' . $payment->payable_type,
+                        'id'   => $payment->id,
+                    ]);
+
+                    $payment->family->loyalty_wallet->deposit(
+                        $total * $payment->payable->package->cashback_percentage / 100,
+                        [
+                            'name' => 'Cashback for ' . $payment->payable_type,
+                            'id'   => $payment->id,
+                        ]
+                    );
+
+                    $payment->update([
+                        'status' => 'paid'
+                    ]);
+                });
+                Log::info("Payment successful for Celebration ID: $payment->payable_id, Amount: $amount");
+            }
+        } catch (ExceptionInterface|Throwable $e) {
+            Log::error('Main wallet deposit failed error: ' . $e->getMessage());
+        }
+
+        Log::info("Wallet updated for Family ID: $family->id, Amount: $amount");
     }
 
     private function handleFailedPayment($paymentIntent)
@@ -174,7 +168,7 @@ class StripePaymentController extends Controller
         $family = Family::where('stripe_customer_id', $customerId)->first();
 
         if ($family) {
-            Log::error("Payment failed for Family ID: $family->id, Amount: " . ($paymentIntent['amount'] / 100));
+            Log::error("Payment failed for Family ID: $family->id, Amount: " . ($paymentIntent['amount']));
         }
     }
 }

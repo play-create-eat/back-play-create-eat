@@ -8,11 +8,9 @@ use App\Models\Package;
 use App\Models\SlideshowImage;
 use App\Services\SlotService;
 use App\Services\TableService;
-use Bavix\Wallet\Internal\Exceptions\ExceptionInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileDoesNotExist;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileIsTooBig;
 use Symfony\Component\HttpFoundation\Response;
@@ -53,7 +51,6 @@ class CelebrationController extends Controller
             'menuItems.type',
             'menuItems.category',
             'menuItems.modifierGroups.options',
-            'modifierOptions.modifierGroup',
             'invitation',
             'slideshow',
 
@@ -94,7 +91,7 @@ class CelebrationController extends Controller
 
         $celebration->update([
             'package_id'   => $validated['package_id'],
-            'price'        => Carbon::today()->isWeekend() ? $package->weekend_price : $package->weekday_price,
+            'total_amount' => Carbon::today()->isWeekend() ? $package->weekend_price : $package->weekday_price,
             'current_step' => $validated['current_step']
         ]);
 
@@ -236,13 +233,13 @@ class CelebrationController extends Controller
             'menuItems.tags',
             'menuItems.type',
             'menuItems.category',
+            'menuItems.modifierGroups',
             'menuItems.modifierGroups.options',
-            'modifierOptions.modifierGroup'
         ]);
 
         return response()->json([
-            'message'          => 'Menu added to celebration successfully.',
-            'menu'             => $celebration->menuItems
+            'message' => 'Menu added to celebration successfully.',
+            'menu'    => $celebration->menuItems
                 ->groupBy(fn($item) => $item->pivot->audience)
                 ->map(function ($items) {
                     return $items->map(function ($item) {
@@ -276,16 +273,7 @@ class CelebrationController extends Controller
                         ];
                     });
                 }),
-            'modifier_options' => $celebration->modifierOptions->map(function ($opt) {
-                return [
-                    'id'    => $opt->id,
-                    'name'  => $opt->name,
-                    'group' => $opt->modifierGroup->title ?? null,
-                    'price' => $opt->price
-                ];
-            })
         ]);
-
     }
 
     public function photographer(Request $request, Celebration $celebration)
@@ -356,51 +344,5 @@ class CelebrationController extends Controller
     public function confirm(Celebration $celebration)
     {
         return response()->json($celebration->load('child', 'cake', 'package', 'theme', 'menuItems'));
-    }
-
-    public function pay(Request $request, Celebration $celebration)
-    {
-        // TODO: add request for rest payment for celebration
-        $validated = $request->validate([
-            'amount' => 'required|numeric'
-        ]);
-
-        $family = auth()->guard('sanctum')->user()->family;
-
-        $mainWallet = $family->main_wallet;
-        $cashbackWallet = $family->loyalty_wallet;
-
-        if ($mainWallet->balance < $validated['amount']) {
-            return response()->json(['message' => 'Insufficient funds in main wallet.'], 400);
-        }
-
-        try {
-            $mainWallet->withdraw($validated['amount'], ['description' => "Partial payment for celebration $celebration->id."]);
-            $celebration->update(['paid_amount' => $validated['amount']]);
-        } catch (ExceptionInterface $e) {
-            Log::error($e->getMessage());
-            return response()->json(['message' => 'Failed to withdraw funds from main wallet.'], 400);
-        }
-
-        $cashbackPercent = $celebration->package->cashback_percentage;
-
-        $cashback = round($validated['amount'] * ($cashbackPercent / 100), 2);
-
-        if ($cashback > 0) {
-            try {
-                $cashbackWallet->deposit($cashback, ['description' => "Cashback from payment for celebration $celebration->id."]);
-            } catch (ExceptionInterface $e) {
-                Log::error($e->getMessage());
-                return response()->json(['message' => 'Failed to deposit cashback to loyalty wallet.'], 400);
-            }
-        }
-
-        return response()->json([
-            'message'          => 'Payment successful',
-            'paid_amount'      => $validated['amount'],
-            'cashback_earned'  => $cashback,
-            'wallet_balance'   => $mainWallet->balance,
-            'cashback_balance' => $cashbackWallet->balance,
-        ]);
     }
 }
