@@ -13,6 +13,9 @@ class StripeService
 {
     private StripeClient $stripeClient;
 
+    private ?object $costumer = null;
+    private ?object $ephemeralKey = null;
+
     public function __construct()
     {
         $this->stripeClient = new StripeClient(config('services.stripe.secret'));
@@ -56,15 +59,24 @@ class StripeService
 
     private function getStripeCostumer(Family $family)
     {
+        if ($this->costumer) {
+            return $this->costumer;
+        }
+
         try {
             if ($family->stripe_customer_id) {
-                return $this->stripeClient->customers->retrieve($family->stripe_customer_id);
+                $this->costumer = $this->stripeClient->customers->retrieve($family->stripe_customer_id);
+                return $this->costumer;
             }
 
-            return $this->stripeClient->customers->create([
+            $this->costumer = $this->stripeClient->customers->create([
                 'email' => auth()->guard('sanctum')->user()->email,
                 'name'  => $family->name,
             ]);
+
+            $family->update(['stripe_customer_id' => $this->costumer->id]);
+
+            return $this->costumer;
         } catch (ApiErrorException $exception) {
             return $exception->getMessage();
         }
@@ -73,12 +85,19 @@ class StripeService
 
     private function getEphemeralKey(Family $family)
     {
+        if ($this->ephemeralKey) {
+            return $this->ephemeralKey;
+        }
+
         try {
-            return $this->stripeClient->ephemeralKeys->create([
+            $this->ephemeralKey = $this->stripeClient->ephemeralKeys->create([
                 'customer' => $this->getStripeCostumer($family)->id,
             ], [
                 'stripe_version' => '2025-02-24.acacia',
             ]);
+
+            return $this->ephemeralKey;
+
         } catch (ApiErrorException $exception) {
             return $exception->getMessage();
         }
@@ -90,6 +109,7 @@ class StripeService
         $validated = $request->validate([
             'cashback_amount' => 'required|integer|min:1',
         ]);
+
         $payment->load('payable');
 
         try {

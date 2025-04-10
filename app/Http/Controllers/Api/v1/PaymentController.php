@@ -12,10 +12,27 @@ use Throwable;
 
 class PaymentController extends Controller
 {
+    public function store(Request $request, Celebration $celebration)
+    {
+        $validated = $request->validate([
+            'amount' => 'required|numeric:min:0',
+        ]);
+
+        $payment = Payment::create([
+            'family_id'    => auth()->guard('sanctum')->user()->family->id,
+            'payable_type' => Celebration::class,
+            'payable_id'   => $celebration->id,
+            'amount'       => $validated['amount'],
+            'status'       => 'pending',
+        ]);
+
+        return response()->json($payment);
+    }
+
     public function pay(Request $request, Payment $payment)
     {
         $validated = $request->validate([
-            'cashback_amount' => 'required|integer|min:1'
+            'cashback_amount' => 'required|integer|min:0'
         ]);
 
         if ($payment->family->loyalty_wallet->balance < $validated['cashback_amount']) {
@@ -65,10 +82,7 @@ class PaymentController extends Controller
             'status' => 'paid'
         ]);
 
-        return response()->json([
-            'message' => 'Payment successful',
-            'payment' => $payment->load('payable')
-        ]);
+        return response()->json($payment);
     }
 
     public function cardPay(Request $request, Payment $payment, StripeService $stripeService)

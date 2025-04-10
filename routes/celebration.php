@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\v1\CelebrationController;
 use App\Http\Controllers\Api\v1\InviteController;
 use App\Http\Controllers\Api\v1\MenuController;
 use App\Http\Controllers\Api\v1\PackageController;
+use App\Http\Controllers\Api\v1\PaymentController;
 use App\Http\Controllers\Api\v1\SlideshowImageController;
 use App\Http\Controllers\Api\v1\ThemeController;
 
@@ -29,6 +30,7 @@ Route::prefix('celebration')
             Route::post('slideshow', 'slideshow');
             Route::delete('slideshow/{media}', [SlideshowImageController::class, 'destroy']);
             Route::post('invitations/{template}', [InviteController::class, 'generate']);
+            Route::post('payments', [PaymentController::class, 'store']);
         });
     });
 
