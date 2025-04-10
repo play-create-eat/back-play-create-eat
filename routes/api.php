@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\v1\ChildController;
 use App\Http\Controllers\Api\v1\FamilyController;
 use App\Http\Controllers\Api\v1\InvitationController;
 use App\Http\Controllers\Api\v1\PandaDocController;
+use App\Http\Controllers\Api\v1\PaymentController;
 use App\Http\Controllers\Api\v1\ProductController;
 use App\Http\Controllers\Api\v1\ProfileController;
 use App\Http\Controllers\Api\v1\TimelineController;
@@ -53,6 +54,10 @@ Route::prefix('v1')->group(function () {
         require __DIR__ . '/celebration.php';
 
         Route::get('/timelines', [TimelineController::class, 'index']);
+
+        Route::post('payments/{payment}/pay', [PaymentController::class, 'pay']);
+
+        Route::get('payments/{payment}/card-pay', [PaymentController::class, 'cardPay']);
 
     });
 

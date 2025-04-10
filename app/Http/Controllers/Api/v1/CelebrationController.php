@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\v1;
 use App\Http\Controllers\Controller;
 use App\Models\Celebration;
 use App\Models\Package;
+use App\Models\Payment;
 use App\Models\SlideshowImage;
 use App\Services\SlotService;
 use App\Services\TableService;
@@ -53,7 +54,6 @@ class CelebrationController extends Controller
             'menuItems.type',
             'menuItems.category',
             'menuItems.modifierGroups.options',
-            'modifierOptions.modifierGroup',
             'invitation',
             'slideshow',
 
@@ -94,8 +94,16 @@ class CelebrationController extends Controller
 
         $celebration->update([
             'package_id'   => $validated['package_id'],
-            'price'        => Carbon::today()->isWeekend() ? $package->weekend_price : $package->weekday_price,
+            'total_amount' => Carbon::today()->isWeekend() ? $package->weekend_price : $package->weekday_price,
             'current_step' => $validated['current_step']
+        ]);
+
+        Payment::create([
+            'family_id'    => auth()->guard('sanctum')->user()->family->id,
+            'amount'       => $celebration->total_amount,
+            'payable_type' => Celebration::class,
+            'payable_id'   => $celebration->id,
+            'status'       => 'pending',
         ]);
 
         return response()->json($celebration->load('package', 'package.timelines'));
@@ -236,13 +244,13 @@ class CelebrationController extends Controller
             'menuItems.tags',
             'menuItems.type',
             'menuItems.category',
+            'menuItems.modifierGroups',
             'menuItems.modifierGroups.options',
-            'modifierOptions.modifierGroup'
         ]);
 
         return response()->json([
-            'message'          => 'Menu added to celebration successfully.',
-            'menu'             => $celebration->menuItems
+            'message' => 'Menu added to celebration successfully.',
+            'menu'    => $celebration->menuItems
                 ->groupBy(fn($item) => $item->pivot->audience)
                 ->map(function ($items) {
                     return $items->map(function ($item) {
@@ -276,16 +284,7 @@ class CelebrationController extends Controller
                         ];
                     });
                 }),
-            'modifier_options' => $celebration->modifierOptions->map(function ($opt) {
-                return [
-                    'id'    => $opt->id,
-                    'name'  => $opt->name,
-                    'group' => $opt->modifierGroup->title ?? null,
-                    'price' => $opt->price
-                ];
-            })
         ]);
-
     }
 
     public function photographer(Request $request, Celebration $celebration)

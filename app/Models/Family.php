@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use Bavix\Wallet\Interfaces\Customer;
 use Bavix\Wallet\Interfaces\Wallet;
+use Bavix\Wallet\Traits\CanPay;
 use Bavix\Wallet\Traits\HasWallets;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Bavix\Wallet\Interfaces\Customer;
-use Bavix\Wallet\Traits\CanPay;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -18,9 +19,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property ?Child[] $children
  * @property ?Wallet $main_wallet
  * @property ?Wallet $loyalty_wallet
- * @property \Carbon\Carbon $created_at
- * @property \Carbon\Carbon $updated_at
- * @property ?\Carbon\Carbon $deleted_at
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
+ * @property ?Carbon $deleted_at
  */
 class Family extends Model implements Wallet, Customer
 {
@@ -81,5 +82,10 @@ class Family extends Model implements Wallet, Customer
             'id',
             'family_id',
         )->distinct();
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
     }
 }
