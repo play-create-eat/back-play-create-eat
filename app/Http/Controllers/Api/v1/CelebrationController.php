@@ -135,7 +135,8 @@ class CelebrationController extends Controller
 
         $slots = $bookingService->getAvailableTimeSlots(
             $validated['date'],
-            $celebration->package
+            $celebration->package,
+            $celebration->children_count
         );
 
         return response()->json([
@@ -148,7 +149,7 @@ class CelebrationController extends Controller
     public function slot(Request $request, Celebration $celebration, BookingService $bookingService)
     {
         $validated = $request->validate([
-            'datetime' => ['required', 'date_format:Y-m-d H:i', 'after:now'],
+            'datetime' => ['required', 'date', 'after:now'],
         ]);
 
         try {
