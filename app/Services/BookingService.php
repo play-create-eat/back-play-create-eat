@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Booking;
-use App\Models\CelebrationPackage;
 use App\Models\Package;
 use App\Models\Table;
 use Carbon\Carbon;
@@ -24,12 +23,12 @@ class BookingService
 
         $duration = (int)$package->duration_hours;
 
-        $workStartTime = Carbon::parse($date . ' 10:00:00');
-        $workEndTime = Carbon::parse($date . ' 20:00:00');
+        $workStartTime = Carbon::parse($date . ' 10:00');
+        $workEndTime = Carbon::parse($date . ' 20:00');
 
         Log::debug('Work hours', [
-            'workStartTime' => $workStartTime->format('Y-m-d H:i:s'),
-            'workEndTime'   => $workEndTime->format('Y-m-d H:i:s')
+            'workStartTime' => $workStartTime->format('Y-m-d H:i'),
+            'workEndTime'   => $workEndTime->format('Y-m-d H:i')
         ]);
 
         $tablesCount = Table::where('is_active', true)->count();
@@ -55,18 +54,18 @@ class BookingService
 
             $slotCount++;
             Log::debug("Checking slot #$slotCount", [
-                'setupStartTime' => $setupStartTime->format('Y-m-d H:i:s'),
-                'startTime'      => $startTime->format('Y-m-d H:i:s'),
-                'endTime'        => $endTime->format('Y-m-d H:i:s'),
-                'cleanupEndTime' => $cleanupEndTime->format('Y-m-d H:i:s')
+                'setupStartTime' => $setupStartTime->format('Y-m-d H:i'),
+                'startTime'      => $startTime->format('Y-m-d H:i'),
+                'endTime'        => $endTime->format('Y-m-d H:i'),
+                'cleanupEndTime' => $cleanupEndTime->format('Y-m-d H:i')
             ]);
 
             if ($this->areTablesAvailableForSlot($setupStartTime, $cleanupEndTime)) {
                 $availableSlots[] = [
-                    'start_time'       => $startTime->format('Y-m-d H:i:s'),
-                    'end_time'         => $endTime->format('Y-m-d H:i:s'),
-                    'setup_start_time' => $setupStartTime->format('Y-m-d H:i:s'),
-                    'cleanup_end_time' => $cleanupEndTime->format('Y-m-d H:i:s'),
+                    'start_time'       => $startTime->format('Y-m-d H:i'),
+                    'end_time'         => $endTime->format('Y-m-d H:i'),
+                    'setup_start_time' => $setupStartTime->format('Y-m-d H:i'),
+                    'cleanup_end_time' => $cleanupEndTime->format('Y-m-d H:i'),
                 ];
                 Log::debug('Slot is available, added to results');
             } else {
@@ -86,8 +85,8 @@ class BookingService
     private function areTablesAvailableForSlot(Carbon $startTime, Carbon $endTime): bool
     {
         Log::debug('Checking tables availability for slot', [
-            'start' => $startTime->format('Y-m-d H:i:s'),
-            'end'   => $endTime->format('Y-m-d H:i:s')
+            'start' => $startTime->format('Y-m-d H:i'),
+            'end'   => $endTime->format('Y-m-d H:i')
         ]);
 
         $table1 = Table::where('name', 'Table 1')->where('is_active', true)->first();
@@ -95,8 +94,8 @@ class BookingService
         $table3 = Table::where('name', 'Table 3')->where('is_active', true)->first();
         $table4 = Table::where('name', 'Table 4')->where('is_active', true)->first();
 
-        $startTimeStr = $startTime->format('Y-m-d H:i:s');
-        $endTimeStr = $endTime->format('Y-m-d H:i:s');
+        $startTimeStr = $startTime->format('Y-m-d H:i');
+        $endTimeStr = $endTime->format('Y-m-d H:i');
 
         $table1Available = $table1 ? $this->checkTableAvailabilityDirectly($table1->id, $startTimeStr, $endTimeStr) : false;
         $table2Available = $table2 ? $this->checkTableAvailabilityDirectly($table2->id, $startTimeStr, $endTimeStr) : false;
@@ -168,10 +167,10 @@ class BookingService
         $setupStartTime = (clone $startTime)->subMinutes(30);
         $cleanupEndTime = (clone $endTime)->addMinutes(30);
 
-        $startTimeStr = $startTime->format('Y-m-d H:i:s');
-        $endTimeStr = $endTime->format('Y-m-d H:i:s');
-        $setupStartTimeStr = $setupStartTime->format('Y-m-d H:i:s');
-        $cleanupEndTimeStr = $cleanupEndTime->format('Y-m-d H:i:s');
+        $startTimeStr = $startTime->format('Y-m-d H:i');
+        $endTimeStr = $endTime->format('Y-m-d H:i');
+        $setupStartTimeStr = $setupStartTime->format('Y-m-d H:i');
+        $cleanupEndTimeStr = $cleanupEndTime->format('Y-m-d H:i');
 
         Log::debug('Booking time calculations', [
             'startTime'      => $startTimeStr,
@@ -286,8 +285,8 @@ class BookingService
      */
     public function getAvailableTables(Carbon $startTime, Carbon $endTime): Collection
     {
-        $startTimeStr = $startTime->format('Y-m-d H:i:s');
-        $endTimeStr = $endTime->format('Y-m-d H:i:s');
+        $startTimeStr = $startTime->format('Y-m-d H:i');
+        $endTimeStr = $endTime->format('Y-m-d H:i');
 
         $allTables = Table::where('is_active', true)->get();
 
