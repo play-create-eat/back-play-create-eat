@@ -21,7 +21,7 @@ class StripePaymentController extends Controller
 {
     public function createCheckoutSession(Request $request, StripeService $stripeService)
     {
-        $stripeService->walletTopUpSession($request, auth()->guard('sanctum')->user()->family);
+        return response()->json($stripeService->walletTopUpSession($request, auth()->guard('sanctum')->user()->family));
     }
 
     /**
