@@ -112,6 +112,12 @@ class StripeService
 
         $payment->load('payable');
 
+        if ($payment->family->loyalty_wallet->balance < $validated['cashback_amount']) {
+            return response()->json([
+                'message' => 'Insufficient star points'
+            ], 422);
+        }
+
         try {
             $ephemeralKey = $this->getEphemeralKey($payment->family);
 
