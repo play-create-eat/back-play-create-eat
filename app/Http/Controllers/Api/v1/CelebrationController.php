@@ -130,7 +130,6 @@ class CelebrationController extends Controller
     {
         $validated = $request->validate([
             'date'           => ['required', 'date', 'after_or_equal:today'],
-            'children_count' => ['required', 'integer', 'min:1'],
         ]);
 
         $slots = $bookingService->getAvailableTimeSlots(
