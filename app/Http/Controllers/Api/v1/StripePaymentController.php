@@ -151,6 +151,7 @@ class StripePaymentController extends Controller
                         'status' => 'paid'
                     ]);
                     $payment->payable->update([
+                        'paid_amount' => $payment->amount,
                         'completed' => true
                     ]);
                 });
