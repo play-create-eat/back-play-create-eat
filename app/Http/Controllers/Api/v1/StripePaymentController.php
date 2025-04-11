@@ -150,6 +150,9 @@ class StripePaymentController extends Controller
                     $payment->update([
                         'status' => 'paid'
                     ]);
+                    $payment->payable->update([
+                        'completed' => true
+                    ]);
                 });
                 Log::info("Payment successful for Celebration ID: $payment->payable_id, Amount: $amount");
             }

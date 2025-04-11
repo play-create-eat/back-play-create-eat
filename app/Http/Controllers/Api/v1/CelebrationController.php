@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\BookingResource;
 use App\Models\Celebration;
 use App\Models\Package;
 use App\Models\SlideshowImage;
+use App\Services\BookingService;
 use App\Services\SlotService;
 use App\Services\TableService;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -123,17 +126,16 @@ class CelebrationController extends Controller
         return response()->json($celebration);
     }
 
-    public function slots(Request $request, Celebration $celebration, SlotService $slotService)
+    public function slots(Request $request, Celebration $celebration, BookingService $bookingService)
     {
         $validated = $request->validate([
             'date'           => ['required', 'date', 'after_or_equal:today'],
             'children_count' => ['required', 'integer', 'min:1'],
         ]);
 
-        $slots = $slotService->getAvailableSlots(
+        $slots = $bookingService->getAvailableTimeSlots(
             $validated['date'],
-            $validated['children_count'],
-            $celebration->package->duration_hours,
+            $celebration->package
         );
 
         return response()->json([
@@ -143,28 +145,33 @@ class CelebrationController extends Controller
         ]);
     }
 
-    public function slot(Request $request, Celebration $celebration, TableService $tableService)
+    public function slot(Request $request, Celebration $celebration, BookingService $bookingService)
     {
         $validated = $request->validate([
-            'datetime' => ['required', 'date_format:Y-m-d H:i'],
+            'datetime' => ['required', 'date_format:Y-m-d H:i', 'after:now'],
         ]);
 
-        $tableAssignment = $tableService->assign($celebration);
+        try {
+            $booking = $bookingService->createBooking([
+                'user_id'          => auth()->guard('sanctum')->user()->id,
+                'package_id'       => $celebration->package->id,
+                'child_name'       => $celebration->child->first_name,
+                'children_count'   => $celebration->children_count,
+                'start_time'       => $validated['datetime'],
+                'special_requests' => '',
+            ]);
 
-        if ($tableAssignment['status'] === 'error') {
             return response()->json([
-                'message' => $tableAssignment['message']
-            ], Response::HTTP_CONFLICT);
+                'success' => true,
+                'message' => 'Booking created successfully',
+                'data'    => new BookingResource($booking->load('tables')),
+            ], 201);
+        } catch (Exception|Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 400);
         }
-
-        $celebration->update([
-            'celebration_date' => $validated['datetime']
-        ]);
-
-        return response()->json([
-            'message' => 'Slot reserved successfully',
-            'tables'  => $tableAssignment['tables']
-        ], Response::HTTP_OK);
     }
 
     public function theme(Request $request, Celebration $celebration)
