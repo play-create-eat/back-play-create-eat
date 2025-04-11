@@ -18,7 +18,7 @@ class PaymentController extends Controller
             'amount' => 'required|numeric:min:0',
         ]);
 
-        $payment = Payment::create([
+        $payment = Payment::firstOrCreate([
             'family_id'    => auth()->guard('sanctum')->user()->family->id,
             'payable_type' => Celebration::class,
             'payable_id'   => $celebration->id,
