@@ -83,7 +83,8 @@ class PaymentController extends Controller
         ]);
 
         $payment->payable->update([
-            'completed' => true
+            'paid_amount' => $payment->amount,
+            'completed'   => true
         ]);
 
         return response()->json($payment);
