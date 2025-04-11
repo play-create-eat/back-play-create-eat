@@ -132,16 +132,21 @@ class StripePaymentController extends Controller
                 Log::info("Payment is Celebration");
                 DB::transaction(function () use ($payment, $paymentIntent) {
                     $total = $payment->amount - $paymentIntent['metadata']['cashback_amount'];
+                    Log::info("Total: $total");
 
                     $payment->family->loyalty_wallet->withdraw($paymentIntent['metadata']['cashback_amount'], [
                         'name' => 'Cashback payment for ' . $payment->payable_type,
                         'id'   => $payment->id,
                     ]);
 
+                    Log::info("Cashback withdrawn: " . $paymentIntent['metadata']['cashback_amount']);
+
                     $payment->family->main_wallet->withdraw($total, [
                         'name' => 'Payment for ' . $payment->payable_type,
                         'id'   => $payment->id,
                     ]);
+
+                    Log::info("Main wallet withdrawn: " . $total);
 
                     $payment->family->loyalty_wallet->deposit(
                         $total * $payment->payable->package->cashback_percentage / 100,
@@ -151,6 +156,8 @@ class StripePaymentController extends Controller
                         ]
                     );
 
+                    Log::info("Cashback deposited: " . ($total * $payment->payable->package->cashback_percentage / 100));
+
                     $payment->update([
                         'status' => 'paid'
                     ]);
@@ -158,6 +165,8 @@ class StripePaymentController extends Controller
                         'paid_amount' => $payment->amount,
                         'completed'   => true
                     ]);
+
+                    Log::info("Payment updated for Celebration ID: $payment->payable_id, Amount: $payment->amount");
                 });
                 Log::info("Payment successful for Celebration ID: $payment->payable_id, Amount: $amount");
             }
