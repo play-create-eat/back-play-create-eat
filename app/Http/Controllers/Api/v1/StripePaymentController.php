@@ -125,7 +125,11 @@ class StripePaymentController extends Controller
             if (!$payment) {
                 return;
             }
+
+            Log::info("Payment exists for Family ID: $family->id, Amount: $amount");
+
             if ($payment->payable instanceof Celebration) {
+                Log::info("Payment is Celebration");
                 DB::transaction(function () use ($payment, $paymentIntent) {
                     $total = $payment->amount - $paymentIntent['metadata']['cashback_amount'];
 
@@ -152,7 +156,7 @@ class StripePaymentController extends Controller
                     ]);
                     $payment->payable->update([
                         'paid_amount' => $payment->amount,
-                        'completed' => true
+                        'completed'   => true
                     ]);
                 });
                 Log::info("Payment successful for Celebration ID: $payment->payable_id, Amount: $amount");
