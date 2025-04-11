@@ -107,7 +107,7 @@ class StripeService
     public function paymentSession(Payment $payment, Request $request): Collection|string
     {
         $validated = $request->validate([
-            'cashback_amount' => 'required|integer|min:1',
+            'cashback_amount' => 'required|integer|min:0',
         ]);
 
         $payment->load('payable');
