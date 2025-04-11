@@ -82,6 +82,10 @@ class PaymentController extends Controller
             'status' => 'paid'
         ]);
 
+        $payment->payable->update([
+            'completed' => true
+        ]);
+
         return response()->json($payment);
     }
 

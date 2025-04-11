@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('tables', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->integer('capacity');
-            $table->enum('status', ['available', 'reserved', 'booked'])
-                ->default('available');
+            $table->integer('capacity')->default(15);
+            $table->boolean('is_preferred_for_children')->default(false);
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }

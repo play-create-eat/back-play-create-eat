@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Celebration;
+use App\Models\Booking;
 use App\Models\Table;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -12,9 +12,9 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('table_bookings', function (Blueprint $table) {
+        Schema::create('booking_table', function (Blueprint $table) {
             $table->id();
-            $table->foreignIdFor(Celebration::class)
+            $table->foreignIdFor(Booking::class)
                 ->constrained()
                 ->cascadeOnDelete();
             $table->foreignIdFor(Table::class)
@@ -29,6 +29,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('table_bookings');
+        Schema::dropIfExists('booking_table');
     }
 };
