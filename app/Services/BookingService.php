@@ -21,7 +21,7 @@ class BookingService
     {
         Log::info('Getting available time slots', [
             'date'          => $date,
-            'packageId'     => $package->id,
+            'package_id'    => $package->id,
             'childrenCount' => $childrenCount
         ]);
 
@@ -57,23 +57,39 @@ class BookingService
             }
 
             $slotCount++;
-            Log::debug("Checking slot #$slotCount", [
+            Log::debug("Checking slot #{$slotCount}", [
                 'setupStartTime' => $setupStartTime->format('Y-m-d H:i'),
                 'startTime'      => $startTime->format('Y-m-d H:i'),
                 'endTime'        => $endTime->format('Y-m-d H:i'),
                 'cleanupEndTime' => $cleanupEndTime->format('Y-m-d H:i')
             ]);
 
-            if ($this->areTablesAvailableForSlot($setupStartTime, $cleanupEndTime)) {
-                $availableSlots[] = [
-                    'start_time'       => $startTime->format('Y-m-d H:i'),
-                    'end_time'         => $endTime->format('Y-m-d H:i'),
-                    'setup_start_time' => $setupStartTime->format('Y-m-d H:i'),
-                    'cleanup_end_time' => $cleanupEndTime->format('Y-m-d H:i'),
-                ];
-                Log::debug('Slot is available, added to results');
+            if ($childrenCount <= 15) {
+                if ($this->isAnyTableAvailableForSlot($setupStartTime, $cleanupEndTime)) {
+                    $availableSlots[] = [
+                        'start_time'       => $startTime->format('Y-m-d H:i'),
+                        'end_time'         => $endTime->format('Y-m-d H:i'),
+                        'setup_start_time' => $setupStartTime->format('Y-m-d H:i'),
+                        'cleanup_end_time' => $cleanupEndTime->format('Y-m-d H:i'),
+                    ];
+                    Log::debug('Slot is available for small group, added to results');
+                } else {
+                    Log::debug('Slot is not available for small group, skipped');
+                }
+            } else if ($childrenCount <= 30) {
+                if ($this->areTables3And4AvailableForSlot($setupStartTime, $cleanupEndTime)) {
+                    $availableSlots[] = [
+                        'start_time'       => $startTime->format('Y-m-d H:i'),
+                        'end_time'         => $endTime->format('Y-m-d H:i:s'),
+                        'setup_start_time' => $setupStartTime->format('Y-m-d H:i'),
+                        'cleanup_end_time' => $cleanupEndTime->format('Y-m-d H:i'),
+                    ];
+                    Log::debug('Slot is available for large group, added to results');
+                } else {
+                    Log::debug('Slot is not available for large group, skipped');
+                }
             } else {
-                Log::debug('Slot is not available, skipped');
+                Log::warning('Children count exceeds maximum capacity (30)');
             }
 
             $currentSlot->addMinutes(30);
@@ -83,12 +99,9 @@ class BookingService
         return $availableSlots;
     }
 
-    /**
-     * Check if tables are available for a time slot based on specific booking logic
-     */
-    private function areTablesAvailableForSlot(Carbon $startTime, Carbon $endTime): bool
+    private function isAnyTableAvailableForSlot(Carbon $startTime, Carbon $endTime): bool
     {
-        Log::debug('Checking tables availability for slot', [
+        Log::debug('Checking if any table is available for slot', [
             'start' => $startTime->format('Y-m-d H:i'),
             'end'   => $endTime->format('Y-m-d H:i')
         ]);
@@ -106,7 +119,7 @@ class BookingService
         $table3Available = $table3 ? $this->checkTableAvailabilityDirectly($table3->id, $startTimeStr, $endTimeStr) : false;
         $table4Available = $table4 ? $this->checkTableAvailabilityDirectly($table4->id, $startTimeStr, $endTimeStr) : false;
 
-        Log::debug('Table availability results', [
+        Log::debug('Table availability for small group', [
             'table1' => $table1Available ? 'available' : 'unavailable',
             'table2' => $table2Available ? 'available' : 'unavailable',
             'table3' => $table3Available ? 'available' : 'unavailable',
@@ -115,16 +128,9 @@ class BookingService
 
         $isAnyTableAvailable = $table1Available || $table2Available || $table3Available || $table4Available;
 
-        $areTables3And4Available = $table3Available && $table4Available;
+        Log::debug('Any table available: ' . ($isAnyTableAvailable ? 'Yes' : 'No'));
 
-        $result = $isAnyTableAvailable || $areTables3And4Available;
-
-        Log::debug('Slot availability result: ' . ($result ? 'AVAILABLE' : 'NOT AVAILABLE'), [
-            'isAnyTableAvailable'     => $isAnyTableAvailable,
-            'areTables3And4Available' => $areTables3And4Available
-        ]);
-
-        return $result;
+        return $isAnyTableAvailable;
     }
 
     /**
@@ -154,6 +160,39 @@ class BookingService
         ]);
 
         return $available;
+    }
+
+    private function areTables3And4AvailableForSlot(Carbon $startTime, Carbon $endTime): bool
+    {
+        Log::debug('Checking if Tables 3 and 4 are available for slot', [
+            'start' => $startTime->format('Y-m-d H:i'),
+            'end'   => $endTime->format('Y-m-d H:i')
+        ]);
+
+        $table3 = Table::where('name', 'Table 3')->where('is_active', true)->first();
+        $table4 = Table::where('name', 'Table 4')->where('is_active', true)->first();
+
+        $startTimeStr = $startTime->format('Y-m-d H:i');
+        $endTimeStr = $endTime->format('Y-m-d H:i');
+
+        if (!$table3 || !$table4) {
+            Log::warning('Tables 3 or 4 do not exist or are not active');
+            return false;
+        }
+
+        $table3Available = $this->checkTableAvailabilityDirectly($table3->id, $startTimeStr, $endTimeStr);
+        $table4Available = $this->checkTableAvailabilityDirectly($table4->id, $startTimeStr, $endTimeStr);
+
+        Log::debug('Tables 3 and 4 availability for large group', [
+            'table3' => $table3Available ? 'available' : 'unavailable',
+            'table4' => $table4Available ? 'available' : 'unavailable',
+        ]);
+
+        $areBothAvailable = $table3Available && $table4Available;
+
+        Log::debug('Both Tables 3 and 4 available: ' . ($areBothAvailable ? 'Yes' : 'No'));
+
+        return $areBothAvailable;
     }
 
     /**
@@ -312,5 +351,49 @@ class BookingService
         ]);
 
         return $availableTables;
+    }
+
+    /**
+     * Check if tables are available for a time slot based on specific booking logic
+     */
+    private function areTablesAvailableForSlot(Carbon $startTime, Carbon $endTime): bool
+    {
+        Log::debug('Checking tables availability for slot', [
+            'start' => $startTime->format('Y-m-d H:i'),
+            'end'   => $endTime->format('Y-m-d H:i')
+        ]);
+
+        $table1 = Table::where('name', 'Table 1')->where('is_active', true)->first();
+        $table2 = Table::where('name', 'Table 2')->where('is_active', true)->first();
+        $table3 = Table::where('name', 'Table 3')->where('is_active', true)->first();
+        $table4 = Table::where('name', 'Table 4')->where('is_active', true)->first();
+
+        $startTimeStr = $startTime->format('Y-m-d H:i');
+        $endTimeStr = $endTime->format('Y-m-d H:i');
+
+        $table1Available = $table1 ? $this->checkTableAvailabilityDirectly($table1->id, $startTimeStr, $endTimeStr) : false;
+        $table2Available = $table2 ? $this->checkTableAvailabilityDirectly($table2->id, $startTimeStr, $endTimeStr) : false;
+        $table3Available = $table3 ? $this->checkTableAvailabilityDirectly($table3->id, $startTimeStr, $endTimeStr) : false;
+        $table4Available = $table4 ? $this->checkTableAvailabilityDirectly($table4->id, $startTimeStr, $endTimeStr) : false;
+
+        Log::debug('Table availability results', [
+            'table1' => $table1Available ? 'available' : 'unavailable',
+            'table2' => $table2Available ? 'available' : 'unavailable',
+            'table3' => $table3Available ? 'available' : 'unavailable',
+            'table4' => $table4Available ? 'available' : 'unavailable',
+        ]);
+
+        $isAnyTableAvailable = $table1Available || $table2Available || $table3Available || $table4Available;
+
+        $areTables3And4Available = $table3Available && $table4Available;
+
+        $result = $isAnyTableAvailable || $areTables3And4Available;
+
+        Log::debug('Slot availability result: ' . ($result ? 'AVAILABLE' : 'NOT AVAILABLE'), [
+            'isAnyTableAvailable'     => $isAnyTableAvailable,
+            'areTables3And4Available' => $areTables3And4Available
+        ]);
+
+        return $result;
     }
 }
