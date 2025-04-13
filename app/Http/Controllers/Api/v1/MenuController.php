@@ -68,7 +68,7 @@ class MenuController extends Controller
         return [
             'id'             => $item->id,
             'name'           => $item->name,
-            'price'          => $item->price,
+            'price'          => $item->price * 100,
             'image'          => $item->getFirstMediaUrl('menu_item_images'),
             'description'    => $item->description,
             'options'        => $item->options,
@@ -86,7 +86,7 @@ class MenuController extends Controller
                 'options'   => $group->options->map(fn($option) => [
                     'id'            => $option->id,
                     'name'          => $option->name,
-                    'price'         => $option->price,
+                    'price'         => $option->price * 100,
                     'nutritionInfo' => $option->nutrition_info,
                 ]),
             ]),
