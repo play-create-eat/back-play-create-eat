@@ -49,7 +49,7 @@ class CelebrationController extends Controller
             $query->where('paid_amount', '<', 'total_amount');
         }
 
-        return response()->json($query->orderByDesc('created_at')->get());
+        return response()->json($query->orderByDesc('celebration_date')->get());
     }
 
     public function show(Celebration $celebration)
@@ -164,6 +164,7 @@ class CelebrationController extends Controller
         try {
             $booking = $bookingService->createBooking([
                 'user_id'          => auth()->guard('sanctum')->user()->id,
+                'celebration_id'   => $celebration->id,
                 'package_id'       => $celebration->package->id,
                 'child_name'       => $celebration->child->first_name,
                 'children_count'   => $celebration->children_count,
