@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Celebration extends Model
@@ -92,7 +91,7 @@ class Celebration extends Model
         return $this->hasOne(Cart::class);
     }
 
-    public function features(): HasMany
+    public function features(): belongsToMany
     {
         return $this->belongsToMany(CelebrationFeature::class)->withTimestamps();
     }
