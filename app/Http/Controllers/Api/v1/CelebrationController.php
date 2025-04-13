@@ -10,7 +10,6 @@ use App\Models\SlideshowImage;
 use App\Services\BookingService;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileDoesNotExist;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileIsTooBig;
@@ -33,6 +32,7 @@ class CelebrationController extends Controller
             'package',
             'cake',
             'theme',
+            'features',
             'cart.items.menuItem.tags',
             'cart.items.menuItem.type',
             'cart.items.menuItem.modifierGroups.options',
@@ -59,6 +59,7 @@ class CelebrationController extends Controller
             'package',
             'cake',
             'theme',
+            'features',
             'cart.items.menuItem.tags',
             'cart.items.menuItem.type',
             'cart.items.menuItem.modifierGroups.options',
