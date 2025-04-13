@@ -28,8 +28,18 @@ class CelebrationController extends Controller
             'unpaid'    => 'boolean',
         ]);
 
-        $query = Celebration::with('child', 'package', 'theme', 'menuItems', 'cake', 'modifierOptions', 'slideshow')
-            ->where('user_id', auth()->guard('sanctum')->user()->id);
+        $query = Celebration::with([
+            'child',
+            'package',
+            'cake',
+            'theme',
+            'cart.items.menuItem.tags',
+            'cart.items.menuItem.type',
+            'cart.items.menuItem.modifierGroups.options',
+            'cart.items.modifiers.modifierOption',
+            'invitation',
+            'slideshow',
+        ])->where('user_id', auth()->guard('sanctum')->user()->id);
 
         if ($request->filled('completed')) {
             $query->where('completed', $request->boolean('completed'));
@@ -49,10 +59,10 @@ class CelebrationController extends Controller
             'package',
             'cake',
             'theme',
-            'menuItems.tags',
-            'menuItems.type',
-            'menuItems.category',
-            'menuItems.modifierGroups.options',
+            'cart.items.menuItem.tags',
+            'cart.items.menuItem.type',
+            'cart.items.menuItem.modifierGroups.options',
+            'cart.items.modifiers.modifierOption',
             'invitation',
             'slideshow',
 
@@ -77,7 +87,7 @@ class CelebrationController extends Controller
             'user_id'      => auth()->guard('sanctum')->user()->id,
             'child_id'     => $validated['child_id'],
             'current_step' => 1,
-            'min_amount' => 100000
+            'min_amount'   => 100000
         ]);
 
         return response()->json($celebration, Response::HTTP_CREATED);
@@ -129,7 +139,7 @@ class CelebrationController extends Controller
     public function slots(Request $request, Celebration $celebration, BookingService $bookingService)
     {
         $validated = $request->validate([
-            'date'           => ['required', 'date', 'after_or_equal:today'],
+            'date' => ['required', 'date', 'after_or_equal:today'],
         ]);
 
         $slots = $bookingService->getAvailableTimeSlots(

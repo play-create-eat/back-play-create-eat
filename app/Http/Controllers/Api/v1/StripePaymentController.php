@@ -52,11 +52,9 @@ class StripePaymentController extends Controller
     {
         $family = auth()->guard('sanctum')->user()->family;
         $walletTransactions = $family->main_wallet->walletTransactions()
-            ->orderBy('created_at', 'desc')
             ->get(['type', 'amount', 'meta', 'created_at']);
 
         $cashbackTransactions = $family->loyalty_wallet->walletTransactions()
-            ->orderBy('created_at', 'desc')
             ->get(['type', 'amount', 'meta', 'created_at']);
 
         return response()->json([
