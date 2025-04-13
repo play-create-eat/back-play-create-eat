@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Menu;
 use App\Models\MenuCategory;
+use App\Models\MenuItem;
 use App\Models\MenuType;
 use Illuminate\Http\Request;
 
@@ -13,8 +13,27 @@ class MenuController extends Controller
     public function index(Request $request)
     {
         $type = $request->input('type');
+        $audience = $request->input('audience');
 
         if ($type) {
+            if ($type === 'Sharing Table') {
+                if ($request->filled('audience')) {
+                    if ($audience === 'children') {
+                        $menuType = MenuType::where('title', $type)->first();
+                        $menuItem = MenuItem::where('menu_type_id', $menuType->id)
+                            ->where('menu_category_id', null)
+                            ->where('price', 0)
+                            ->where('name', 'LIKE', '%Sharing Table%')
+                            ->first();
+                        return response()->json([
+                            'type' => $menuType,
+                            'item' => $menuItem
+                        ]);
+                    }
+                }
+            }
+
+
             $menuType = MenuType::where('title', $type)
                 ->with([
                     'categories.items.tags',

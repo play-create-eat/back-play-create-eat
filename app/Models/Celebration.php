@@ -69,26 +69,6 @@ class Celebration extends Model
         return $this->belongsToMany(ModifierOption::class, 'celebration_menu_modifiers');
     }
 
-    public function tables(): HasMany
-    {
-        return $this->hasMany(TableBooking::class);
-    }
-
-    public function calculateMenuPrice()
-    {
-        return $this->menuItems->sum(function ($menuItem) {
-            $basePrice = $menuItem->price * $menuItem->pivot->quantity;
-
-            $modifiersPrice = $menuItem->modifierGroups->sum(function ($modifierGroup) use ($menuItem) {
-                return $modifierGroup->options->sum(function ($option) use ($menuItem) {
-                    return $option->price * $menuItem->pivot->quantity;
-                });
-            });
-
-            return $basePrice + $modifiersPrice;
-        });
-    }
-
     public function slideshow(): HasOne
     {
         return $this->hasOne(SlideshowImage::class);
@@ -97,5 +77,10 @@ class Celebration extends Model
     public function invitation(): HasOne
     {
         return $this->hasOne(Invite::class);
+    }
+
+    public function cart(): HasOne
+    {
+        return $this->hasOne(Cart::class);
     }
 }

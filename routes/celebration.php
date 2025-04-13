@@ -2,6 +2,7 @@
 
 
 use App\Http\Controllers\Api\v1\CakeController;
+use App\Http\Controllers\Api\v1\CartController;
 use App\Http\Controllers\Api\v1\CelebrationController;
 use App\Http\Controllers\Api\v1\InviteController;
 use App\Http\Controllers\Api\v1\MenuController;
@@ -24,7 +25,9 @@ Route::prefix('celebration')
             Route::post('slot', 'slot');
             Route::post('theme', 'theme');
             Route::post('cake', 'cake');
-            Route::post('menu', 'menu');
+            Route::post('cart', [CartController::class, 'store']);
+            Route::get('cart', [CartController::class, 'show']);
+            Route::post('cart/finalize', [CartController::class, 'finalize']);
             Route::post('photographer', 'photographer');
             Route::post('album', 'album');
             Route::post('slideshow', 'slideshow');
