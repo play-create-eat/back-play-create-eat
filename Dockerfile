@@ -56,6 +56,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN sed -i 's/<policy domain="coder" rights="none" pattern="PDF" \/>/<policy domain="coder" rights="read|write" pattern="PDF" \/>/' /etc/ImageMagick-6/policy.xml || true
 
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y nodejs
+
+RUN npm install puppeteer --omit=dev
+
 RUN git clone https://github.com/Imagick/imagick.git \
     && cd imagick \
     && phpize \
