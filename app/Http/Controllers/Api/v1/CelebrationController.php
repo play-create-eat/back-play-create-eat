@@ -104,7 +104,6 @@ class CelebrationController extends Controller
 
         $celebration->update([
             'package_id'   => $validated['package_id'],
-            'total_amount' => Carbon::today()->isWeekend() ? $package->weekend_price : $package->weekday_price,
             'current_step' => $validated['current_step']
         ]);
 

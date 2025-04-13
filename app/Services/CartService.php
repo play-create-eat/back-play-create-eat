@@ -12,7 +12,6 @@ class CartService
     public function save(Celebration $celebration, array $menuItems): Cart
     {
         $cart = $celebration->cart()->firstOrCreate();
-        $cart->items()->delete();
 
         foreach ($menuItems as $item) {
             $menuItem = MenuItem::with('type')->findOrFail($item['menu_item_id']);

@@ -28,7 +28,8 @@ class Celebration extends Model
         'photo_album',
         'total_amount',
         'paid_amount',
-        'current_step'
+        'current_step',
+        'min_amount'
     ];
 
     protected $casts = [
