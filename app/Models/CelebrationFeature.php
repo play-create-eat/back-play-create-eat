@@ -19,6 +19,6 @@ class CelebrationFeature extends Model
 
     public function celebration(): BelongsToMany
     {
-        return $this->belongsToMany(Celebration::class);
+        return $this->belongsToMany(Celebration::class)->withTimestamps();
     }
 }

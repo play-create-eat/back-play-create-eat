@@ -1,6 +1,7 @@
 <?php
 
-use App\Models\Celebration;
+use App\Models\ModifierOption;
+use App\Models\OrderItem;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -11,12 +12,12 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('celebration_features', function (Blueprint $table) {
+        Schema::create('order_item_modifiers', function (Blueprint $table) {
             $table->id();
-            $table->string('title');
-            $table->string('description');
-            $table->decimal('price');
+            $table->foreignIdFor(OrderItem::class)->constrained()->cascadeOnDelete();
+            $table->foreignIdFor(ModifierOption::class)->constrained()->cascadeOnDelete();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
@@ -25,6 +26,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('celebration_features');
+        Schema::dropIfExists('order_item_modifiers');
     }
 };

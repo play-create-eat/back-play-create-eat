@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\Cart;
 use App\Models\Celebration;
 use App\Models\MenuItem;
-use DB;
 
 class CartService
 {
@@ -41,23 +40,41 @@ class CartService
 
     public function finalize(Cart $cart): void
     {
+        $celebration = $cart->celebration;
+
+        $total = 0;
+
+        $order = $celebration->order()->create([
+            'total_price' => 0,
+        ]);
+
         foreach ($cart->items as $item) {
-            $cart->celebration->menuItems()->attach($item->menu_item_id, [
-                'quantity'   => $item->quantity,
-                'audience'   => $item->audience,
-                'child_name' => $item->child_name,
+            $orderItem = $order->items()->create([
+                'menu_item_id' => $item->menu_item_id,
+                'quantity'     => $item->quantity,
+                'audience'     => $item->audience,
             ]);
 
             foreach ($item->modifiers as $mod) {
-                DB::table('celebration_menu_modifiers')->insert([
-                    'celebration_id'     => $cart->celebration_id,
-                    'menu_item_id'       => $item->menu_item_id,
+                $orderItem->modifiers()->create([
                     'modifier_option_id' => $mod->modifier_option_id,
-                    'created_at'         => now(),
-                    'updated_at'         => now(),
                 ]);
             }
+
+            if ($item->audience === 'parents') {
+                $itemBase = $item->menuItem->price * $item->quantity;
+                $itemMods = $item->modifiers->sum(fn($m) => $m->modifierOption->price) * $item->quantity;
+                $total += $itemBase + $itemMods;
+            }
         }
+
+        $order->update([
+            'total_price' => $total,
+        ]);
+
+        $cart->celebration->update([
+            'total_amount' => $celebration->total_amount + $total,
+        ]);
 
         $cart->delete();
     }

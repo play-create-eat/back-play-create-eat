@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Celebration;
+use App\Models\CelebrationFeature;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -11,11 +12,14 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('celebration_features', function (Blueprint $table) {
+        Schema::create('celebration_celebration_feature', function (Blueprint $table) {
             $table->id();
-            $table->string('title');
-            $table->string('description');
-            $table->decimal('price');
+            $table->foreignIdFor(Celebration::class)
+                ->constrained()
+                ->cascadeOnDelete();
+            $table->foreignIdFor(CelebrationFeature::class)
+                ->constrained()
+                ->cascadeOnDelete();
             $table->timestamps();
         });
     }
@@ -25,6 +29,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('celebration_features');
+        Schema::dropIfExists('celebration_celebration_feature');
     }
 };

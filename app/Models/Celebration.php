@@ -94,6 +94,18 @@ class Celebration extends Model
 
     public function features(): HasMany
     {
-        return $this->hasMany(CelebrationFeature::class);
+        return $this->belongsToMany(CelebrationFeature::class)->withTimestamps();
     }
+
+    public function getCartTotalPriceAttribute(): float
+    {
+        return $this->cart?->items
+            ->where('audience', 'parents')
+            ->sum(function ($item) {
+                $base = $item->menuItem->price * $item->quantity;
+                $mods = $item->modifiers->sum(fn($mod) => $mod->modifierOption->price ?? 0) * $item->quantity;
+                return $base + $mods;
+            }) ?? 0;
+    }
+
 }
