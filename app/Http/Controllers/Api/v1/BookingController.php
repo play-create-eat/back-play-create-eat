@@ -20,46 +20,11 @@ class BookingController extends Controller
     {
     }
 
-    public function getAvailableTimeSlots(Celebration $celebration, Request $request): JsonResponse
-    {
-        $request->validate([
-            'date' => 'required|date_format:Y-m-d|after_or_equal:today',
-        ]);
-
-        $availableSlots = $this->bookingService->getAvailableTimeSlots(
-            $request->date,
-            $celebration->package
-        );
-
-        return response()->json([
-            'success' => true,
-            'data'    => $availableSlots,
-        ]);
-    }
-
-    public function store(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'celebration_package_id' => 'required|exists:celebration_packages,id',
-            'child_name'             => 'required|string|max:255',
-            'children_count'         => 'required|integer|min:1|max:30',
-            'start_time'             => 'required|date_format:Y-m-d H:i:s|after:now',
-            'special_requests'       => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors'  => $validator->errors(),
-            ], 422);
-        }
-    }
-
     public function index(): AnonymousResourceCollection
     {
         $bookings = Booking::where('user_id', auth()->id())
             ->orderBy('start_time', 'desc')
-            ->with(['tables', 'celebrationPackage'])
+            ->with(['tables'])
             ->get();
 
         return BookingResource::collection($bookings);

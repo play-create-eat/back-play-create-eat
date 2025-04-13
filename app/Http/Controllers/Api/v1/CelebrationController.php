@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\BookingResource;
+use App\Models\Booking;
+use App\Models\Cake;
 use App\Models\Celebration;
-use App\Models\Package;
 use App\Models\SlideshowImage;
 use App\Services\BookingService;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -74,12 +76,22 @@ class CelebrationController extends Controller
 
     public function store(Request $request)
     {
-        $celebrations = Celebration::where('user_id', auth()->guard('sanctum')->user()->id)
-            ->where('completed', false)
-            ->get();
+        try {
+            DB::transaction(function () {
+                $celebrations = Celebration::where('user_id', auth()->guard('sanctum')->user()->id)
+                    ->where('completed', false)
+                    ->get();
 
-        foreach ($celebrations as $celebration) {
-            $celebration->delete();
+                foreach ($celebrations as $celebration) {
+                    Booking::where('celebration_id', $celebration->id)->delete();
+                }
+
+                Celebration::where('user_id', auth()->guard('sanctum')->user()->id)
+                    ->where('completed', false)
+                    ->delete();
+            });
+        } catch (Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 400);
         }
 
         $validated = $request->validate(['child_id' => 'required|exists:children,id']);
@@ -100,8 +112,6 @@ class CelebrationController extends Controller
             'package_id'   => 'required|exists:packages,id',
             'current_step' => 'required|integer'
         ]);
-
-        $package = Package::findOrFail($validated['package_id']);
 
         $celebration->update([
             'package_id'   => $validated['package_id'],
@@ -172,6 +182,14 @@ class CelebrationController extends Controller
                 'special_requests' => '',
             ]);
 
+            $packagePrice = Carbon::parse($celebration->celebration_date)->isWeekday() ? $celebration->package->weekday_price : $celebration->package->weekend_price;
+            $price = $celebration->total_amount + ($packagePrice * 100) * $celebration->children_count;
+
+            $celebration->update([
+                'celebration_date' => $validated['datetime'],
+                'total_amount'     => $price
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Booking created successfully',
@@ -205,10 +223,13 @@ class CelebrationController extends Controller
             'current_step' => 'required|integer'
         ]);
 
+        $cakePrice = Cake::find($validated['cake_id'])->price_per_kg * 100;
+
         $celebration->update([
             'cake_id'      => $validated['cake_id'],
             'cake_weight'  => $validated['cake_weight'],
-            'current_step' => $validated['current_step']
+            'current_step' => $validated['current_step'],
+            'total_amount' => $celebration->total_amount + $validated['cake_weight'] * $cakePrice,
         ]);
 
         return response()->json($celebration);
@@ -301,7 +322,14 @@ class CelebrationController extends Controller
             'current_step' => 'required|integer'
         ]);
 
-        $celebration->update($validated);
+
+        $feature = $celebration->features()->where('slug', 'photographer')->first();
+        $celebration->features()->attach($feature->id);
+
+        $celebration->update([
+            'total_amount' => $celebration->total_amount + $feature->price * 100,
+            'current_step' => $validated['current_step']
+        ]);
 
         return response()->json($celebration);
     }
@@ -313,7 +341,14 @@ class CelebrationController extends Controller
             'current_step' => 'required|integer'
         ]);
 
-        $celebration->update($validated);
+
+        $feature = $celebration->features()->where('slug', 'photo-album')->first();
+        $celebration->features()->attach($feature->id);
+
+        $celebration->update([
+            'total_amount' => $celebration->total_amount + $feature->price * 100,
+            'current_step' => $validated['current_step']
+        ]);
 
         return response()->json($celebration);
     }
