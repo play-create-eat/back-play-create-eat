@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\MenuItemResource\Pages;
 use App\Filament\Resources\MenuItemResource\RelationManagers;
 use App\Models\MenuItem;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
@@ -12,8 +13,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Columns\ImageColumn;
-use Filament\Tables\Columns\TagsColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -44,6 +43,15 @@ class MenuItemResource extends Resource
                     ->image()
                     ->required()
                     ->maxSize(10240),
+                Repeater::make('options')
+                    ->relationship('options')
+                    ->schema([
+                        Textarea::make('description')->nullable(),
+                        SpatieMediaLibraryFileUpload::make('menu_item_option_image')
+                            ->collection('menu_item_option_image')
+                            ->image()
+                            ->maxSize(10240),
+                    ])->addActionLabel('Add Option'),
             ]);
     }
 

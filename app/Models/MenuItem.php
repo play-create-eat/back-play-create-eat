@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -58,5 +59,10 @@ class MenuItem extends Model implements HasMedia
     public function type(): BelongsTo
     {
         return $this->belongsTo(MenuType::class);
+    }
+
+    public function options(): HasMany
+    {
+        return $this->hasMany(MenuItemOption::class);
     }
 }
