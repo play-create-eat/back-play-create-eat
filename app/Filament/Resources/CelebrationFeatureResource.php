@@ -42,6 +42,9 @@ class CelebrationFeatureResource extends Resource
                 TextColumn::make('title')
                     ->sortable()
                     ->searchable(),
+                TextColumn::make('slug')
+                    ->sortable()
+                    ->searchable(),
                 TextColumn::make('price')
                     ->sortable(),
                 TextColumn::make('created_at')

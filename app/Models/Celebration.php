@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Celebration extends Model
@@ -105,6 +106,11 @@ class Celebration extends Model
                 $mods = $item->modifiers->sum(fn($mod) => $mod->modifierOption->price ?? 0) * $item->quantity;
                 return $base + $mods;
             }) ?? 0;
+    }
+
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class);
     }
 
 }
