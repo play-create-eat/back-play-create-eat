@@ -122,7 +122,7 @@ class StripeService
             $ephemeralKey = $this->getEphemeralKey($payment->family);
 
             $paymentIntent = $this->stripeClient->paymentIntents->create([
-                'amount'                    => $payment->amount,
+                'amount'                    => $payment->amount - $validated['cashback_amount'],
                 'currency'                  => 'aed',
                 'customer'                  => $this->getStripeCostumer($payment->family)->id,
                 'automatic_payment_methods' => ['enabled' => true],
