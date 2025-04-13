@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Booking;
+use App\Models\Celebration;
 use App\Models\Package;
 use App\Models\Table;
 use Carbon\Carbon;
@@ -282,6 +283,8 @@ class BookingService
         ]);
 
         return DB::transaction(function () use ($data, $startTime, $endTime, $setupStartTime, $cleanupEndTime, $selectedTables) {
+            $celebration = Celebration::find($data['celebration_id']);
+
             $booking = Booking::create([
                 'user_id'          => $data['user_id'],
                 'package_id'       => $data['package_id'],
@@ -301,6 +304,8 @@ class BookingService
                 $booking->tables()->attach($table->id);
                 Log::debug("Attached Table $table->name (ID: $table->id) to booking $booking->id");
             }
+
+            $celebration->update(['celebration_date' => $startTime]);
 
             return $booking;
         });
