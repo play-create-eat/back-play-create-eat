@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Celebration extends Model
@@ -30,6 +29,13 @@ class Celebration extends Model
         'total_amount',
         'paid_amount',
         'current_step'
+    ];
+
+    protected $casts = [
+        'celebration_date' => 'datetime',
+        'paid_amount'      => 'decimal:2',
+        'total_amount'     => 'decimal:2',
+        'current_step'     => 'integer'
     ];
 
     public function child(): BelongsTo

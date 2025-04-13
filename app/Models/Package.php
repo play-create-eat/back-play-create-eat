@@ -26,6 +26,12 @@ class Package extends Model implements HasMedia
 
     protected $appends = ['images'];
 
+    protected $casts = [
+        'weekday_price'          => 'decimal:2',
+        'weekend_price'          => 'decimal:2',
+        'cashback_percentage'    => 'decimal:2',
+    ];
+
     public function features(): HasMany
     {
         return $this->hasMany(PackageFeature::class);
