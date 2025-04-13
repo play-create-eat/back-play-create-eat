@@ -74,8 +74,8 @@ class CartService
             }
 
             if ($item->audience === 'parents') {
-                $itemBase = $item->menuItem->price * $item->quantity;
-                $itemMods = $item->modifiers->sum(fn($m) => $m->modifierOption->price) * $item->quantity;
+                $itemBase = ($item->menuItem->price * 100) * $item->quantity;
+                $itemMods = $item->modifiers->sum(fn($m) => $m->modifierOption->price * 100) * $item->quantity;
                 $total += $itemBase + $itemMods;
             }
         }
