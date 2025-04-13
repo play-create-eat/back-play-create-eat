@@ -12,6 +12,18 @@ class CartService
     {
         $cart = $celebration->cart()->firstOrCreate();
 
+        $audiences = collect($menuItems)->pluck('audience')->unique();
+
+        foreach ($audiences as $audience) {
+            $cart->items()
+                ->where('audience', $audience)
+                ->get()
+                ->each(function ($item) {
+                    $item->modifiers()->delete();
+                    $item->delete();
+                });
+        }
+
         foreach ($menuItems as $item) {
             $menuItem = MenuItem::with('type')->findOrFail($item['menu_item_id']);
             $typeName = strtolower($menuItem->type->name ?? '');
