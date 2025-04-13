@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\Booking;
-use App\Models\Table;
+use App\Models\CartItem;
+use App\Models\ModifierOption;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -12,14 +12,10 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('booking_table', function (Blueprint $table) {
+        Schema::create('cart_item_modifiers', function (Blueprint $table) {
             $table->id();
-            $table->foreignIdFor(Booking::class)
-                ->constrained()
-                ->cascadeOnDelete();
-            $table->foreignIdFor(Table::class)
-                ->constrained()
-                ->cascadeOnDelete();
+            $table->foreignIdFor(CartItem::class)->constrained()->cascadeOnDelete();
+            $table->foreignIdFor(ModifierOption::class)->constrained()->cascadeOnDelete();
             $table->timestamps();
         });
     }
@@ -29,6 +25,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('booking_table');
+        Schema::dropIfExists('cart_item_modifiers');
     }
 };

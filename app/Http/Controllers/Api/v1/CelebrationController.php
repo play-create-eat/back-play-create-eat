@@ -8,8 +8,6 @@ use App\Models\Celebration;
 use App\Models\Package;
 use App\Models\SlideshowImage;
 use App\Services\BookingService;
-use App\Services\SlotService;
-use App\Services\TableService;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -24,6 +22,7 @@ class CelebrationController extends Controller
 
     public function index(Request $request)
     {
+        // TODO: delete all uncompleted celebrations just leave 1
         $request->validate([
             'completed' => 'boolean',
             'unpaid'    => 'boolean',
@@ -77,7 +76,8 @@ class CelebrationController extends Controller
         $celebration = Celebration::create([
             'user_id'      => auth()->guard('sanctum')->user()->id,
             'child_id'     => $validated['child_id'],
-            'current_step' => 1
+            'current_step' => 1,
+            'min_amount' => 100000
         ]);
 
         return response()->json($celebration, Response::HTTP_CREATED);

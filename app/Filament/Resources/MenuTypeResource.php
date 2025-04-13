@@ -4,11 +4,13 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\MenuTypeResource\Pages;
 use App\Models\MenuType;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class MenuTypeResource extends Resource
 {
@@ -24,6 +26,19 @@ class MenuTypeResource extends Resource
         return $form
             ->schema([
                 TextInput::make('title')->required()->maxLength(255),
+                SpatieMediaLibraryFileUpload::make('images')
+                    ->collection('menu_type_images')
+                    ->image()
+                    ->disk('s3')
+                    ->multiple()
+                    ->reorderable()
+                    ->maxFiles(5)
+                    ->deleteUploadedFileUsing(static function (SpatieMediaLibraryFileUpload $component, string $file) {
+                        if (!$file) return;
+
+                        $mediaClass = config('media-library.media_model', Media::class);
+                        $mediaClass::findByUuid($file)?->delete();
+                    })
             ]);
     }
 
