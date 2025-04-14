@@ -88,4 +88,9 @@ class Family extends Model implements Wallet, Customer
     {
         return $this->hasMany(Payment::class);
     }
+
+    public function celebrations(): HasMany
+    {
+        return $this->hasMany(Celebration::class);
+    }
 }

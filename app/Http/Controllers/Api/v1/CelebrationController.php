@@ -98,6 +98,7 @@ class CelebrationController extends Controller
 
         $celebration = Celebration::create([
             'user_id'      => auth()->guard('sanctum')->user()->id,
+            'family_id'    => auth()->guard('sanctum')->user()->family_id,
             'child_id'     => $validated['child_id'],
             'current_step' => 1,
             'min_amount'   => 100000

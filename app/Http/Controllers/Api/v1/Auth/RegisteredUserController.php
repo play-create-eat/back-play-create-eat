@@ -14,6 +14,7 @@ use App\Models\PartialRegistration;
 use App\Models\User;
 use App\Services\OtpService;
 use App\Services\TwilloService;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
@@ -62,7 +63,7 @@ class RegisteredUserController extends Controller
             'first_name' => ['required', 'string', 'max:255'],
             'last_name'  => ['required', 'string', 'max:255'],
             'id_type'    => ['required', new Enum(IdTypeEnum::class)],
-            'id_number'  => ['required', 'string', 'max:255', 'unique:profiles'],
+            'id_number'  => ['digits:15', 'starts_with:784'],
         ]);
 
         $family = Family::create([
@@ -111,7 +112,7 @@ class RegisteredUserController extends Controller
      *         )
      *     )
      * )
-     * @throws \Exception
+     * @throws Exception
      */
     public function step2(Request $request, OtpService $otpService, TwilloService $twilloService)
     {
