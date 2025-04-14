@@ -41,7 +41,7 @@ class CelebrationController extends Controller
             'cart.items.modifiers.modifierOption',
             'invitation',
             'slideshow',
-        ])->where('user_id', auth()->guard('sanctum')->user()->id);
+        ])->where('family_id', auth()->guard('sanctum')->user()->family->id);
 
         if ($request->filled('completed')) {
             $query->where('completed', $request->boolean('completed'));
