@@ -7,6 +7,7 @@ use App\Http\Resources\BookingResource;
 use App\Models\Booking;
 use App\Models\Cake;
 use App\Models\Celebration;
+use App\Models\CelebrationFeature;
 use App\Models\SlideshowImage;
 use App\Services\BookingService;
 use Carbon\Carbon;
@@ -23,7 +24,6 @@ class CelebrationController extends Controller
 
     public function index(Request $request)
     {
-        // TODO: delete all uncompleted celebrations just leave 1
         $request->validate([
             'completed' => 'boolean',
             'unpaid'    => 'boolean',
@@ -322,8 +322,7 @@ class CelebrationController extends Controller
             'current_step' => 'required|integer'
         ]);
 
-
-        $feature = $celebration->features()->where('slug', 'photographer')->first();
+        $feature = CelebrationFeature::where('slug', 'photographer')->first();
         $celebration->features()->attach($feature->id);
 
         $celebration->update([
@@ -342,7 +341,7 @@ class CelebrationController extends Controller
         ]);
 
 
-        $feature = $celebration->features()->where('slug', 'photo-album')->first();
+        $feature = CelebrationFeature::where('slug', 'photo-album')->first();
         $celebration->features()->attach($feature->id);
 
         $celebration->update([
