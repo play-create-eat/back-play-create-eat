@@ -63,7 +63,12 @@ class PassService
             if ($isFree) {
                 $transfer = $user->family->payFree($product);
             } else {
-                $transfer = $this->payWithLoyaltyPoints($user, $product, $loyaltyPointAmount);
+                $transfer = $this->payWithLoyaltyPoints(
+                    user: $user,
+                    product: $product,
+                    date: $activationDate,
+                    loyaltyPointAmount: $loyaltyPointAmount,
+                );
             }
 
             $duration = CarbonInterval::minutes($product->duration_time);
@@ -217,10 +222,10 @@ class PassService
      * @throws \Bavix\Wallet\Internal\Exceptions\ExceptionInterface
      * @throws \Throwable
      */
-    protected function payWithLoyaltyPoints(User $user, Product $product, int $loyaltyPointAmount = 0): Transfer
+    protected function payWithLoyaltyPoints(User $user, Product $product, Carbon $date = null, int $loyaltyPointAmount = 0): Transfer
     {
         $family = $user->loadMissing('family')->family;
-        $productPrice = $product->getAmountProduct($family);
+        $productPrice = $product->getFinalPrice($date);
 
         if ($loyaltyPointAmount > 0) {
             $loyaltyWallet = $family->loyalty_wallet;

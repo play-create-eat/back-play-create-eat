@@ -93,13 +93,15 @@ class ProductResource extends Resource
                                     ->prefix('%')
                                     ->minValue(0)
                                     ->maxValue(100)
-                                    ->step(0.1),
+                                    ->step(0.1)
+                                    ->default(0),
                                 TextInput::make('fee_percent')
                                     ->numeric()
                                     ->prefix('%')
                                     ->minValue(0)
                                     ->maxValue(100)
-                                    ->step(0.1),
+                                    ->step(0.1)
+                                    ->default(0),
                             ]),
                         Section::make('Status')
                             ->schema([
