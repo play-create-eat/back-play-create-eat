@@ -13,8 +13,15 @@ class ModifierOption extends Model
         'nutrition_info' => 'array',
     ];
 
+    protected $appends = ['cents_price'];
+
     public function modifierGroup(): BelongsTo
     {
         return $this->belongsTo(ModifierGroup::class);
+    }
+
+    public function getCentsPriceAttribute(): float|int
+    {
+        return $this->price * 100;
     }
 }

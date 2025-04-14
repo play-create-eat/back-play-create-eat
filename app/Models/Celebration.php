@@ -30,7 +30,8 @@ class Celebration extends Model
         'total_amount',
         'paid_amount',
         'current_step',
-        'min_amount'
+        'min_amount',
+        'family_id'
     ];
 
     protected $casts = [
@@ -111,6 +112,11 @@ class Celebration extends Model
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    public function family(): BelongsTo
+    {
+        return $this->belongsTo(Family::class);
     }
 
 }
