@@ -1,13 +1,11 @@
 <?php
 
 use App\Http\Controllers\Api\v1\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\Api\v1\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Api\v1\Auth\NewPasswordController;
 use App\Http\Controllers\Api\v1\Auth\OtpController;
-use App\Http\Controllers\Api\v1\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Api\v1\Auth\RegisteredUserController;
 use App\Http\Controllers\Api\v1\Auth\ResetPasswordController;
-use App\Http\Controllers\Api\v1\Auth\VerifyEmailController;
+use App\Http\Controllers\Api\v1\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -42,3 +40,7 @@ Route::post('reset-password', [ResetPasswordController::class, 'reset'])
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth:sanctum')
     ->name('logout');
+
+Route::delete('user', [ProfileController::class, 'destroy'])
+    ->middleware('auth:sanctum')
+    ->name('user.destroy');
