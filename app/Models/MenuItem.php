@@ -21,6 +21,8 @@ class MenuItem extends Model implements HasMedia
         'description'
     ];
 
+    protected $appends = ['cents_price'];
+
     protected static function boot(): void
     {
         parent::boot();
@@ -64,5 +66,10 @@ class MenuItem extends Model implements HasMedia
     public function options(): HasMany
     {
         return $this->hasMany(MenuItemOption::class);
+    }
+
+    public function getCentsPriceAttribute(): float|int
+    {
+        return $this->price * 100;
     }
 }

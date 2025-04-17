@@ -14,9 +14,11 @@ class CelebrationFeature extends Model
         'price',
     ];
 
-    protected $casts = [
-        'price' => 'decimal:2',
-    ];
+    protected $appends = ['cents_price'];
+
+    protected $hidden = ['pivot'];
+
+    protected $casts = ['price' => 'decimal:2'];
 
     protected static function booted(): void
     {
@@ -32,5 +34,10 @@ class CelebrationFeature extends Model
     public function celebration(): BelongsToMany
     {
         return $this->belongsToMany(Celebration::class)->withTimestamps();
+    }
+
+    public function getCentsPriceAttribute(): float|int
+    {
+        return $this->price * 100;
     }
 }

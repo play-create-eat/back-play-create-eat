@@ -160,7 +160,7 @@ class StripePaymentController extends Controller
                         'status' => 'paid'
                     ]);
                     $payment->payable->update([
-                        'paid_amount' => $payment->amount,
+                        'paid_amount' => $payment->payable->paid_amount + $payment->amount,
                         'completed'   => true
                     ]);
 

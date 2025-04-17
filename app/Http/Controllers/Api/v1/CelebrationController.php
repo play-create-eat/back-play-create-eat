@@ -7,6 +7,7 @@ use App\Http\Resources\BookingResource;
 use App\Models\Booking;
 use App\Models\Cake;
 use App\Models\Celebration;
+use App\Models\CelebrationFeature;
 use App\Models\SlideshowImage;
 use App\Services\BookingService;
 use Carbon\Carbon;
@@ -23,7 +24,6 @@ class CelebrationController extends Controller
 
     public function index(Request $request)
     {
-        // TODO: delete all uncompleted celebrations just leave 1
         $request->validate([
             'completed' => 'boolean',
             'unpaid'    => 'boolean',
@@ -41,7 +41,7 @@ class CelebrationController extends Controller
             'cart.items.modifiers.modifierOption',
             'invitation',
             'slideshow',
-        ])->where('user_id', auth()->guard('sanctum')->user()->id);
+        ])->where('family_id', auth()->guard('sanctum')->user()->family->id);
 
         if ($request->filled('completed')) {
             $query->where('completed', $request->boolean('completed'));
@@ -98,6 +98,7 @@ class CelebrationController extends Controller
 
         $celebration = Celebration::create([
             'user_id'      => auth()->guard('sanctum')->user()->id,
+            'family_id'    => auth()->guard('sanctum')->user()->family_id,
             'child_id'     => $validated['child_id'],
             'current_step' => 1,
             'min_amount'   => 100000
@@ -322,8 +323,7 @@ class CelebrationController extends Controller
             'current_step' => 'required|integer'
         ]);
 
-
-        $feature = $celebration->features()->where('slug', 'photographer')->first();
+        $feature = CelebrationFeature::where('slug', 'photographer')->first();
         $celebration->features()->attach($feature->id);
 
         $celebration->update([
@@ -342,7 +342,7 @@ class CelebrationController extends Controller
         ]);
 
 
-        $feature = $celebration->features()->where('slug', 'photo-album')->first();
+        $feature = CelebrationFeature::where('slug', 'photo-album')->first();
         $celebration->features()->attach($feature->id);
 
         $celebration->update([
