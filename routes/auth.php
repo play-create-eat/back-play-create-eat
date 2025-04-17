@@ -41,6 +41,6 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth:sanctum')
     ->name('logout');
 
-Route::delete('user', [ProfileController::class, 'destroy'])
+Route::post('user', [ProfileController::class, 'destroy'])
     ->middleware('auth:sanctum')
     ->name('user.destroy');
