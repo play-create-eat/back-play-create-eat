@@ -70,6 +70,7 @@ class CartService
 
             foreach ($item->modifiers as $mod) {
                 $orderItem->modifiers()->create([
+                    'order_item_id'     => $orderItem->id,
                     'modifier_option_id' => $mod->modifier_option_id,
                 ]);
             }

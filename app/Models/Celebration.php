@@ -93,6 +93,11 @@ class Celebration extends Model
         return $this->hasOne(Cart::class);
     }
 
+    public function order(): HasOne
+    {
+        return $this->hasOne(Order::class);
+    }
+
     public function features(): belongsToMany
     {
         return $this->belongsToMany(CelebrationFeature::class)->withTimestamps();

@@ -184,6 +184,10 @@ class CelebrationController extends Controller
                 'special_requests' => '',
             ]);
 
+            $celebration->update([
+                'celebration_date' => $validated['datetime'],
+            ]);
+
             $packagePrice = Carbon::parse($celebration->celebration_date)->isWeekday() ? $celebration->package->weekday_price : $celebration->package->weekend_price;
             Log::info("Package Price: $packagePrice");
             $price = $celebration->total_amount + ($packagePrice * 100) * $celebration->children_count;
