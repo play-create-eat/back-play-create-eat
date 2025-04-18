@@ -12,6 +12,7 @@
         "archtechx/enums": "^1.1",
         "barryvdh/laravel-dompdf": "^3.1",
         "bavix/laravel-wallet": "^11.4",
+        "chillerlan/php-qrcode": "^5.0",
         "darkaonline/l5-swagger": "^8.6",
         "doctrine/dbal": "^4.2",
         "filament/filament": "^3.2",

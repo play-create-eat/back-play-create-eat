@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Services\PassService;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -17,12 +18,14 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
-        return $panel
+        $panel = $panel
             ->default()
             ->id('admin')
             ->path('admin')
@@ -56,5 +59,28 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ])
             ->authGuard('admin');
+
+        return $this->customRoutes($panel);
+    }
+
+    protected function customRoutes(Panel $panel): Panel
+    {
+        return $panel->routes(function () {
+            Route::get('pass/print', function (Request $request): \Symfony\Component\HttpFoundation\BinaryFileResponse {
+                $payload = $request->validate([
+                    'serial' => ['required', 'exists:passes,serial'],
+                ]);
+
+                $serial = $payload['serial'];
+                $pdfFile = app(PassService::class)->getBraceletPdfPath($serial);
+
+                return response()->file($pdfFile, [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'inline; filename="pass-' . $serial . '.pdf"',
+                ]);
+            })
+                ->name('pass.print');
+        });
+
     }
 }

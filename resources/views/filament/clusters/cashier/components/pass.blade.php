@@ -34,7 +34,11 @@
 
     @unless($pass->is_expired)
         <x-slot name="headerEnd">
-            <x-filament::button wire:click="openNewUserModal" icon="heroicon-o-qr-code">
+            <x-filament::button
+                href="{{ route('filament.admin.pass.print', [ 'serial' => $pass->serial ]) }}"
+                tag="a"
+                target="_blank"
+            >
                 Print
             </x-filament::button>
         </x-slot>
