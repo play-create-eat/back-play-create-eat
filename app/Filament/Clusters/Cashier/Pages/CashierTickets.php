@@ -214,6 +214,7 @@ class CashierTickets extends Page implements HasForms
             DB::commit();
             Cache::put("cashier.order.{$orderId}", $passes, now()->addDays(2));
 
+            $this->passes = $passes;
             $this->order = $orderId;
         } catch (ExceptionInterface $e) {
             DB::rollBack();
