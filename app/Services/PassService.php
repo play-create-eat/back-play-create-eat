@@ -43,7 +43,8 @@ class PassService
         Product  $product,
         bool     $isFree = false,
         int      $loyaltyPointAmount = 0,
-        DateTime $activationDate = null
+        DateTime $activationDate = null,
+        array    $meta = []
     ): Pass
     {
         $user->loadMissing('family');
@@ -59,7 +60,7 @@ class PassService
             )
         );
 
-        return DB::transaction(function () use ($user, $child, $product, $activationDate, $isFree, $loyaltyPointAmount) {
+        return DB::transaction(function () use ($user, $child, $product, $activationDate, $isFree, $loyaltyPointAmount, $meta) {
             if ($isFree) {
                 $transfer = $user->family->payFree($product);
             } else {
@@ -68,6 +69,7 @@ class PassService
                     product: $product,
                     date: $activationDate,
                     loyaltyPointAmount: $loyaltyPointAmount,
+                    meta: $meta
                 );
             }
 
@@ -222,7 +224,13 @@ class PassService
      * @throws \Bavix\Wallet\Internal\Exceptions\ExceptionInterface
      * @throws \Throwable
      */
-    protected function payWithLoyaltyPoints(User $user, Product $product, Carbon $date = null, int $loyaltyPointAmount = 0): Transfer
+    protected function payWithLoyaltyPoints(
+        User $user,
+        Product $product,
+        Carbon $date = null,
+        int $loyaltyPointAmount = 0,
+        array $meta = []
+    ): Transfer
     {
         $family = $user->loadMissing('family')->family;
         $productPrice = $product->getFinalPrice($date);
@@ -242,6 +250,7 @@ class PassService
             $loyaltyWallet->withdraw(
                 amount: $loyaltyPointAmount,
                 meta: [
+                    ...$meta,
                     'description' => 'Loyalty points redeemed successfully for product discount.',
                     'product_id' => $product->id,
                     'product_name' => $product->name,
@@ -255,9 +264,10 @@ class PassService
         $cart = app(Cart::class)
             ->withItem($product, pricePerItem: $productPrice)
             ->withMeta([
+                ...$meta,
                 'loyalty_points_used' => $loyaltyPointAmount,
-                'discount_percent'    => $product->discount_percent,
-                'fee_percent'         => $product->fee_percent,
+                'discount_percent' => $product->discount_percent,
+                'fee_percent' => $product->fee_percent,
             ]);
 
         list($transfer) = array_values($family->payCart($cart));

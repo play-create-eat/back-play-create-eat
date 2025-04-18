@@ -5,7 +5,7 @@ namespace App\Exceptions;
 use Bavix\Wallet\Services\FormatterServiceInterface;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
-class InsufficientCashbackBalanceException extends HttpException
+class InsufficientBalanceException extends HttpException
 {
     protected int $amount;
     protected int $balance;
@@ -17,7 +17,7 @@ class InsufficientCashbackBalanceException extends HttpException
 
         if (empty($message)) {
             $formater = app(FormatterServiceInterface::class);
-            $message = "Insufficient cashback balance: required {$formater->floatValue($amount, 2)}, available {$formater->floatValue($balance, 2)}.";
+            $message = "Insufficient balance: required {$formater->floatValue($amount, 2)}, available {$formater->floatValue($balance, 2)}.";
         }
 
         parent::__construct($statusCode, $message);

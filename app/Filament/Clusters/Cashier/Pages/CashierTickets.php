@@ -2,19 +2,32 @@
 
 namespace App\Filament\Clusters\Cashier\Pages;
 
+use App\Exceptions\InsufficientBalanceException;
 use App\Filament\Clusters\Cashier;
-use App\Models\Family;
+use App\Models\Child;
+use App\Models\Product;
 use App\Models\User;
+use App\Services\PassService;
+use Bavix\Wallet\Internal\Exceptions\ExceptionInterface;
 use Bavix\Wallet\Objects\Cart;
+use Bavix\Wallet\Services\FormatterServiceInterface;
 use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Facades\Filament;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Livewire\Attributes\Url;
 
 class CashierTickets extends Page implements HasForms
 {
@@ -28,54 +41,116 @@ class CashierTickets extends Page implements HasForms
     protected static ?string $navigationLabel = 'Tickets';
     protected static ?string $title = 'Tickets';
 
-    public ?string $searchTerm = null;
-    public ?string $duration = null;
-    public array $features = [];
+    protected $queryString = [
+        'order' => ['except' => null],
+    ];
 
-    public ?User $selectedUser = null;
+    public ?array $data = [
+        'user_id' => null,
+        'activation_date' => null,
+        'tickets' => [],
+    ];
 
-    public ?Carbon $transactionDate = null;
+    public ?Collection $products = null;
+    public ?User $client = null;
 
-    public ?Cart $cart = null;
+    #[Url]
+    public ?string $order = null;
+    public array $passes = [];
+    public string $step = 'checkout'; // checkout | fulfillment
 
     public function mount(): void
     {
+        $this->passes = $this->order ? Cache::get("cashier.order.{$this->order}", []) : [];
         $this->form->fill();
-
-        $this->transactionDate = Carbon::today();
-        $this->features = [];
+        $this->products = Product::available()->with(['features'])->get()->keyBy('id');
     }
 
     public function form(Form $form): Form
     {
         return $form
             ->schema([
-                Select::make('family_id')
-                    ->label('Family')
-                    ->options(Family::pluck('name', 'id'))
+                Select::make('user_id')
+                    ->label('Client')
                     ->searchable()
-                    ->required(),
-                DatePicker::make('activation_date')
-                    ->label('Activation date')
-                    ->minDate(today())
-                    ->weekStartsOnMonday()
+                    ->native(false)
+                    ->allowHtml()
+                    ->required()
+                    ->live()
+                    ->getSearchResultsUsing(function (string $search): array {
+                        return User::query()
+                            ->where('email', 'ILIKE', "%{$search}%")
+                            ->orWhereHas('profile', function ($q) use ($search) {
+                                $q->where('first_name', 'ILIKE', "%{$search}%")
+                                    ->orWhere('last_name', 'ILIKE', "%{$search}%")
+                                    ->orWhere('phone_number', 'ILIKE', "%{$search}%");
+                            })
+                            ->with(['profile', 'family'])
+                            ->limit(50)
+                            ->get()
+                            ->mapWithKeys(fn($user) => [
+                                $user->id => view('filament.clusters.cashier.components.user-option', ['user' => $user])->render(),
+                            ])
+                            ->toArray();
+                    })
+                    ->getOptionLabelUsing(function ($value) {
+                        $user = User::with(['profile', 'family'])->find($value);
+                        return $user ? view('filament.clusters.cashier.components.user-option', ['user' => $user])->render() : '';
+                    })
                 ,
                 Repeater::make('tickets')
                     ->schema([
-                        TextInput::make('child_id')
+                        Select::make('child_id')
                             ->label('Child')
-                            ->required(),
+                            ->native(false)
+                            ->live()
+                            ->options(function (Get $get) {
+                                $userId = $get('../../user_id');
+
+                                if (!$userId) {
+                                    return [];
+                                }
+
+                                $user = User::with('family.children')->find($userId);
+
+                                if ($user) {
+                                    return $user->family->children
+                                        ->mapWithKeys(fn(Child $child) => [$child->id => "{$child->first_name} {$child->last_name}"])
+                                        ->toArray();
+                                }
+
+                                return [];
+                            })
+                            ->exists(table: Child::class, column: 'id')
+                            ->required()
+                        ,
+                        DatePicker::make('activation_date')
+                            ->label('Date')
+                            ->native(false)
+                            ->live()
+                            ->default(today())
+                            ->minDate(today()->startOfDay())
+                            ->weekStartsOnMonday()
+                            ->displayFormat('d.m.Y')
+                            ->rules(['required', 'date', 'after_or_equal:today'])
+                            ->required()
+                        ,
                         Select::make('product_id')
-                            ->label('Ticket type')
-                            ->options([
-                                'member' => 'Member',
-                                'administrator' => 'Administrator',
-                                'owner' => 'Owner',
-                            ])
-                            ->required(),
+                            ->label('Ticket')
+                            ->native(false)
+                            ->allowHtml()
+                            ->options(fn(Get $get) => $this->getProductOptions($get('activation_date')))
+                            ->disabled(fn(Get $get) => blank($get('child_id')))
+                            ->exists(table: Product::class, column: 'id')
+                            ->required()
+                            ->columnSpan(2)
+                        ,
                     ])
                     ->columns(2)
                     ->addActionLabel('Add ticket')
+                    ->minItems(1)
+                    ->disabled(fn(Get $get): bool => blank($get('user_id')))
+                    ->reactive()
             ])
             ->statePath('data');
     }
@@ -83,44 +158,94 @@ class CashierTickets extends Page implements HasForms
     public function submit(): void
     {
         $data = $this->form->getState();
-        $family = Family::findOrFail($data['family_id']);
-    }
 
-    public function switchTab(string $tab): void
-    {
-        $this->activeTab = $tab;
-    }
+        try {
+            DB::beginTransaction();
 
-//    public function render()
-//    {
-//        $products = Product::available()
-//            ->with(['features'])
-//            ->when($this->duration, function ($query) {
-//                $query->whereIn('duration_time', $this->duration);
-//            })
-//            ->when(count($this->features) > 0, function ($query) {
-//                $query->whereHas('features', function ($query) {
-//                    $query->whereIn('id', $this->features);
-//                });
-//            })
-//            ->limit(50)
-//            ->get();
-//
-//        return view(static::$view, [
-//            'products' => $products,
-//        ]);
-//    }
+            $tickets = $data['tickets'] ?? [];
+            $cart = app(Cart::class);
+            $client = User::with('family')->findOrFail($data['user_id']);
 
-    public function searchUser()
-    {
+            foreach ($tickets as $ticket) {
+                /** @var Product $product */
+                $product = $this->products->get($ticket['product_id'] ?? null);
+                $date = Carbon::parse($ticket['activation_date']);
 
-        $term = $this->searchTerm;
+                if ($product) {
+                    $productPrice = $product->getFinalPrice($date);
+                    $cart = $cart->withItem($product, pricePerItem: $productPrice);
+                }
+            }
 
-        if (!$term) {
-            $this->selectedUser = null;
-            return;
+            $totalPrice = $cart->getTotal($client->family);
+
+            throw_unless($client->family->canWithdraw($totalPrice),
+                new InsufficientBalanceException(
+                    amount: $totalPrice,
+                    balance: $client->family->main_wallet->balance,
+                )
+            );
+
+            $cashierUser = Filament::auth()->user();
+            $orderId = (string)Str::uuid7(time: now());
+            $orderMeta = [
+                'cashier_order_id' => $orderId,
+                'cashier_user_id' => $cashierUser->id,
+            ];
+
+            $children = $client->family->children()
+                ->whereIn('id', Arr::pluck($tickets, 'child_id'))
+                ->get()
+                ->keyBy('id');
+
+            $passes = [];
+
+            foreach ($tickets as $ticket) {
+                $passes[] = app(PassService::class)->purchase(
+                    user: $client,
+                    child: $children->get($ticket['child_id']),
+                    product: $this->products->get($ticket['product_id']),
+                    loyaltyPointAmount: 0,
+                    activationDate: Carbon::parse($ticket['activation_date']),
+                    meta: $orderMeta
+                );
+            }
+
+            DB::commit();
+            Cache::put("cashier.order.{$orderId}", $passes, now()->addDays(2));
+
+            $this->order = $orderId;
+        } catch (ExceptionInterface $e) {
+            DB::rollBack();
+            Notification::make()
+                ->title('Failed to purchase tickets.')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
         }
+    }
 
+    public function back()
+    {
+        $this->order = null;
+    }
 
+    protected function getProductOptions(string $activationDate = null): array
+    {
+        if ($this->products) {
+            $date = $activationDate ? Carbon::parse($activationDate) : today();
+            return $this->products
+                ->mapWithKeys(function (Product $product) use ($date) {
+                    return [
+                        "{$product->id}" => view('filament.clusters.cashier.components.ticket-option', [
+                            'name' => $product->name,
+                            'features' => $product->features->pluck('name')->toArray(),
+                            'price' => app(FormatterServiceInterface::class)->floatValue($product->getFinalPrice($date), 2),
+                        ])->render()
+                    ];
+                })
+                ->toArray();
+        }
+        return [];
     }
 }
