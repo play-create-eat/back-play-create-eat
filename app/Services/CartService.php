@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Cart;
 use App\Models\Celebration;
 use App\Models\MenuItem;
+use Log;
 
 class CartService
 {
@@ -84,9 +85,15 @@ class CartService
             'total_price' => $total,
         ]);
 
+        Log::info('Menu total price is: ' . $total);
+
         $cart->celebration->update([
             'total_amount' => $celebration->total_amount + $total,
         ]);
+
+        $celebration->refresh();
+
+        Log::info('Celebration total amount is: ' . $celebration->total_amount);
 
         $cart->delete();
     }

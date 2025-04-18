@@ -24,6 +24,8 @@ class CartController extends Controller
 
         $cart = $cartService->save($celebration, $validated['menu_items']);
 
+        $cartService->finalize($cart);
+
         $celebration->update(['current_step' => $validated['current_step']]);
 
         return response()->json([

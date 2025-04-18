@@ -23,7 +23,7 @@ class ChildResource extends JsonResource
             'family_id'  => $this->family_id,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
-            'avatar'     => $this->getFirstMediaUrl('avatars'),
+            'avatar'     => $this->getFirstMediaUrl('child_avatars'),
         ];
     }
 }
