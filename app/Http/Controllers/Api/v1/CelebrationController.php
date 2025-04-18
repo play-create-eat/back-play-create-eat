@@ -14,6 +14,7 @@ use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Log;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileDoesNotExist;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileIsTooBig;
 use Symfony\Component\HttpFoundation\Response;
@@ -184,7 +185,9 @@ class CelebrationController extends Controller
             ]);
 
             $packagePrice = Carbon::parse($celebration->celebration_date)->isWeekday() ? $celebration->package->weekday_price : $celebration->package->weekend_price;
+            Log::info("Package Price: $packagePrice");
             $price = $celebration->total_amount + ($packagePrice * 100) * $celebration->children_count;
+            Log::info("Package Price * children count: $price");
 
             $celebration->update([
                 'celebration_date' => $validated['datetime'],
@@ -232,6 +235,11 @@ class CelebrationController extends Controller
             'current_step' => $validated['current_step'],
             'total_amount' => $celebration->total_amount + $validated['cake_weight'] * $cakePrice,
         ]);
+        $celebration->refresh();
+
+        Log::info("Cake Price: $cakePrice");
+        Log::info("Added Price to celebration: " . $validated['cake_weight'] * $cakePrice);
+        Log::info("Total Amount: " . $celebration->total_amount);
 
         return response()->json($celebration);
     }
@@ -326,10 +334,15 @@ class CelebrationController extends Controller
         $feature = CelebrationFeature::where('slug', 'photographer')->first();
         $celebration->features()->attach($feature->id);
 
+        Log::info("Photographer Price: " . $feature->price);
+
         $celebration->update([
             'total_amount' => $celebration->total_amount + $feature->price * 100,
             'current_step' => $validated['current_step']
         ]);
+
+        $celebration->refresh();
+        Log::info("Current celebration amount: " . $celebration->total_amount);
 
         return response()->json($celebration);
     }
@@ -345,10 +358,15 @@ class CelebrationController extends Controller
         $feature = CelebrationFeature::where('slug', 'photo-album')->first();
         $celebration->features()->attach($feature->id);
 
+        Log::info("Photographer Price: " . $feature->price);
+
         $celebration->update([
             'total_amount' => $celebration->total_amount + $feature->price * 100,
             'current_step' => $validated['current_step']
         ]);
+
+        $celebration->refresh();
+        Log::info("Current celebration amount: " . $celebration->total_amount);
 
         return response()->json($celebration);
     }
