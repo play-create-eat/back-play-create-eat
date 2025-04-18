@@ -3,6 +3,9 @@
 namespace App\Services;
 
 use App\Exceptions\InvalidPassActivationDateException;
+use chillerlan\QRCode\Output\QROutputInterface;
+use chillerlan\QRCode\QRCode;
+use chillerlan\QRCode\QROptions;
 use DateTime;
 use App\Exceptions\InsufficientCashbackBalanceException;
 use App\Models\Child;
@@ -24,6 +27,9 @@ use Carbon\Carbon;
 use Carbon\CarbonInterval;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Intervention\Image\Laravel\Facades\Image;
 
 class PassService
 {
@@ -43,7 +49,8 @@ class PassService
         Product  $product,
         bool     $isFree = false,
         int      $loyaltyPointAmount = 0,
-        DateTime $activationDate = null
+        DateTime $activationDate = null,
+        array    $meta = []
     ): Pass
     {
         $user->loadMissing('family');
@@ -59,7 +66,7 @@ class PassService
             )
         );
 
-        return DB::transaction(function () use ($user, $child, $product, $activationDate, $isFree, $loyaltyPointAmount) {
+        return DB::transaction(function () use ($user, $child, $product, $activationDate, $isFree, $loyaltyPointAmount, $meta) {
             if ($isFree) {
                 $transfer = $user->family->payFree($product);
             } else {
@@ -68,6 +75,7 @@ class PassService
                     product: $product,
                     date: $activationDate,
                     loyaltyPointAmount: $loyaltyPointAmount,
+                    meta: $meta
                 );
             }
 
@@ -153,6 +161,79 @@ class PassService
         return $features->has($productType->id);
     }
 
+    public function generateQRCode(string $serial, bool $force = false): void
+    {
+        $disk = Storage::disk('local');
+        $qrImagePath = "passes/{$serial}/qr.png";
+        $braceletPdfPath = "passes/{$serial}/bracelet.pdf";
+
+        if (!$force && $disk->exists($braceletPdfPath)) {
+            return;
+        }
+
+        # Calculate QR code size in pixels (22mm at 300 DPI)
+        # 22mm * 300DPI / 25.4mm = 260 pixels
+        $size_pixels = round(22 * 300 / 25.4);
+
+        $options = new QROptions();
+        $options->quietzoneSize = 4;
+        $options->scale = 10;
+        $options->returnResource = true;
+        $options->outputType = QROutputInterface::IMAGICK;
+        $options->quality = 90;
+
+        $render = (new QRCode($options))->render($serial);
+        $render->scaleImage($size_pixels, $size_pixels, true);
+        $render->setImageFormat('png32');
+
+        $imageContent = $render->getImageBlob();
+
+        $qr = Image::read($imageContent)
+            ->encodeByMediaType(\Intervention\Image\MediaType::IMAGE_PNG)
+            ->toDataUri();
+
+        $logoLong = Image::read(storage_path('app/public/logos/logo-long.png'))
+            ->rotate(-90)
+            ->encodeByMediaType(\Intervention\Image\MediaType::IMAGE_PNG)
+            ->toDataUri();
+
+        $logo = Image::read(storage_path('app/public/logos/logo.png'))
+            ->rotate(-90)
+            ->encodeByMediaType(\Intervention\Image\MediaType::IMAGE_PNG)
+            ->toDataUri();
+
+        $pdf = Pdf::loadView('pdf.pass-bracelet', [
+            'qr' => $qr,
+            'logoLong' => $logoLong,
+            'logo' => $logo,
+        ])->setPaper([0, 0, $this->mm2pt(25.4), $this->mm2pt(254)], 'portrait');
+
+        $disk->put($qrImagePath, $imageContent);
+        $pdf->save($braceletPdfPath, 'local');
+    }
+
+    public function getBraceletPdfPath(string $serial, bool $force = false): string
+    {
+        $disk = Storage::disk('local');
+        $filePath = "passes/{$serial}/bracelet.pdf";
+        $this->generateQRCode($serial, $force);
+
+        abort_unless($disk->exists($filePath), 404);
+
+        return $disk->path($filePath);
+    }
+
+    public function getQRImagePath(string $serial, bool $force = false): string
+    {
+        $disk = Storage::disk('local');
+        $filePath = "passes/{$serial}/qr.png";
+        $this->generateQRCode($serial, $force);
+
+        abort_unless($disk->exists($filePath), 404);
+
+        return $disk->path($filePath);
+    }
+
     /**
      * @param Pass $pass
      * @param int $productTypeId
@@ -222,7 +303,13 @@ class PassService
      * @throws \Bavix\Wallet\Internal\Exceptions\ExceptionInterface
      * @throws \Throwable
      */
-    protected function payWithLoyaltyPoints(User $user, Product $product, Carbon $date = null, int $loyaltyPointAmount = 0): Transfer
+    protected function payWithLoyaltyPoints(
+        User    $user,
+        Product $product,
+        Carbon  $date = null,
+        int     $loyaltyPointAmount = 0,
+        array   $meta = []
+    ): Transfer
     {
         $family = $user->loadMissing('family')->family;
         $productPrice = $product->getFinalPrice($date);
@@ -242,6 +329,7 @@ class PassService
             $loyaltyWallet->withdraw(
                 amount: $loyaltyPointAmount,
                 meta: [
+                    ...$meta,
                     'description' => 'Loyalty points redeemed successfully for product discount.',
                     'product_id' => $product->id,
                     'product_name' => $product->name,
@@ -255,13 +343,19 @@ class PassService
         $cart = app(Cart::class)
             ->withItem($product, pricePerItem: $productPrice)
             ->withMeta([
+                ...$meta,
                 'loyalty_points_used' => $loyaltyPointAmount,
-                'discount_percent'    => $product->discount_percent,
-                'fee_percent'         => $product->fee_percent,
+                'discount_percent' => $product->discount_percent,
+                'fee_percent' => $product->fee_percent,
             ]);
 
         list($transfer) = array_values($family->payCart($cart));
 
         return $transfer;
+    }
+
+    private function mm2pt(float $mm): float
+    {
+        return $mm * 72 / 25.4;
     }
 }
