@@ -58,7 +58,7 @@ class CartService
         $total = 0;
 
         $order = $celebration->order()->create([
-            'total_price' => 0,
+            'total_amount' => 0,
         ]);
 
         foreach ($cart->items as $item) {
@@ -83,7 +83,7 @@ class CartService
         }
 
         $order->update([
-            'total_price' => $total,
+            'total_amount' => $total,
         ]);
 
         Log::info('Menu total price is: ' . $total);

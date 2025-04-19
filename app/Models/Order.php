@@ -12,7 +12,7 @@ class Order extends Model
     use SoftDeletes;
 
 
-    protected $fillable = ['order_id', 'total_amount', 'deleted_at'];
+    protected $fillable = ['celebration_id', 'total_amount', 'deleted_at'];
 
     public function celebration(): BelongsTo
     {
