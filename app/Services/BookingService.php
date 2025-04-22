@@ -203,6 +203,23 @@ class BookingService
     {
         Log::info('Creating booking', $data);
 
+        $existingBookings = Booking::where('celebration_id', $data['celebration_id'])
+            ->where('status', '!=', 'cancelled')
+            ->get();
+
+        if ($existingBookings->isNotEmpty()) {
+            Log::info('Found existing bookings for this celebration', [
+                'celebration_id' => $data['celebration_id'],
+                'count' => $existingBookings->count()
+            ]);
+
+            foreach ($existingBookings as $existingBooking) {
+                Log::info('Cancelling existing booking', ['booking_id' => $existingBooking->id]);
+                $existingBooking->status = 'cancelled';
+                $existingBooking->save();
+            }
+        }
+
         $package = Package::findOrFail($data['package_id']);
 
         $startTime = Carbon::parse($data['start_time']);

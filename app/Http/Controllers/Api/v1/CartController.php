@@ -24,12 +24,11 @@ class CartController extends Controller
 
         $cart = $cartService->save($celebration, $validated['menu_items']);
 
-        $cartService->finalize($cart);
-
         $celebration->update(['current_step' => $validated['current_step']]);
 
         return response()->json([
             'message' => 'Cart updated successfully.',
+            'total_price' => $cart->total_price,
             'menu'    => $cart->items->groupBy('audience')->map(function ($items) {
                 return $items->map(function ($item) {
                     return [
@@ -69,7 +68,6 @@ class CartController extends Controller
     {
         $cart = $celebration->cart()->with([
             'items.menuItem.tags',
-            'items.menuItem.modifierGroups.options',
             'items.modifiers.modifierOption'
         ])->first();
 
