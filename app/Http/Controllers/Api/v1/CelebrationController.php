@@ -36,10 +36,9 @@ class CelebrationController extends Controller
             'cake',
             'theme',
             'features',
-            'order.items.menuItem.tags',
-            'order.items.menuItem.type',
-            'order.items.menuItem.modifierGroups.options',
-            'order.items.modifiers.modifierOption',
+            'cart.items.menuItem.tags',
+            'cart.items.menuItem.type',
+            'cart.items.modifiers.modifierOption',
             'invitation',
             'slideshow',
         ])->where('family_id', auth()->guard('sanctum')->user()->family->id);
@@ -63,10 +62,9 @@ class CelebrationController extends Controller
             'cake',
             'theme',
             'features',
-            'order.items.menuItem.tags',
-            'order.items.menuItem.type',
-            'order.items.menuItem.modifierGroups.options',
-            'order.items.modifiers.modifierOption',
+            'cart.items.menuItem.tags',
+            'cart.items.menuItem.type',
+            'cart.items.menuItem.modifierGroups.options',
             'invitation',
             'slideshow',
 
@@ -338,7 +336,7 @@ class CelebrationController extends Controller
         $feature = CelebrationFeature::where('slug', 'photographer')->first();
         $celebration->features()->attach($feature->id);
 
-        Log::info("Photographer Price: " . $feature->price);
+        Log::info("Photographer price: " . $feature->price);
 
         $celebration->update([
             'total_amount' => $celebration->total_amount + $feature->price * 100,
@@ -362,7 +360,7 @@ class CelebrationController extends Controller
         $feature = CelebrationFeature::where('slug', 'photo-album')->first();
         $celebration->features()->attach($feature->id);
 
-        Log::info("Photographer Price: " . $feature->price);
+        Log::info("Photo album price: " . $feature->price);
 
         $celebration->update([
             'total_amount' => $celebration->total_amount + $feature->price * 100,

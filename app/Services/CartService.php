@@ -48,7 +48,7 @@ class CartService
             }
         }
 
-        return $cart->load('items.menuItem.modifierGroups.options', 'items.modifiers.modifierOption');
+        return $cart->load('items.modifiers.modifierOption');
     }
 
     public function finalize(Cart $cart): void
@@ -76,8 +76,8 @@ class CartService
             }
 
             if ($item->audience === 'parents') {
-                $itemBase = ($item->menuItem->price * 100) * $item->quantity;
-                $itemMods = $item->modifiers->sum(fn($m) => $m->modifierOption->price * 100) * $item->quantity;
+                $itemBase = $item->menuItem->cents_price * $item->quantity;
+                $itemMods = $item->modifiers->sum(fn($m) => $m->modifierOption->cents_price) * $item->quantity;
                 $total += $itemBase + $itemMods;
             }
         }
