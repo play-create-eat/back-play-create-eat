@@ -334,12 +334,18 @@ class CelebrationController extends Controller
         ]);
 
         $feature = CelebrationFeature::where('slug', 'photographer')->first();
+
+        if ($celebration->features->contains($feature->id)) {
+            return response()->json(['message' => 'Feature already added.'], 400);
+        }
+
         $celebration->features()->attach($feature->id);
 
         Log::info("Photographer price: " . $feature->price);
 
         $celebration->update([
             'total_amount' => $celebration->total_amount + $feature->price * 100,
+            'photographer' => $validated['photographer'],
             'current_step' => $validated['current_step']
         ]);
 
@@ -358,12 +364,18 @@ class CelebrationController extends Controller
 
 
         $feature = CelebrationFeature::where('slug', 'photo-album')->first();
+
+        if ($celebration->features->contains($feature->id)) {
+            return response()->json(['message' => 'Feature already added.'], 400);
+        }
+
         $celebration->features()->attach($feature->id);
 
         Log::info("Photo album price: " . $feature->price);
 
         $celebration->update([
             'total_amount' => $celebration->total_amount + $feature->price * 100,
+            'photo_album'  => $validated['photo_album'],
             'current_step' => $validated['current_step']
         ]);
 
