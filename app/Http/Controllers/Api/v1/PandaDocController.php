@@ -62,7 +62,7 @@ class PandaDocController extends Controller
         $recipientData = [
             "FULL_NAME"            => ["value" => $partialRegistration->first_name . ' ' . $partialRegistration->last_name],
             "PHONE_NUMBER"         => ["value" => $partialRegistration->phone_number],
-            "EMAIL_ADDRESS"        => ["value" => "tech@playcreateeat.ae"],
+            "EMAIL_ADDRESS"        => ["value" => $partialRegistration->email],
             "EMAIL_ADDRESS_CUSTOM" => ["value" => $partialRegistration->email],
             "UAE_RESIDENT"         => ["value" => $partialRegistration->id_type === IdTypeEnum::EMIRATES ? "yes" : "no"],
             "DOCUMENT_NUMBER"      => ["value" => $partialRegistration->id_number],
@@ -169,7 +169,7 @@ class PandaDocController extends Controller
         $partialRegistration = PartialRegistration::where('id', $registrationId)->first();
 
         if (!$partialRegistration) {
-            return response()->json(['error' => 'Partial registration not found'], 404);
+            return response()->json(['error' => 'Partial registration not found']);
         }
 
         $partialRegistration->update([
