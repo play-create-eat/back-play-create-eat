@@ -42,6 +42,9 @@ class Cart extends Model
                 }
                 return $total;
             },
+            set: function ($value) {
+                return [];
+            }
         );
     }
 
