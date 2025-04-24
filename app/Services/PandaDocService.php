@@ -114,10 +114,10 @@ class PandaDocService
      * @throws ApiException
      * @throws Exception
      */
-    public function generateDocumentLink($documentId): JsonResponse
+    public function generateDocumentLink($documentId, $recipientData): JsonResponse
     {
         $linkRequest = new DocumentCreateLinkRequest();
-        $linkRequest->setRecipient('tech@playcreateeat.ae');
+        $linkRequest->setRecipient($recipientData['EMAIL_ADDRESS']['value']);
 
         try {
             $response = $this->documentsApi->createDocumentLink($documentId, $linkRequest);

@@ -93,7 +93,7 @@ class PandaDocController extends Controller
 
                 if ($this->pandadoc->checkDocumentStatus($document->getId())) {
                     $this->pandadoc->sendDocument($document->getId());
-                    $response = $this->pandadoc->generateDocumentLink($document->getId());
+                    $response = $this->pandadoc->generateDocumentLink($document->getId(), $recipientData);
                     $signingResponse = json_decode($response->getContent(), true);
 
                     return response()->json([...$signingResponse, 'document_id' => $document->getId()]);
