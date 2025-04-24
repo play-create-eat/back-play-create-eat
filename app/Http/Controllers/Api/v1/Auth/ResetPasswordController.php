@@ -54,7 +54,7 @@ class ResetPasswordController extends Controller
 
         $otpCode = $otpService->generate($user, TypeEnum::PHONE, PurposeEnum::FORGOT_PASSWORD, $request->input('phone_number'));
 //        if ($request->input('phone_number') === '+37368411195') {
-            $otpService->send($otpCode, $twilloService);
+//            $otpService->send($otpCode, $twilloService);
 //        }
 
         return response()->json(['message' => 'OTP send successfully.']);
