@@ -12,6 +12,7 @@ use App\Models\Family;
 use App\Models\Invitation;
 use App\Models\PartialRegistration;
 use App\Models\User;
+use App\Rules\EmiratesIdNumber;
 use App\Services\OtpService;
 use App\Services\TwilloService;
 use Exception;
@@ -63,7 +64,7 @@ class RegisteredUserController extends Controller
             'first_name' => ['required', 'string', 'max:255'],
             'last_name'  => ['required', 'string', 'max:255'],
             'id_type'    => ['required', new Enum(IdTypeEnum::class)],
-            'id_number'  => ['digits:15', 'starts_with:784'],
+            'id_number'  => ['nullable', new EmiratesIdNumber($request->id_type)],
         ]);
 
         $family = Family::create([
