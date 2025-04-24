@@ -3,19 +3,13 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ModifierGroupResource\Pages;
-use App\Filament\Resources\ModifierGroupResource\RelationManagers;
 use App\Models\ModifierGroup;
-use Filament\Forms;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ModifierGroupResource extends Resource
 {
@@ -40,19 +34,6 @@ class ModifierGroupResource extends Resource
                     ->default(1)
                     ->required()
                     ->label('Maximum Amount'),
-                Repeater::make('options')
-                    ->relationship('options')
-                    ->schema([
-                        TextInput::make('name')
-                            ->required()
-                            ->label('Option Name'),
-                        TextInput::make('price')
-                            ->numeric()
-                            ->required()
-                            ->label('Option Price'),
-                    ])
-                    ->minItems(1)
-                    ->addActionLabel('Add Option'),
             ]);
     }
 
@@ -65,7 +46,6 @@ class ModifierGroupResource extends Resource
                 TextColumn::make('max_amount')->sortable()->searchable()->label('Maximum Amount'),
             ])
             ->filters([
-                //
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -87,9 +67,9 @@ class ModifierGroupResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListModifierGroups::route('/'),
+            'index'  => Pages\ListModifierGroups::route('/'),
             'create' => Pages\CreateModifierGroup::route('/create'),
-            'edit' => Pages\EditModifierGroup::route('/{record}/edit'),
+            'edit'   => Pages\EditModifierGroup::route('/{record}/edit'),
         ];
     }
 }
