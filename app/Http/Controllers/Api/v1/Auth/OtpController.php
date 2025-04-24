@@ -119,7 +119,7 @@ class OtpController extends Controller
         }
 
         $otp = $otpService->generate(null, TypeEnum::PHONE, PurposeEnum::REGISTER, $request->input('identifier'));
-        $otpService->send($otp, $twilloService);
+//        $otpService->send($otp, $twilloService);
 
         return response()->json(['message' => 'OTP code sent successfully.']);
     }
