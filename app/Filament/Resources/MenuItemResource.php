@@ -38,6 +38,11 @@ class MenuItemResource extends Resource
                     ->required()
                     ->label('Category'),
                 Textarea::make('description')->nullable(),
+                Select::make('modifierGroups')
+                    ->relationship('modifierGroups', 'title')
+                    ->multiple()
+                    ->preload()
+                    ->label('Modifier Groups'),
                 SpatieMediaLibraryFileUpload::make('menu_item_images')
                     ->collection('menu_item_images')
                     ->image()
@@ -79,7 +84,7 @@ class MenuItemResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\ModifierGroupsRelationManager::class,
         ];
     }
 
