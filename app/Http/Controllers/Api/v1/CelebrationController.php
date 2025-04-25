@@ -334,17 +334,21 @@ class CelebrationController extends Controller
         ]);
 
         $feature = CelebrationFeature::where('slug', 'photographer')->first();
+        $hasFeature = $celebration->features->contains($feature->id);
+        $priceChange = 0;
 
-        if ($celebration->features->contains($feature->id)) {
-            return response()->json(['message' => 'Feature already added.'], 400);
+        if ($validated['photographer'] && !$hasFeature) {
+            $celebration->features()->attach($feature->id);
+            $priceChange = $feature->cents_price;
+            Log::info("Adding photographer feature, price: " . $feature->price);
+        } elseif (!$validated['photographer'] && $hasFeature) {
+            $celebration->features()->detach($feature->id);
+            $priceChange = -$feature->cents_price;
+            Log::info("Removing photographer feature, price: " . $feature->price);
         }
 
-        $celebration->features()->attach($feature->id);
-
-        Log::info("Photographer price: " . $feature->price);
-
         $celebration->update([
-            'total_amount' => $celebration->total_amount + $feature->price * 100,
+            'total_amount' => $celebration->total_amount + $priceChange,
             'photographer' => $validated['photographer'],
             'current_step' => $validated['current_step']
         ]);
@@ -358,24 +362,27 @@ class CelebrationController extends Controller
     public function album(Request $request, Celebration $celebration)
     {
         $validated = $request->validate([
-            'photo_album'  => 'required|boolean',
+            'photo_album' => 'required|boolean',
             'current_step' => 'required|integer'
         ]);
 
-
         $feature = CelebrationFeature::where('slug', 'photo-album')->first();
+        $hasFeature = $celebration->features->contains($feature->id);
+        $priceChange = 0;
 
-        if ($celebration->features->contains($feature->id)) {
-            return response()->json(['message' => 'Feature already added.'], 400);
+        if ($validated['photo_album'] && !$hasFeature) {
+            $celebration->features()->attach($feature->id);
+            $priceChange = $feature->cents_price;
+            Log::info("Adding photo album feature, price: " . $feature->price);
+        } elseif (!$validated['photo_album'] && $hasFeature) {
+            $celebration->features()->detach($feature->id);
+            $priceChange = -$feature->cents_price;
+            Log::info("Removing photo album feature, price: " . $feature->price);
         }
 
-        $celebration->features()->attach($feature->id);
-
-        Log::info("Photo album price: " . $feature->price);
-
         $celebration->update([
-            'total_amount' => $celebration->total_amount + $feature->price * 100,
-            'photo_album'  => $validated['photo_album'],
+            'total_amount' => $celebration->total_amount + $priceChange,
+            'photo_album' => $validated['photo_album'],
             'current_step' => $validated['current_step']
         ]);
 
