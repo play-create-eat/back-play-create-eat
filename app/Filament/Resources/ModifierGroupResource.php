@@ -4,7 +4,9 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ModifierGroupResource\Pages;
 use App\Models\ModifierGroup;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -34,6 +36,11 @@ class ModifierGroupResource extends Resource
                     ->default(1)
                     ->required()
                     ->label('Maximum Amount'),
+                Select::make('menuItem')
+                    ->relationship('menuItem', 'name')
+                    ->multiple()
+                    ->preload(),
+
             ]);
     }
 
