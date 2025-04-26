@@ -15,6 +15,7 @@ use PandaDoc\Client\Model\DocumentSendRequest;
 use PandaDoc\Client\Model\DocumentSendResponse;
 use PandaDoc\Client\Model\RecipientRedirect;
 
+
 class PandaDocService
 {
     protected DocumentsApi $documentsApi;
