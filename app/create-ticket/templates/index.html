@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Printer</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-6">
+            <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">QR Code Printer</h1>
+            
+            <form id="printForm" class="space-y-6">
+                <div>
+                    <label for="qr_data" class="block text-sm font-medium text-gray-700">Enter ID</label>
+                    <input type="text" id="qr_data" name="qr_data" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                           placeholder="Enter ID for QR code">
+                </div>
+                
+                <div class="flex justify-center">
+                    <button type="submit"
+                            class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        Generate & Print
+                    </button>
+                </div>
+            </form>
+            
+            <div id="status" class="mt-4 text-center hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('printForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const qr_data = document.getElementById('qr_data').value;
+            const statusDiv = document.getElementById('status');
+            
+            try {
+                const response = await fetch('/print', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ qr_data })
+                });
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to generate PDF');
+                }
+                
+                // Convert base64 to blob
+                const pdfBlob = base64ToBlob(data.pdf, 'application/pdf');
+                const url = window.URL.createObjectURL(pdfBlob);
+                
+                // Create a hidden iframe
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+                
+                // Load the PDF in the iframe
+                iframe.src = url;
+                
+                // Wait for the iframe to load before printing
+                iframe.onload = function() {
+                    try {
+                        // Add event listener for when print dialog is closed
+                        window.addEventListener('afterprint', function cleanup() {
+                            // Remove the event listener
+                            window.removeEventListener('afterprint', cleanup);
+                            // Clean up the iframe and URL
+                            document.body.removeChild(iframe);
+                            window.URL.revokeObjectURL(url);
+                            // Show success message
+                            statusDiv.classList.remove('hidden');
+                            statusDiv.innerHTML = '<p class="text-green-600">Print completed successfully!</p>';
+                        });
+                        
+                        // Trigger print dialog
+                        iframe.contentWindow.print();
+                    } catch (error) {
+                        console.error('Print error:', error);
+                        statusDiv.innerHTML = '<p class="text-red-600">Failed to open print dialog. Please try printing manually.</p>';
+                    }
+                };
+                
+                // Show initial success message
+                statusDiv.classList.remove('hidden');
+                statusDiv.innerHTML = '<p class="text-green-600">PDF generated successfully! Opening print dialog...</p>';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                statusDiv.classList.remove('hidden');
+                statusDiv.innerHTML = '<p class="text-red-600">An error occurred while generating the PDF.</p>';
+            }
+        });
+
+        // Helper function to convert base64 to blob
+        function base64ToBlob(base64, type = 'application/pdf') {
+            const byteString = atob(base64);
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            
+            for (let i = 0; i < byteString.length; i++) {
+                ia[i] = byteString.charCodeAt(i);
+            }
+            
+            return new Blob([ab], { type: type });
+        }
+    </script>
+</body>
+</html> 
