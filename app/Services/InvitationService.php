@@ -25,11 +25,20 @@ class InvitationService
 
         $img = Image::read($templateContent);
 
-        $fontPath = public_path('fonts/TT_Fors/TT_Fors_Black.ttf');
+        $fontPath = public_path('fonts/TT_Fors/TT_Fors_DemiBold.ttf');
         $fontColor = $template->text_color;
 
-        $childName = strtoupper($celebration->child->first_name . "'S");
-        $img->text($childName, $img->width() / 2, $img->height() * 0.32, function ($font) use ($fontPath, $fontColor) {
+        $welcome = "You are invited to";
+        $img->text($welcome, $img->width() / 2, $img->height() * 0.205, function ($font) use ($fontPath, $fontColor) {
+            $font->file(public_path('fonts/TT_Fors/TT_Fors_Regular.ttf'));
+            $font->size(14);
+            $font->color($fontColor);
+            $font->align('center');
+            $font->valign('middle');
+        });
+
+        $childName = $celebration->child->first_name . "'s";
+        $img->text($childName, $img->width() / 2, $img->height() * 0.34, function ($font) use ($fontPath, $fontColor) {
             $font->file($fontPath);
             $font->size(30);
             $font->color($fontColor);
@@ -37,8 +46,8 @@ class InvitationService
             $font->valign('middle');
         });
 
-        $eventTitle = strtoupper("Birthday");
-        $img->text($eventTitle, $img->width() / 2, $img->height() * 0.43, function ($font) use ($fontPath, $fontColor) {
+        $eventTitle ="Birthday";
+        $img->text($eventTitle, $img->width() / 2, $img->height() * 0.44, function ($font) use ($fontPath, $fontColor) {
             $font->file($fontPath);
             $font->size(30);
             $font->color($fontColor);
@@ -46,8 +55,8 @@ class InvitationService
             $font->valign('middle');
         });
 
-        $eventTitle = strtoupper("Party");
-        $img->text($eventTitle, $img->width() / 2, $img->height() * 0.52, function ($font) use ($fontPath, $fontColor) {
+        $eventTitle = "Party";
+        $img->text($eventTitle, $img->width() / 2, $img->height() * 0.54, function ($font) use ($fontPath, $fontColor) {
             $font->file($fontPath);
             $font->size(30);
             $font->color($fontColor);
