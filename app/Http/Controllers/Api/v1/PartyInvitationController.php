@@ -28,6 +28,7 @@ class PartyInvitationController extends Controller
             return response()->json([
                 'invitation_url' => $invitationUrl,
             ]);
+
         } catch (Exception $exception) {
             return response()->json($exception->getMessage(), 500);
         }
