@@ -28,6 +28,8 @@ class FamilyPassResource extends JsonResource
 
                 $loyalty_points = (int)($transfer->deposit->meta['loyalty_points_used'] ?? 0);
                 $discount = (float)($transfer->deposit->meta['discount_percent'] ?? .0);
+                $cashbackPercent = (float)($transfer->deposit->meta['cashback_percent'] ?? .0);
+                $cashbackAmount = (int)($transfer->deposit->meta['cashback_amount'] ?? .0);
                 $fee = (float)($transfer->deposit->meta['discount_percent'] ?? .0);
 
                 $meta = $transfer->deposit ? [
@@ -38,6 +40,8 @@ class FamilyPassResource extends JsonResource
                 return [
                     ...$meta,
                     'discount_percent'  => $discount,
+                    'cashback_percent'  => $cashbackPercent,
+                    'cashback_amount'   => $cashbackAmount,
                     'fee_percent'       => $fee,
                     'loyalty_points'    => $loyalty_points,
                     'status'            => $transfer->status,

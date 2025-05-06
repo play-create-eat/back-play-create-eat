@@ -103,6 +103,16 @@ class ProductResource extends Resource
                                     ->step(0.1)
                                     ->default(0),
                             ]),
+                        Section::make('Rewarding')
+                            ->schema([
+                                TextInput::make('cashback_percent')
+                                    ->numeric()
+                                    ->prefix('%')
+                                    ->minValue(0)
+                                    ->maxValue(100)
+                                    ->step(0.1)
+                                    ->default(0),
+                            ]),
                         Section::make('Status')
                             ->schema([
                                 Toggle::make('is_available')
@@ -144,8 +154,11 @@ class ProductResource extends Resource
                             );
                         }
                     )
-                    ->sortable()
-                ,
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('cashback_percent')
+                    ->label('Cashback')
+                    ->fontFamily(FontFamily::Mono)
+                    ->prefix('%'),
                 Tables\Columns\TextColumn::make('discount_percent')
                     ->label('Discount')
                     ->fontFamily(FontFamily::Mono)
