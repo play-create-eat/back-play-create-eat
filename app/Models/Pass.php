@@ -59,6 +59,31 @@ class Pass extends Model
         return $this->belongsTo(Transfer::class);
     }
 
+    public function scopeAvailable($query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query
+            ->where('expires_at', '>=', now())
+            ->where('remaining_time', '>', 0);
+    }
+
+    public function scopeExpired($query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query
+            ->where('expires_at', '<', now())
+            ->orWhere('remaining_time', '<=', 0);
+    }
+
+    public function scopeActive($query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query
+            ->whereNotNull('entered_at')
+            ->whereDate('entered_at', Carbon::today())
+            ->where(fn ($q) =>
+                $q->whereNull('exited_at')
+                    ->orWhereColumn('entered_at', '>', 'exited_at')
+            );
+    }
+
     public function isExpired(): bool
     {
         return $this->expires_at->lte(Carbon::now()) || $this->remaining_time <= 0;
