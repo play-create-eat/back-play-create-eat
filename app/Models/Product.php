@@ -19,6 +19,7 @@ use Bavix\Wallet\Interfaces\ProductLimitedInterface;
  * @property int $price
  * @property ?int $price_weekend
  * @property double $discount_percent
+ * @property double $cashback_percent
  * @property double $fee_percent
  * @property bool $is_extendable
  * @property bool $is_available
@@ -42,6 +43,7 @@ class Product extends Model implements ProductLimitedInterface
         'price',
         'price_weekend',
         'discount_percent',
+        'cashback_percent',
         'fee_percent',
         'is_extendable',
         'is_available',
@@ -65,6 +67,7 @@ class Product extends Model implements ProductLimitedInterface
             'price'             => $this->price,
             'price_weekend'     => $this->price_weekend,
             'discount_percent'  => $this->fee_percent,
+            'cashback_percent'  => $this->cashback_percent,
             'fee_percent'       => $this->fee_percent,
             'features'          => $this->features()->pluck('name', 'id')->toArray(),
         ];
@@ -115,6 +118,7 @@ class Product extends Model implements ProductLimitedInterface
             'price'             => 'integer',
             'price_weekend'     => 'integer',
             'discount_percent'  => 'decimal:2',
+            'cashback_percent'  => 'decimal:2',
             'fee_percent'       => 'decimal:2',
             'is_extendable'     => 'boolean',
             'is_available'      => 'boolean',

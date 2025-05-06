@@ -30,6 +30,7 @@ class ProductResource extends JsonResource
             'price_base'        => $this->price,
             'price_weekend'     => $this->price_weekend,
             'discount_percent'  => (double)$this->discount_percent,
+            'cashback_percent'  => (double)$this->cashback_percent,
             'fee_percent'       => (double)$this->fee_percent,
             'is_extendable'     => $this->is_extendable,
             'features'          => ProductFeatureResource::collection($this->whenLoaded('features')),

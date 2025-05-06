@@ -23,7 +23,15 @@
             width: 24mm;
             height: 24mm;
             left: calc((25.4mm - 24mm) / 2);
-            bottom: calc(78pt + 24mm + 10mm + 150mm + 5mm);
+            bottom: calc(78pt + 24mm + 10mm + 149.71mm);
+        }
+
+        .logo-long {
+            position: absolute;
+            width: 17mm;
+            height: 150mm;
+            left: calc((25.4mm - 17mm) / 2);
+            bottom: calc(78pt + 24mm + 4.71mm);
         }
 
         .logo {
@@ -33,16 +41,6 @@
             left: calc((25.4mm - 22mm) / 2);
             bottom: 78pt;
         }
-
-        .logo-long {
-            position: absolute;
-            width: 17mm;
-            height: 150mm;
-            left: calc((25.4mm - 17mm) / 2);
-            bottom: calc(78pt + 24mm + 10mm);
-        }
-
-
     </style>
 </head>
 <body>

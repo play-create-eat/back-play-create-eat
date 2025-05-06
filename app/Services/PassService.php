@@ -192,12 +192,12 @@ class PassService
             ->encodeByMediaType(\Intervention\Image\MediaType::IMAGE_PNG)
             ->toDataUri();
 
-        $logoLong = Image::read(storage_path('app/public/logos/logo-long.png'))
+        $logoLong = Image::read(storage_path('app/public/logos/logo-long-pass.png'))
             ->rotate(-90)
             ->encodeByMediaType(\Intervention\Image\MediaType::IMAGE_PNG)
             ->toDataUri();
 
-        $logo = Image::read(storage_path('app/public/logos/logo.png'))
+        $logo = Image::read(storage_path('app/public/logos/logo-pass.png'))
             ->rotate(-90)
             ->encodeByMediaType(\Intervention\Image\MediaType::IMAGE_PNG)
             ->toDataUri();
@@ -340,16 +340,35 @@ class PassService
             $productPrice = max(0, $productPrice - $loyaltyPointAmount);
         }
 
+        $cashbackAmount = 0;
+
+        if ($productPrice > 0 && $product->cashback_percent > 0) {
+            $cashbackAmount = round($productPrice * $product->cashback_percent / 100);
+        }
+
         $cart = app(Cart::class)
             ->withItem($product, pricePerItem: $productPrice)
             ->withMeta([
                 ...$meta,
                 'loyalty_points_used' => $loyaltyPointAmount,
                 'discount_percent' => $product->discount_percent,
+                'cashback_percent' => $product->cashback_percent,
+                'cashback_amount' => $cashbackAmount,
                 'fee_percent' => $product->fee_percent,
             ]);
 
         list($transfer) = array_values($family->payCart($cart));
+
+        if ($cashbackAmount > 0) {
+            $loyaltyWallet->deposit(
+                $cashbackAmount,
+                [
+                    'name' => 'Cashback for product "' . $product->id . '" purchase ',
+                    'product_id' => $product->id,
+                    'transfer_id' => $transfer->id,
+                ]
+            );
+        }
 
         return $transfer;
     }
