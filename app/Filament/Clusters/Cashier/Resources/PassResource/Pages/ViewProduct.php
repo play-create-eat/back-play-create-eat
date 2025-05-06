@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Resources\PassResource\Pages;
+namespace App\Filament\Clusters\Cashier\Resources\PassResource\Pages;
 
-use App\Filament\Resources\PassResource;
+use App\Filament\Clusters\Cashier\Resources\PassResource;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewProduct extends ViewRecord

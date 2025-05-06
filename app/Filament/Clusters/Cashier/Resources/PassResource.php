@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Filament\Resources;
+namespace App\Filament\Clusters\Cashier\Resources;
 
-use App\Filament\Resources\PassResource\Pages;
+use App\Filament\Clusters\Cashier;
+use App\Filament\Clusters\Cashier\Resources\PassResource\Pages;
 use App\Models\Child;
 use App\Models\Pass;
 use Carbon\CarbonInterval;
@@ -14,6 +15,7 @@ use Filament\Resources\Resource;
 use Filament\Tables\Actions\Action;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Enums\ActionsPosition;
 use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -23,9 +25,9 @@ class PassResource extends Resource
 {
     protected static ?string $model = Pass::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-ticket';
+    protected static ?string $navigationIcon = 'heroicon-o-qr-code';
 
-    protected static ?string $navigationGroup = 'Product Management';
+    protected static ?string $cluster = Cashier::class;
 
     public static function form(Form $form): Form
     {
@@ -150,10 +152,11 @@ class PassResource extends Resource
             )
             ->actions([
                 Tables\Actions\Action::make('print')
-                    ->label('Print Ticket')
+                    ->label('Print')
                     ->url(fn(Pass $record) => route('filament.admin.pass.print', ['serial' => $record->serial]))
-                    ->openUrlInNewTab(),
-            ]);
+                    ->openUrlInNewTab()
+                    ->button(),
+            ], position: ActionsPosition::BeforeColumns);
     }
 
     public static function getRelations(): array

@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace App\Filament\Clusters\Cashier\Pages;
 
+use App\Filament\Clusters\Cashier;
 use App\Models\Family;
 use Bavix\Wallet\Internal\Exceptions\ExceptionInterface;
 use Bavix\Wallet\Models\Wallet;
@@ -12,15 +13,15 @@ use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 
-class TopUpWallet extends Page
+class WalletBalance extends Page
 {
     use InteractsWithForms;
 
-//    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+    protected static ?string $cluster = Cashier::class;
 
-    protected static string $view = 'filament.pages.top-up-wallet';
+    protected static string $view = 'filament.clusters.cashier.pages.wallet-balance';
 
-    protected static ?string $navigationIcon = 'heroicon-m-banknotes';
+    protected static ?string $navigationIcon = 'heroicon-o-wallet';
     protected static ?string $navigationLabel = 'Top Up Wallet';
     protected static ?string $title = 'Top Up Wallet';
 
