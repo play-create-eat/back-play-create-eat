@@ -4,8 +4,11 @@ namespace App\Models;
 
 use App\Enums\GenderEnum;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -13,11 +16,11 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property int $id
  * @property string $first_name
  * @property string $last_name
- * @property \App\Enums\GenderEnum $gender
- * @property \Carbon\Carbon $birth_date
- * @property ?\App\Models\Family $family
- * @property \Carbon\Carbon $created_at
- * @property \Carbon\Carbon $updated_at
+ * @property GenderEnum $gender
+ * @property Carbon $birth_date
+ * @property ?Family $family
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
  */
 class Child extends Model implements HasMedia
 {
@@ -54,5 +57,10 @@ class Child extends Model implements HasMedia
         return Attribute::make(
             get: fn () => "{$this->first_name} {$this->last_name}",
         );
+    }
+
+    public function celebrations(): HasMany
+    {
+        return $this->hasMany(Celebration::class);
     }
 }

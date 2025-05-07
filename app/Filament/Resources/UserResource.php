@@ -2,83 +2,61 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\FamilyResource\Pages;
-use App\Filament\Resources\FamilyResource\RelationManagers;
-use App\Models\Family;
-use Bavix\Wallet\Models\Transaction;
+use App\Filament\Resources\UserResource\Pages;
+use App\Models\User;
+use Exception;
 use Filament\Forms;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
-use Filament\Infolists\Components\Actions;
-use Filament\Infolists\Components\Actions\Action;
-use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
-class FamilyResource extends Resource
+class UserResource extends Resource
 {
-    protected static ?string $model = Family::class;
+    protected static ?string $model = User::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-home';
+    protected static ?string $navigationIcon = 'heroicon-o-users';
+
     protected static ?string $navigationGroup = 'User Management';
 
-    public static function table(Table $table): Table
-    {
-        return $table
-            ->columns([
-                Tables\Columns\TextColumn::make('id')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('name')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('stripe_customer_id')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->filters([
-            ])
-            ->actions([
-            ])
-            ->bulkActions([
-            ]);
-    }
-
-    public static function getRelations(): array
-    {
-        return [
-            RelationManagers\ChildrenRelationManager::class,
-            RelationManagers\UsersRelationManager::class,
-            RelationManagers\WalletTransactionsRelationManager::class,
-        ];
-    }
-
-    public static function getPages(): array
-    {
-        return [
-            'index' => Pages\ListFamilies::route('/'),
-            'view'  => Pages\ViewFamily::route('/{record}'),
-        ];
-    }
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Section::make()
+                Section::make('User Information')
+                    ->schema([
+                        Forms\Components\Grid::make()
+                            ->schema([
+                                Forms\Components\TextInput::make('profile.phone_number')
+                                    ->label('Phone Number')
+                                    ->tel()
+                                    ->disabled()
+                                    ->dehydrated(false)
+                                    ->afterStateHydrated(function ($component, $state, $record) {
+                                        $component->state($record->profile?->phone_number ?? '');
+                                    }),
+                                Forms\Components\TextInput::make('email')
+                                    ->email()
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->disabled(),
+                                Forms\Components\TextInput::make('full_name')
+                                    ->label('Full Name')
+                                    ->disabled()
+                                    ->dehydrated(false)
+                                    ->afterStateHydrated(function ($component, $state, $record) {
+                                        $component->state($record->full_name ?? '');
+                                    }),
+                            ])->columns(),
+                    ]),
+
+                Section::make('Family Information')
                     ->schema([
                         Forms\Components\Grid::make()
                             ->schema([
@@ -87,13 +65,13 @@ class FamilyResource extends Resource
                                     ->disabled()
                                     ->dehydrated(false)
                                     ->afterStateHydrated(function ($component, $state, $record) {
-                                        $component->state($record->name ?? 'No Family');
+                                        $component->state($record->family?->name ?? 'No Family');
                                     }),
                                 Forms\Components\TextInput::make('family.stripe_customer_id')
                                     ->disabled()
                                     ->dehydrated(false)
                                     ->afterStateHydrated(function ($component, $state, $record) {
-                                        $component->state($record->stripe_customer_id);
+                                        $component->state($record->family?->stripe_customer_id);
                                     }),
                             ])->columns(),
                         Forms\Components\Grid::make()
@@ -104,7 +82,7 @@ class FamilyResource extends Resource
                                     ->disabled()
                                     ->dehydrated(false)
                                     ->afterStateHydrated(function ($component, $state, $record) {
-                                        $component->state($record->main_wallet?->balance / 100 ?? '0.00');
+                                        $component->state($record->family?->main_wallet?->balance / 100 ?? '0.00');
                                     }),
                                 Forms\Components\TextInput::make('loyalty_wallet_balance')
                                     ->label('Loyalty Wallet')
@@ -112,7 +90,7 @@ class FamilyResource extends Resource
                                     ->disabled()
                                     ->dehydrated(false)
                                     ->afterStateHydrated(function ($component, $state, $record) {
-                                        $component->state($record->loyalty_wallet?->balance / 100 ?? '0.00');
+                                        $component->state($record->family?->loyalty_wallet?->balance / 100 ?? '0.00');
                                     }),
                                 Forms\Components\Actions::make([
                                     Forms\Components\Actions\Action::make('topUpWallet')
@@ -145,7 +123,7 @@ class FamilyResource extends Resource
                                                 ])
                                                 ->required(),
                                         ])->action(function (array $data, $record, Forms\Form $form): void {
-                                            if (!$record) {
+                                            if (!$record->family) {
                                                 Notification::make()
                                                     ->title('No Family Found')
                                                     ->body('This user does not belong to any family')
@@ -155,8 +133,8 @@ class FamilyResource extends Resource
                                             }
 
                                             $wallet = match ($data['wallet_type']) {
-                                                'loyalty' => $record->loyalty_wallet,
-                                                default => $record->main_wallet,
+                                                'loyalty' => $record->family->loyalty_wallet,
+                                                default => $record->family->main_wallet,
                                             };
 
 
@@ -165,7 +143,7 @@ class FamilyResource extends Resource
 
                                             DB::beginTransaction();
                                             try {
-                                                $wallet->deposit((float)$data['amount'] * 100, [
+                                                $wallet->deposit((float) $data['amount'] * 100, [
                                                     'description' => "Admin top up your wallet using $paymentMethod payment"
                                                 ]);
 
@@ -175,8 +153,8 @@ class FamilyResource extends Resource
                                                 $record->load('family');
 
                                                 $form->fill([
-                                                    'main_wallet_balance'    => $record->main_wallet?->balance / 100 ?? '0.00',
-                                                    'loyalty_wallet_balance' => $record->loyalty_wallet?->balance / 100 ?? '0.00',
+                                                    'main_wallet_balance' => $record->family?->main_wallet?->balance / 100 ?? '0.00',
+                                                    'loyalty_wallet_balance' => $record->family?->loyalty_wallet?->balance / 100 ?? '0.00',
                                                 ]);
 
 
@@ -194,10 +172,63 @@ class FamilyResource extends Resource
                                                     ->danger()
                                                     ->send();
                                             }
-                                        })->visible(fn($record) => $record !== null)
+                                        })->visible(fn($record) => $record->family !== null)
                                 ])->alignment('right')->verticallyAlignEnd()
                             ])->columns(3),
                     ]),
             ]);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                Tables\Columns\TextColumn::make('id')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('profile.phone_number')
+                    ->label('Phone Number')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('email')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('full_name')
+                    ->label('Full Name'),
+                Tables\Columns\TextColumn::make('family.name')
+                    ->label('Family')
+                    ->sortable()
+                    ->placeholder('No Family'),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+            ])
+            ->actions([
+            ])
+            ->bulkActions([
+            ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListUsers::route('/'),
+            'view'  => Pages\ViewUser::route('/{record}'),
+        ];
     }
 }
