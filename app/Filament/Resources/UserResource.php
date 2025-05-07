@@ -6,6 +6,7 @@ use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
 use Exception;
 use Filament\Forms;
+use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -73,10 +74,19 @@ class UserResource extends Resource
                                     ->afterStateHydrated(function ($component, $state, $record) {
                                         $component->state($record->family?->stripe_customer_id);
                                     }),
-                            ])->columns(),
+                                Forms\Components\Actions::make([
+                                    Forms\Components\Actions\Action::make('viewFamily')
+                                        ->label('View Family')
+                                        ->icon('heroicon-o-arrow-top-right-on-square')
+                                        ->button()
+                                        ->color('primary')
+                                        ->url(fn ($record) => $record->family_id ? FamilyResource::getUrl('view', ['record' => $record->family_id]) : null)
+                                        ->visible(fn ($record) => $record->family_id !== null),
+                                ])->alignment('right')->verticallyAlignEnd()
+                            ])->columns(3),
                         Forms\Components\Grid::make()
                             ->schema([
-                                Forms\Components\TextInput::make('main_wallet_balance')
+                                TextInput::make('main_wallet_balance')
                                     ->label('Main Wallet')
                                     ->prefix('$')
                                     ->disabled()
@@ -84,7 +94,7 @@ class UserResource extends Resource
                                     ->afterStateHydrated(function ($component, $state, $record) {
                                         $component->state($record->family?->main_wallet?->balance / 100 ?? '0.00');
                                     }),
-                                Forms\Components\TextInput::make('loyalty_wallet_balance')
+                                TextInput::make('loyalty_wallet_balance')
                                     ->label('Loyalty Wallet')
                                     ->prefix('$')
                                     ->disabled()
@@ -92,7 +102,7 @@ class UserResource extends Resource
                                     ->afterStateHydrated(function ($component, $state, $record) {
                                         $component->state($record->family?->loyalty_wallet?->balance / 100 ?? '0.00');
                                     }),
-                                Forms\Components\Actions::make([
+                                Actions::make([
                                     Forms\Components\Actions\Action::make('topUpWallet')
                                         ->label('Top Up Wallet')
                                         ->icon('heroicon-o-banknotes')
