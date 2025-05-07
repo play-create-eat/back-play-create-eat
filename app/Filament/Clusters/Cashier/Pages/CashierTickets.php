@@ -4,6 +4,7 @@ namespace App\Filament\Clusters\Cashier\Pages;
 
 use App\Exceptions\InsufficientBalanceException;
 use App\Filament\Clusters\Cashier;
+use App\Filament\Clusters\Cashier\Concerns\HasGlobalUserSearch;
 use App\Models\Child;
 use App\Models\Product;
 use App\Models\User;
@@ -32,6 +33,7 @@ use Livewire\Attributes\Url;
 class CashierTickets extends Page implements HasForms
 {
     use InteractsWithForms;
+    use HasGlobalUserSearch;
 
     protected static ?string $cluster = Cashier::class;
 
@@ -46,13 +48,10 @@ class CashierTickets extends Page implements HasForms
     ];
 
     public ?array $data = [
-        'user_id' => null,
-        'activation_date' => null,
         'tickets' => [],
     ];
-
+    
     public ?Collection $products = null;
-    public ?User $client = null;
 
     #[Url]
     public ?string $order = null;
@@ -61,65 +60,64 @@ class CashierTickets extends Page implements HasForms
 
     public function mount(): void
     {
+        // Make sure user selection is initialized properly
+        if (method_exists($this, 'bootHasGlobalUserSearch')) {
+            $this->bootHasGlobalUserSearch();
+        }
+        
         $this->passes = $this->order ? Cache::get("cashier.order.{$this->order}", []) : [];
-        $this->form->fill();
         $this->products = Product::available()->with(['features'])->get()->keyBy('id');
+        
+        // Initialize the form with default values
+        $this->form->fill();
+    }
+
+    // Add event listener for user selection to refresh the form
+    protected function getListeners(): array
+    {
+        return [
+            'user-selected' => 'refreshForm',
+        ];
+    }
+    
+    // Method to refresh the form after user selection
+    public function refreshForm(): void
+    {
+        // Reset the form data to start fresh
+        $this->data = [
+            'tickets' => []
+        ];
+        
+        // Force re-render the form with the current state
+        $this->form->fill();
     }
 
     public function form(Form $form): Form
     {
         return $form
             ->schema([
-                Select::make('user_id')
-                    ->label('Client')
-                    ->searchable()
-                    ->native(false)
-                    ->allowHtml()
-                    ->required()
-                    ->live()
-                    ->getSearchResultsUsing(function (string $search): array {
-                        return User::query()
-                            ->where('email', 'ILIKE', "%{$search}%")
-                            ->orWhereHas('profile', function ($q) use ($search) {
-                                $q->where('first_name', 'ILIKE', "%{$search}%")
-                                    ->orWhere('last_name', 'ILIKE', "%{$search}%")
-                                    ->orWhere('phone_number', 'ILIKE', "%{$search}%");
-                            })
-                            ->with(['profile', 'family'])
-                            ->limit(50)
-                            ->get()
-                            ->mapWithKeys(fn($user) => [
-                                $user->id => view('filament.clusters.cashier.components.user-option', ['user' => $user])->render(),
-                            ])
-                            ->toArray();
-                    })
-                    ->getOptionLabelUsing(function ($value) {
-                        $user = User::with(['profile', 'family'])->find($value);
-                        return $user ? view('filament.clusters.cashier.components.user-option', ['user' => $user])->render() : '';
-                    })
-                ,
+                $this->getUserSearchField()
+                    ->hiddenOn('edit')
+                    ->visible(fn() => !$this->selectedUser)
+                    ->columnSpanFull(),
+                
                 Repeater::make('tickets')
                     ->schema([
                         Select::make('child_id')
                             ->label('Child')
                             ->native(false)
                             ->live()
-                            ->options(function (Get $get) {
-                                $userId = $get('../../user_id');
-
-                                if (!$userId) {
+                            ->dehydrated(true)
+                            ->options(function () {
+                                if (!$this->selectedUser || !$this->selectedUser->family) {
                                     return [];
                                 }
 
-                                $user = User::with('family.children')->find($userId);
-
-                                if ($user) {
-                                    return $user->family->children
-                                        ->mapWithKeys(fn(Child $child) => [$child->id => "{$child->first_name} {$child->last_name}"])
-                                        ->toArray();
-                                }
-
-                                return [];
+                                return $this->selectedUser->family->children
+                                    ->mapWithKeys(fn(Child $child) => [
+                                        $child->id => "{$child->first_name} {$child->last_name}"
+                                    ])
+                                    ->toArray();
                             })
                             ->exists(table: Child::class, column: 'id')
                             ->required()
@@ -149,8 +147,10 @@ class CashierTickets extends Page implements HasForms
                     ->columns(2)
                     ->addActionLabel('Add ticket')
                     ->minItems(1)
-                    ->disabled(fn(Get $get): bool => blank($get('user_id')))
-                    ->reactive()
+                    ->disabled(fn() => !$this->selectedUser)
+                    ->visible(fn() => (bool)$this->selectedUser)
+                    ->live()
+                    ->columnSpanFull()
             ])
             ->statePath('data');
     }
@@ -163,18 +163,47 @@ class CashierTickets extends Page implements HasForms
             DB::beginTransaction();
 
             $tickets = $data['tickets'] ?? [];
+            
+            // Validate that tickets have been added
+            if (empty($tickets)) {
+                Notification::make()
+                    ->title('No tickets added')
+                    ->body('Please add at least one ticket to continue.')
+                    ->danger()
+                    ->send();
+                return;
+            }
+            
             $cart = app(Cart::class);
-            $client = User::with('family')->findOrFail($data['user_id']);
+            
+            if (!$this->selectedUser) {
+                throw new \Exception('No user selected');
+            }
+            
+            // Make sure user and family are properly loaded with all needed relationships
+            // Using the correct naming as per Family model
+            $client = User::with(['family.children', 'family.wallets'])->find($this->selectedUser->id);
+            
+            if (!$client || !$client->family) {
+                throw new \Exception('User has no associated family');
+            }
+            
+            // Ensure the wallets are loaded
+            if (!$client->family->relationLoaded('wallets')) {
+                $client->family->load('wallets');
+            }
 
             foreach ($tickets as $ticket) {
                 /** @var Product $product */
                 $product = $this->products->get($ticket['product_id'] ?? null);
-                $date = Carbon::parse($ticket['activation_date']);
-
-                if ($product) {
-                    $productPrice = $product->getFinalPrice($date);
-                    $cart = $cart->withItem($product, pricePerItem: $productPrice);
+                
+                if (!$product) {
+                    throw new \Exception('Invalid product selected');
                 }
+                
+                $date = Carbon::parse($ticket['activation_date']);
+                $productPrice = $product->getFinalPrice($date);
+                $cart = $cart->withItem($product, pricePerItem: $productPrice);
             }
 
             $totalPrice = $cart->getTotal($client->family);
@@ -199,11 +228,20 @@ class CashierTickets extends Page implements HasForms
                 ->keyBy('id');
 
             $passes = [];
+            $passService = app(PassService::class);
 
             foreach ($tickets as $ticket) {
-                $passes[] = app(PassService::class)->purchase(
+                $childId = $ticket['child_id'];
+                $child = $children->get($childId);
+                
+                if (!$child) {
+                    throw new \Exception("Child with ID {$childId} not found");
+                }
+                
+                // Explicitly set loyaltyPointAmount to 0 to avoid issues with loyalty wallet
+                $passes[] = $passService->purchase(
                     user: $client,
-                    child: $children->get($ticket['child_id']),
+                    child: $child,
                     product: $this->products->get($ticket['product_id']),
                     loyaltyPointAmount: 0,
                     activationDate: Carbon::parse($ticket['activation_date']),
@@ -216,19 +254,45 @@ class CashierTickets extends Page implements HasForms
 
             $this->passes = $passes;
             $this->order = $orderId;
+            $this->step = 'fulfillment';
+            
+            // Reset form after successful submission
+            $this->data = [
+                'tickets' => []
+            ];
+            
+            Notification::make()
+                ->title('Tickets purchased successfully')
+                ->success()
+                ->send();
+        } catch (InsufficientBalanceException $e) {
+            DB::rollBack();
+            Notification::make()
+                ->title('Insufficient balance')
+                ->body("The family doesn't have enough funds. Required: " . $e->getAmount() . ", Available: " . $e->getBalance())
+                ->danger()
+                ->send();
         } catch (ExceptionInterface $e) {
             DB::rollBack();
             Notification::make()
-                ->title('Failed to purchase tickets.')
+                ->title('Failed to purchase tickets')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Notification::make()
+                ->title('An error occurred')
                 ->body($e->getMessage())
                 ->danger()
                 ->send();
         }
     }
 
-    public function back()
+    public function back(): void
     {
         $this->order = null;
+        $this->passes = [];
     }
 
     protected function getProductOptions(string $activationDate = null): array
