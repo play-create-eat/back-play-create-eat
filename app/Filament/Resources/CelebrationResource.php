@@ -55,7 +55,6 @@ class CelebrationResource extends Resource
                             ->required(),
 
                         DateTimePicker::make('celebration_date')
-                            ->required()
                             ->disabled()
                             ->afterStateHydrated(function ($component, $state) {
                                 if ($state) {
