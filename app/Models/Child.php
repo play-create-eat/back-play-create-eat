@@ -3,11 +3,10 @@
 namespace App\Models;
 
 use App\Enums\GenderEnum;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -52,15 +51,19 @@ class Child extends Model implements HasMedia
             ->useDisk('s3');
     }
 
-    protected function fullName(): Attribute
-    {
-        return Attribute::make(
-            get: fn () => "{$this->first_name} {$this->last_name}",
-        );
-    }
-
     public function celebrations(): HasMany
     {
         return $this->hasMany(Celebration::class);
+    }
+
+    public function parties()
+    {
+        return $this->belongsToMany(Celebration::class, 'celebration_child')
+            ->withTimestamps();
+    }
+
+    protected function getFullNameAttribute(): string
+    {
+        return $this->first_name . ' ' . $this->last_name;
     }
 }

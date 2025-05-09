@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\CelebrationResource\Pages;
+use App\Filament\Resources\CelebrationResource\RelationManagers\InvitationsRelationManager;
 use App\Models\Celebration;
 use Carbon\Carbon;
 use Exception;
@@ -72,6 +73,12 @@ class CelebrationResource extends Resource
                             ->numeric()
                             ->minValue(1)
                             ->required(),
+
+                        Select::make('invitations')
+                            ->relationship('invitations', 'first_name')
+                            ->multiple()
+                            ->preload()
+                            ->searchable(),
 
                         TextInput::make('parents_count')
                             ->numeric()
@@ -226,6 +233,11 @@ class CelebrationResource extends Resource
                     ->searchable()
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('invitations.first_name')
+                    ->label('Invited Children')
+                    ->listWithLineBreaks()
+                    ->searchable(),
+
                 Tables\Columns\TextColumn::make('theme.name')
                     ->label('Theme')
                     ->searchable(),
@@ -294,7 +306,7 @@ class CelebrationResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            InvitationsRelationManager::class
         ];
     }
 

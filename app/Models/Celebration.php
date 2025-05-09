@@ -46,6 +46,12 @@ class Celebration extends Model
         return $this->belongsTo(Child::class);
     }
 
+    public function invitations():BelongsToMany
+    {
+        return $this->belongsToMany(Child::class, 'celebration_child')
+            ->withTimestamps();
+    }
+
     public function package(): BelongsTo
     {
         return $this->belongsTo(Package::class);
