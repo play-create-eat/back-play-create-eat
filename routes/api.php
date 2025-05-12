@@ -47,6 +47,7 @@ Route::prefix('v1')->group(function () {
 
         Route::get('product', [ProductController::class, 'index']);
         Route::post('product/purchase', [ProductController::class, 'purchase']);
+        Route::post('product/refund', [ProductController::class, 'refund']);
 
         Route::put('profile', [ProfileController::class, 'update']);
 

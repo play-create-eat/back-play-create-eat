@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Exceptions\InvalidPassActivationDateException;
+use Bavix\Wallet\Services\AtomicServiceInterface;
 use chillerlan\QRCode\Output\QROutputInterface;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
@@ -30,6 +31,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Intervention\Image\Laravel\Facades\Image;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class PassService
 {
@@ -121,8 +123,6 @@ class PassService
     }
 
     /**
-     * @TODO Work in progress
-     *
      * @param string $serial
      * @param int $minutes
      * @return Pass
@@ -236,6 +236,90 @@ class PassService
 
     /**
      * @param Pass $pass
+     * @param bool $confirmed
+     * @return bool
+     * @throws \Bavix\Wallet\Internal\Exceptions\ExceptionInterface
+     * @throws \Throwable
+     */
+    public function refund(Pass $pass, bool $confirmed = true): bool
+    {
+        $pass->loadMissing(['user.family', 'transfer.deposit.payable']);
+
+        $this->isRefundable($pass);
+
+        $family = $pass->user->family;
+        $deposit = $pass->transfer->deposit;
+
+        return DB::transaction(function () use ($confirmed, $deposit, $family, $pass) {
+            /** @var Product $product */
+            $product = $deposit->payable;
+
+            $result = $family->refund($product);
+            $meta = [
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+                'pass_id' => $pass->id,
+            ];
+
+            app(AtomicServiceInterface::class)
+                ->block($family->loyalty_wallet, function () use ($confirmed, $deposit, $family, $meta) {
+                    $loyaltyPoints = (int)($deposit->meta['loyalty_points_used'] ?? 0);
+                    $cashbackAmount = (int)($deposit->meta['cashback_amount'] ?? 0);
+
+                    if ($loyaltyPoints > 0) {
+                        $family->loyalty_wallet->deposit($loyaltyPoints,
+                            meta: array_merge($meta, [
+                                'description' => "Loyalty points returned due to refund.",
+                            ]),
+                            confirmed: $confirmed,
+                        );
+                    }
+
+                    if ($cashbackAmount > 0) {
+                        $family->loyalty_wallet->forceWithdraw($cashbackAmount,
+                            meta: array_merge($meta, [
+                                'description' => "Cashback reversed due to refund",
+                            ]),
+                            confirmed: $confirmed,
+                        );
+                    }
+                });
+
+            $pass->delete();
+
+            return $result;
+        });
+    }
+
+    /**
+     * @param Pass $pass
+     * @return bool
+     * @throws \Throwable
+     */
+    public function isRefundable(Pass $pass): bool
+    {
+        $pass->loadMissing(['transfer']);
+
+        throw_unless(
+            condition: $pass->isUnused(),
+            exception: new HttpException(409, 'Refund unavailable: this ticket has already been used.'),
+        );
+
+        throw_if(
+            condition: $pass->isExpired(),
+            exception: new HttpException(409, 'Refund unavailable: this ticket has expired.')
+        );
+
+        throw_unless(
+            condition: $pass->transfer->status === Transfer::STATUS_PAID,
+            exception: new HttpException(409, 'Refund unavailable: this ticket is not refundable.'),
+        );
+
+        return true;
+    }
+
+    /**
+     * @param Pass $pass
      * @param int $productTypeId
      * @return Pass
      * @throws \Throwable
@@ -313,10 +397,9 @@ class PassService
     {
         $family = $user->loadMissing('family')->family;
         $productPrice = $product->getFinalPrice($date);
+        $loyaltyWallet = $family->loyalty_wallet;
 
         if ($loyaltyPointAmount > 0) {
-            $loyaltyWallet = $family->loyalty_wallet;
-
             if ($loyaltyPointAmount > $productPrice) {
                 $loyaltyPointAmount = $productPrice;
             }
