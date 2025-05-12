@@ -78,14 +78,18 @@ class Pass extends Model
         return $query
             ->whereNotNull('entered_at')
             ->whereDate('entered_at', Carbon::today())
-            ->where(fn ($q) =>
-                $q->whereNull('exited_at')
-                    ->orWhereColumn('entered_at', '>', 'exited_at')
+            ->where(fn($q) => $q->whereNull('exited_at')
+                ->orWhereColumn('entered_at', '>', 'exited_at')
             );
     }
 
     public function isExpired(): bool
     {
         return $this->expires_at->lte(Carbon::now()) || $this->remaining_time <= 0;
+    }
+
+    public function isUnused(): bool
+    {
+        return $this->entered_at === null && $this->exited_at === null;
     }
 }
