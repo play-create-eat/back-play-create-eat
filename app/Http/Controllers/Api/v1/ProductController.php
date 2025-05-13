@@ -168,13 +168,6 @@ class ProductController extends Controller
      *         )
      *     ),
      *     @OA\Response(
-     *         response=409,
-     *         description="Ticket has expired.",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Refund unavailable: this ticket has expired.")
-     *         )
-     *     ),
-     *     @OA\Response(
      *         response=422,
      *         description="Validation errors",
      *         @OA\JsonContent(
