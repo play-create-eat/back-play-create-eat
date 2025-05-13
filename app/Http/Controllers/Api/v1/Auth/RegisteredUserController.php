@@ -12,8 +12,10 @@ use App\Models\Family;
 use App\Models\Invitation;
 use App\Models\PartialRegistration;
 use App\Models\User;
+use App\Rules\EmiratesIdNumber;
 use App\Services\OtpService;
 use App\Services\TwilloService;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
@@ -62,7 +64,7 @@ class RegisteredUserController extends Controller
             'first_name' => ['required', 'string', 'max:255'],
             'last_name'  => ['required', 'string', 'max:255'],
             'id_type'    => ['required', new Enum(IdTypeEnum::class)],
-            'id_number'  => ['required', 'string', 'max:255', 'unique:profiles'],
+            'id_number'  => ['nullable', new EmiratesIdNumber($request->id_type)],
         ]);
 
         $family = Family::create([
@@ -111,7 +113,7 @@ class RegisteredUserController extends Controller
      *         )
      *     )
      * )
-     * @throws \Exception
+     * @throws Exception
      */
     public function step2(Request $request, OtpService $otpService, TwilloService $twilloService)
     {
@@ -133,7 +135,7 @@ class RegisteredUserController extends Controller
 
         $otpCode = $otpService->generate(null, TypeEnum::PHONE, PurposeEnum::REGISTER, $partialRegistration->phone_number);
 //        if ($partialRegistration->phone_number === '+37368411195') {
-            $otpService->send($otpCode, $twilloService);
+//        $otpService->send($otpCode, $twilloService);
 //        }
 
         return response()->json([
@@ -200,6 +202,12 @@ class RegisteredUserController extends Controller
         ]);
 
         $partialRegistration = PartialRegistration::findOrFail($validated['registration_id']);
+
+        if (!$partialRegistration->document_signed) {
+            return response()->json([
+                'message' => 'Please sign the document before completing registration.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
 
         $user = User::create([
             'email'     => $partialRegistration->email,

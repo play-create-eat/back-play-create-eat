@@ -84,7 +84,8 @@ class InvitationController extends Controller
             return response()->json(['message' => 'User is not part of a family.'], 400);
         }
 
-        $code = rand(1000, 9999);
+//        $code = rand(1000, 9999);
+        $code = 1234;
 
         $invite = Invitation::create([
             'code'         => $code,
@@ -97,7 +98,7 @@ class InvitationController extends Controller
         ]);
 
         $message = "You’re invited to join PlayCreateEat: \nPlease use this link to join: play-create-eat://invite/$code \nOr set this code on register: $code";
-        $twilloService->sendSms($invite->phone_number, $message);
+//        $twilloService->sendSms($invite->phone_number, $message);
 
         return response()->json([
             'message' => 'Invitation sent successfully.',
@@ -111,8 +112,6 @@ class InvitationController extends Controller
             'code'       => ['required', 'exists:invitations,code'],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name'  => ['required', 'string', 'max:255'],
-            'id_type'    => ['required', new Enum(IdTypeEnum::class)],
-            'id_number'  => ['required', 'string', 'max:255', 'unique:profiles,id_number'],
         ]);
 
         $invitation = Invitation::where('code', $request->get('code'))
@@ -148,7 +147,7 @@ class InvitationController extends Controller
         ]);
 
         $otpCode = $otpService->generate(null, TypeEnum::PHONE, PurposeEnum::REGISTER, $partialRegistration->phone_number);
-        $otpService->send($otpCode, $twilloService);
+//        $otpService->send($otpCode, $twilloService);
 
         return response()->json([
             'message'         => 'Step 2 completed successfully.',
@@ -183,8 +182,6 @@ class InvitationController extends Controller
             'first_name'   => $partialRegistration->first_name,
             'last_name'    => $partialRegistration->last_name,
             'phone_number' => $partialRegistration->phone_number,
-            'id_type'      => $partialRegistration->id_type,
-            'id_number'    => $partialRegistration->id_number,
         ]);
 
         $invitation = Invitation::where('code', $request->get('code'))->firstOrFail();

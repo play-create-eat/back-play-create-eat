@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Timeline;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -28,6 +29,11 @@ class DatabaseSeeder extends Seeder
         $this->call([
             AdminSeeder::class,
             TableSeeder::class,
+            MenuSeeder::class,
+            PackageSeeder::class,
+            PackageFeatureSeeder::class,
+            TimelineSeeder::class,
+            PackageTimelineSeeder::class,
         ]);
     }
 }

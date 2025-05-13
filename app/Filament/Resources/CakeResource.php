@@ -4,12 +4,13 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CakeResource\Pages;
 use App\Models\Cake;
-use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class CakeResource extends Resource
 {
@@ -23,7 +24,16 @@ class CakeResource extends Resource
             ->schema([
                 TextInput::make('type')->required(),
                 TextInput::make('price_per_kg')->numeric()->required(),
-                FileUpload::make('images')->image()->multiple()->disk('s3'),
+                SpatieMediaLibraryFileUpload::make('images')
+                    ->collection('cake_images')
+                    ->image()
+                    ->disk('s3')
+                    ->deleteUploadedFileUsing(static function (SpatieMediaLibraryFileUpload $component, string $file) {
+                        if (!$file) return;
+
+                        $mediaClass = config('media-library.media_model', Media::class);
+                        $mediaClass::findByUuid($file)?->delete();
+                    })->columnSpan(1),
             ]);
     }
 

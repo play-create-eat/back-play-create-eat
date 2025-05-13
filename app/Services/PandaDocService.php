@@ -15,6 +15,7 @@ use PandaDoc\Client\Model\DocumentSendRequest;
 use PandaDoc\Client\Model\DocumentSendResponse;
 use PandaDoc\Client\Model\RecipientRedirect;
 
+
 class PandaDocService
 {
     protected DocumentsApi $documentsApi;
@@ -31,7 +32,7 @@ class PandaDocService
     /**
      * @throws Exception
      */
-    public function createDocumentFromTemplate($templateId, $recipientData): DocumentCreateResponse
+    public function createDocumentFromTemplate($templateId, $recipientData, object $metadata): DocumentCreateResponse
     {
         $recipient = (new DocumentCreateRequestRecipients())
             ->setEmail($recipientData['EMAIL_ADDRESS']['value'])
@@ -46,7 +47,8 @@ class PandaDocService
             ->setTemplateUuid($templateId)
             ->setRecipients([$recipient])
             ->setFields($recipientData)
-            ->setParseFormFields(true);
+            ->setParseFormFields(true)
+            ->setMetadata($metadata);
 
         try {
             return $this->documentsApi->createDocument($documentRequest);
@@ -113,10 +115,10 @@ class PandaDocService
      * @throws ApiException
      * @throws Exception
      */
-    public function generateDocumentLink($documentId): JsonResponse
+    public function generateDocumentLink($documentId, $recipientData): JsonResponse
     {
         $linkRequest = new DocumentCreateLinkRequest();
-        $linkRequest->setRecipient('tech@playcreateeat.ae');
+        $linkRequest->setRecipient($recipientData['EMAIL_ADDRESS']['value']);
 
         try {
             $response = $this->documentsApi->createDocumentLink($documentId, $linkRequest);

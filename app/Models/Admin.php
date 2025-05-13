@@ -3,30 +3,32 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
 class Admin extends Authenticatable
 {
     use Notifiable;
     use SoftDeletes;
+    use HasApiTokens;
+    use HasRoles;
 
     protected $fillable = [
+        'name',
         'email',
         'password',
         'email_verified_at',
         'remember_token',
         'deleted_at',
-        'family_id',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
         'email_verified_at',
-        'family_id',
         'deleted_at'
     ];
 

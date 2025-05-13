@@ -2,30 +2,43 @@
 
 
 use App\Http\Controllers\Api\v1\CakeController;
+use App\Http\Controllers\Api\v1\CartController;
 use App\Http\Controllers\Api\v1\CelebrationController;
 use App\Http\Controllers\Api\v1\InviteController;
 use App\Http\Controllers\Api\v1\MenuController;
 use App\Http\Controllers\Api\v1\PackageController;
+use App\Http\Controllers\Api\v1\PartyInvitationController;
+use App\Http\Controllers\Api\v1\PaymentController;
 use App\Http\Controllers\Api\v1\SlideshowImageController;
 use App\Http\Controllers\Api\v1\ThemeController;
 
 Route::prefix('celebration')
     ->controller(CelebrationController::class)
     ->group(function () {
-        Route::get('available-slots', 'availableSlots');
+        Route::get('', 'index');
         Route::post('', 'store');
 
         Route::prefix('{celebration}')->group(function () {
             Route::post('package', 'package');
+            Route::get('timelines', 'timelines');
             Route::post('guests-count', 'guestsCount');
+            Route::get('slots', 'slots');
             Route::post('slot', 'slot');
             Route::post('theme', 'theme');
             Route::post('cake', 'cake');
-            Route::post('menu', 'menu');
-            Route::post('photographer-and-photo-album', 'photographerAndAlbum');
-            Route::get('invitations', 'invitations');
+            Route::post('cart', [CartController::class, 'store']);
+            Route::get('cart', [CartController::class, 'show']);
+            Route::post('cart/finalize', [CartController::class, 'finalize']);
+            Route::post('photographer', 'photographer');
+            Route::post('album', 'album');
+            Route::post('slideshow', 'slideshow');
+            Route::delete('slideshow/{media}', [SlideshowImageController::class, 'destroy']);
+            Route::post('invitations/{template}', [PartyInvitationController::class, 'generate']);
+            Route::post('payments', [PaymentController::class, 'store']);
         });
     });
+
+Route::get('invitation-templates', [PartyInvitationController::class, 'templates']);
 
 Route::get('/themes', [ThemeController::class, 'index']);
 
@@ -51,10 +64,7 @@ Route::post('/invites', [InviteController::class, 'store']);
 Route::get('/invites/{celebration}', [InviteController::class, 'show']);
 
 // Step 9: Upload Slideshow Photos
-Route::post('/slideshow/upload', [SlideshowImageController::class, 'uploadPhotos']);
-Route::get('/slideshow/{celebration}', [SlideshowImageController::class, 'getPhotos']);
-Route::delete('/slideshow/photo', [SlideshowImageController::class, 'deletePhoto']);
-Route::get('/slideshow/generate/{celebration}', [SlideshowImageController::class, 'generateSlideshow']);
+Route::get('/slideshow/{celebration}', [SlideshowImageController::class, 'index']);
 
 // Step 10: Confirm & Proceed to Payment
 Route::post('/celebrations/confirm', [CelebrationController::class, 'confirm']);

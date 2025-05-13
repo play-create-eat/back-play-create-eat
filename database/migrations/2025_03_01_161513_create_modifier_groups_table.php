@@ -14,6 +14,7 @@ return new class extends Migration {
         Schema::create('modifier_groups', function (Blueprint $table) {
             $table->id();
             $table->foreignIdFor(MenuItem::class)
+                ->nullable()
                 ->constrained()
                 ->cascadeOnDelete();
             $table->string('title');

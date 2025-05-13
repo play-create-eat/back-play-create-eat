@@ -55,9 +55,9 @@ return new class extends Migration {
             $table->smallInteger('current_step');
             $table->boolean('completed')
                 ->default(false);
-            $table->decimal('total_amount', 5)
+            $table->decimal('total_amount')
             ->nullable();
-            $table->decimal('paid_amount', 5)
+            $table->decimal('paid_amount')
             ->nullable();
             $table->timestamps();
         });
