@@ -73,12 +73,6 @@ class CelebrationResource extends Resource
                             ->minValue(1)
                             ->required(),
 
-                        Select::make('invitations')
-                            ->relationship('invitations', 'first_name')
-                            ->multiple()
-                            ->preload()
-                            ->searchable(),
-
                         TextInput::make('parents_count')
                             ->numeric()
                             ->minValue(0)
@@ -232,11 +226,6 @@ class CelebrationResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('invitations.first_name')
-                    ->label('Invited Children')
-                    ->listWithLineBreaks()
-                    ->searchable(),
-
                 Tables\Columns\TextColumn::make('theme.name')
                     ->label('Theme')
                     ->searchable(),
@@ -316,6 +305,7 @@ class CelebrationResource extends Resource
             'create' => Pages\CreateCelebration::route('/create'),
             'view'   => Pages\ViewCelebration::route('/{record}'),
             'edit'   => Pages\EditCelebration::route('/{record}/edit'),
+            'manage-invited-children' => Pages\ManageInvitedChildren::route('/{record}/invited-children'),
         ];
     }
 }

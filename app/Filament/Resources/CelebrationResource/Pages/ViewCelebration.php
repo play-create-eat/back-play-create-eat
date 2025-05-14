@@ -14,6 +14,11 @@ class ViewCelebration extends ViewRecord
     {
         return [
             Actions\EditAction::make(),
+            Actions\Action::make('manageInvitedChildren')
+                ->label('Manage Invited Children')
+                ->icon('heroicon-o-user-group')
+                ->url(fn () => $this->getResource()::getUrl('manage-invited-children', ['record' => $this->record])),
+
         ];
     }
 
