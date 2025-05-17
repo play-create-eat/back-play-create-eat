@@ -29,7 +29,6 @@ class DatabaseSeeder extends Seeder
         $this->call([
             AdminSeeder::class,
             TableSeeder::class,
-//            MenuSeeder::class,
             PackageSeeder::class,
             PackageFeatureSeeder::class,
             TimelineSeeder::class,
