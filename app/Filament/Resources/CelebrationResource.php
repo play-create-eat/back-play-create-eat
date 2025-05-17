@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Clusters\Cashier\Pages\ManageCelebrationChildren;
+use App\Filament\Clusters\Cashier\Resources\CelebrationResource\RelationManagers\CelebrationChildrenRelationManager;
 use App\Filament\Resources\CelebrationResource\Pages;
 use App\Filament\Resources\CelebrationResource\RelationManagers\InvitationsRelationManager;
 use App\Models\Celebration;
@@ -294,7 +296,8 @@ class CelebrationResource extends Resource
     public static function getRelations(): array
     {
         return [
-            InvitationsRelationManager::class
+            InvitationsRelationManager::class,
+            CelebrationChildrenRelationManager::class
         ];
     }
 
@@ -306,6 +309,7 @@ class CelebrationResource extends Resource
             'view'   => Pages\ViewCelebration::route('/{record}'),
             'edit'   => Pages\EditCelebration::route('/{record}/edit'),
             'manage-invited-children' => Pages\ManageInvitedChildren::route('/{record}/invited-children'),
+            'cashier-manage-children' => ManageCelebrationChildren::route('/{record}/cashier/children'),
         ];
     }
 }

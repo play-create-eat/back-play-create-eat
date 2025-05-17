@@ -77,15 +77,15 @@ class PassResource extends Resource
                 Tables\Columns\TextColumn::make('user')
                     ->label('Client')
                     ->getStateUsing(function (Pass $record) {
-                        return "{$record->user->full_name} ({$record->user->family->name})";
+                        return "{$record->user?->full_name} ({$record->user?->family?->name})";
                     })
                     ->description(function (Pass $record): HtmlString {
-                        return new HtmlString("<span class='text-xs font-mono'>{$record->user->profile->phone_number}</span>");
+                        return new HtmlString("<span class='text-xs font-mono'>{$record->user?->profile?->phone_number}</span>");
                     })
                     ->sortable(),
                 Tables\Columns\TextColumn::make('children')
                     ->label('Children')
-                    ->getStateUsing(fn(Pass $record): string => $record->children->full_name)
+                    ->getStateUsing(fn(Pass $record): string => $record->children?->full_name)
                     ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('remaining_time')
