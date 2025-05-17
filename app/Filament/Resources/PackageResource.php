@@ -29,13 +29,18 @@ class PackageResource extends Resource
                 TextInput::make('weekend_price')->numeric()->required(),
                 TextInput::make('min_children')->numeric()->required(),
                 TextInput::make('duration_hours')->numeric()->required(),
-                TextInput::make('cashback_percentage')->numeric()->maxValue(100)->default(0),
-                TextInput::make('bonus_playground_visit')->required(),
-                TextInput::make('order')
-                    ->numeric()
-                    ->label('Order')
-                    ->default(1)
-                    ->required(),
+                Forms\Components\Grid::make()
+                    ->schema([
+                        TextInput::make('cashback_percentage')->numeric()->maxValue(100)->default(0),
+                        TextInput::make('bonus_playground_visit')->required(),
+                        TextInput::make('order')
+                            ->numeric()
+                            ->label('Order')
+                            ->default(1)
+                            ->required(),
+                    ])
+                    ->columns(3),
+
 
                 Forms\Components\Repeater::make('features')
                     ->relationship('features')
