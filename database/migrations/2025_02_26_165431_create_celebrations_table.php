@@ -2,6 +2,7 @@
 
 use App\Models\Cake;
 use App\Models\Child;
+use App\Models\Family;
 use App\Models\Menu;
 use App\Models\Package;
 use App\Models\Theme;
@@ -18,6 +19,10 @@ return new class extends Migration {
     {
         Schema::create('celebrations', function (Blueprint $table) {
             $table->id();
+            $table->foreignIdFor(Family::class)
+                ->nullable()
+                ->constrained()
+                ->cascadeOnDelete();
             $table->foreignIdFor(User::class)
                 ->constrained()
                 ->cascadeOnDelete();
@@ -44,10 +49,6 @@ return new class extends Migration {
                 ->nullOnDelete();
             $table->decimal('cake_weight', 5)
                 ->nullable();
-            $table->foreignIdFor(Menu::class)
-                ->nullable()
-                ->constrained()
-                ->nullOnDelete();
             $table->boolean('photographer')
                 ->default(false);
             $table->boolean('photo_album')
@@ -55,10 +56,12 @@ return new class extends Migration {
             $table->smallInteger('current_step');
             $table->boolean('completed')
                 ->default(false);
-            $table->decimal('total_amount')
-            ->nullable();
-            $table->decimal('paid_amount')
-            ->nullable();
+            $table->decimal('total_amount', 12)
+                ->nullable();
+            $table->decimal('min_amount', 12)
+                ->nullable();
+            $table->decimal('paid_amount', 12)
+                ->nullable();
             $table->timestamps();
         });
     }

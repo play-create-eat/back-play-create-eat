@@ -21,6 +21,7 @@ class PackageSeeder extends Seeder
                 'duration_hours'         => 2,
                 'cashback_percentage'    => 7,
                 'bonus_playground_visit' => '3 hours',
+                'order'                 => 1,
             ],
             [
                 'name'                   => '5+ star package',
@@ -30,6 +31,7 @@ class PackageSeeder extends Seeder
                 'duration_hours'         => 3,
                 'cashback_percentage'    => 10,
                 'bonus_playground_visit' => '1 day',
+                'order'                 => 2,
             ]
         ]);
     }

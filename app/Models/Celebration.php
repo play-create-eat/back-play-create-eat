@@ -67,11 +67,6 @@ class Celebration extends Model
         return $this->belongsTo(Cake::class);
     }
 
-    public function menu(): BelongsTo
-    {
-        return $this->belongsTo(Menu::class);
-    }
-
     public function menuItems(): BelongsToMany
     {
         return $this->belongsToMany(MenuItem::class, 'celebration_menus')
