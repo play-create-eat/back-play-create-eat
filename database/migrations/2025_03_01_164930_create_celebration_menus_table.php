@@ -23,6 +23,7 @@ return new class extends Migration {
                 ->cascadeOnDelete();
             $table->integer('quantity')->default(1);
             $table->string('child_name')->nullable();
+            $table->enum('audience', ['children', 'parents'])->default('children');
             $table->timestamps();
         });
 

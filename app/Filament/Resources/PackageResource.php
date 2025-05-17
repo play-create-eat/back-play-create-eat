@@ -31,6 +31,11 @@ class PackageResource extends Resource
                 TextInput::make('duration_hours')->numeric()->required(),
                 TextInput::make('cashback_percentage')->numeric()->maxValue(100)->default(0),
                 TextInput::make('bonus_playground_visit')->required(),
+                TextInput::make('order')
+                    ->numeric()
+                    ->label('Order')
+                    ->default(1)
+                    ->required(),
 
                 Forms\Components\Repeater::make('features')
                     ->relationship('features')
@@ -43,6 +48,11 @@ class PackageResource extends Resource
                             ->default('locked')
                             ->required()
                             ->label('Feature Status'),
+                        TextInput::make('order')
+                            ->numeric()
+                            ->label('Order')
+                            ->default(1)
+                            ->required(),
                     ])
                     ->minItems(1)
                     ->addActionLabel('Add Feature'),
@@ -55,6 +65,11 @@ class PackageResource extends Resource
                             ->label('Duration (minutes)')
                             ->numeric()
                             ->suffix('min')
+                            ->required(),
+                        TextInput::make('order')
+                            ->numeric()
+                            ->label('Order')
+                            ->default(1)
                             ->required(),
                     ])->addActionLabel('Add timeline'),
             ]);

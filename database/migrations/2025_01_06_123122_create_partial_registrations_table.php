@@ -25,6 +25,7 @@ return new class extends Migration {
             $table->foreignIdFor(Family::class)->nullable();
             $table->enum('status', PartialRegistrationStatusEnum::values())
                 ->default(PartialRegistrationStatusEnum::Pending->value);
+            $table->boolean('document_signed')->default(false);
             $table->timestamps();
         });
     }

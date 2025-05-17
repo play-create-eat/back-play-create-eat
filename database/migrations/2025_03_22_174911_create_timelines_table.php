@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Package;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -13,10 +14,15 @@ return new class extends Migration
     {
         Schema::create('timelines', function (Blueprint $table) {
             $table->id();
+            $table->foreignIdFor(Package::class)
+                ->nullable()
+                ->constrained()
+                ->cascadeOnUpdate()
+                ->nullOnDelete();
             $table->string('title');
             $table->unsignedInteger('duration');
-            $table->boolean('is_premium')
-                ->default(false);
+            $table->unsignedSmallInteger('order')
+            ->nullable();
             $table->timestamps();
         });
     }

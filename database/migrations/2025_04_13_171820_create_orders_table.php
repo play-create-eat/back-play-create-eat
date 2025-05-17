@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Celebration;
 use App\Models\Order;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -13,7 +14,7 @@ return new class extends Migration {
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
-            $table->foreignIdFor(Order::class)
+            $table->foreignIdFor(Celebration::class)
                 ->constrained()
                 ->cascadeOnDelete();
             $table->decimal('total_amount', 12)

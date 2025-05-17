@@ -14,7 +14,11 @@ return new class extends Migration {
         Schema::create('celebration_features', function (Blueprint $table) {
             $table->id();
             $table->string('title');
-            $table->string('description');
+            $table->string('slug')
+                ->unique()
+                ->nullable();
+            $table->string('description')
+            ->nullable();
             $table->decimal('price');
             $table->timestamps();
         });

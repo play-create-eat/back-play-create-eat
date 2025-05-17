@@ -17,7 +17,8 @@ return new class extends Migration {
             $table->integer('duration_time')->unsigned()->default(0);
             $table->integer('price')->unsigned();
             $table->integer('price_weekend')->unsigned()->nullable();
-            $table->decimal('fee_percent', 3, 2)->default(0);
+            $table->decimal('fee_percent', 5)->default(0);
+            $table->decimal('cashback_percent', 5)->default(0);
             $table->boolean('is_extendable')->default(false);
             $table->boolean('is_available')->default(false);
             $table->timestamps();
