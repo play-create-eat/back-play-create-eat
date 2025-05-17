@@ -14,6 +14,11 @@ class EditCelebration extends EditRecord
     {
         return [
             Actions\DeleteAction::make(),
+            Actions\Action::make('manageChildren')
+                ->label('Manage Children')
+                ->url(fn () => CelebrationResource::getUrl('cashier-manage-children', ['record' => $this->getRecord()]))
+                ->icon('heroicon-o-user-group')
+                ->color('success'),
         ];
     }
 }
