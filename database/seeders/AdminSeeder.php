@@ -108,7 +108,7 @@ class AdminSeeder extends Seeder
 
         $superAdmin = Admin::create([
             'name'     => 'Super Admin',
-            'email'    => 'admin@playcreate.ae',
+            'email'    => 'admin@playcreateeat.ae',
             'password' => Hash::make(config('auth.defaults.super_admin_password', 'password'))
         ]);
 
@@ -117,7 +117,7 @@ class AdminSeeder extends Seeder
         $manager = Admin::create([
             'name'     => 'Manager',
             'email'    => 'manager@playcreateeat.ae',
-            'password' => Hash::make('password'),
+            'password' => Hash::make(config('auth.defaults.super_admin_password', 'password'))
         ]);
 
         $manager->assignRole($managerRole);
@@ -125,7 +125,7 @@ class AdminSeeder extends Seeder
         $staff = Admin::create([
             'name'     => 'Staff',
             'email'    => 'staff@playcreateeat.ae',
-            'password' => Hash::make('password'),
+            'password' => Hash::make(config('auth.defaults.super_admin_password', 'password'))
         ]);
 
         $staff->assignRole($staffRole);
