@@ -82,9 +82,11 @@ class PassService
             }
 
             $duration = CarbonInterval::minutes($product->duration_time);
+
+            $expiresFrom = $activationDate ? Carbon::instance($activationDate) : Carbon::now();
             $expiresAt = $duration->totalSeconds <= CarbonInterval::day()->totalSeconds
-                ? Carbon::now()->endOfDay()
-                : Carbon::now()->addYear();
+                ? $expiresFrom->endOfDay()
+                : $expiresFrom->addYear();
 
             $pass = new Pass();
             $pass->serial = static::generateSerial();

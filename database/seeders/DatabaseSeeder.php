@@ -33,7 +33,6 @@ class DatabaseSeeder extends Seeder
             PackageSeeder::class,
             PackageFeatureSeeder::class,
             TimelineSeeder::class,
-            PackageTimelineSeeder::class,
         ]);
     }
 }

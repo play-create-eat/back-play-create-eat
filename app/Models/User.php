@@ -52,6 +52,10 @@ class User extends Authenticatable implements HasName
         'deleted_at'
     ];
 
+    protected $appends = [
+        'full_name',
+    ];
+
     public function family(): BelongsTo
     {
         return $this->belongsTo(Family::class);

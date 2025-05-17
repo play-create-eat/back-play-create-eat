@@ -15,10 +15,12 @@ return new class extends Migration {
             $table->string('name');
             $table->text('description')
                 ->nullable();
+            $table->unsignedSmallInteger('order')
+            ->nullable();
             $table->decimal('weekday_price');
             $table->decimal('weekend_price');
             $table->integer('min_children');
-            $table->integer('duration_hours');
+            $table->decimal('duration_hours', 5);
             $table->decimal('cashback_percentage', 5)
                 ->default(0);
             $table->string('bonus_playground_visit')

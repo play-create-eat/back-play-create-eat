@@ -18,6 +18,8 @@ return new class extends Migration {
                 ->cascadeOnDelete();
             $table->string('name');
             $table->enum('status', ['locked', 'accessible'])->default('locked');
+            $table->unsignedSmallInteger('order')
+            ->nullable();
             $table->timestamps();
         });
     }

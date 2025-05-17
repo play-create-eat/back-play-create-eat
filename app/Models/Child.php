@@ -33,6 +33,11 @@ class Child extends Model implements HasMedia
         'family_id'
     ];
 
+    protected $appends = [
+        'full_name',
+        'custom_name'
+    ];
+
     protected $casts = [
         'gender'     => GenderEnum::class,
         'birth_date' => 'date'
@@ -62,8 +67,18 @@ class Child extends Model implements HasMedia
             ->withTimestamps();
     }
 
-    protected function getFullNameAttribute(): string
+    public function fullName(): Attribute
     {
-        return $this->first_name . ' ' . $this->last_name;
+        return Attribute::make(
+            get: fn() => "$this->first_name $this->last_name",
+        );
     }
+
+    public function customName(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => "$this->first_name $this->last_name - {$this->family->name}",
+        );
+    }
+
 }

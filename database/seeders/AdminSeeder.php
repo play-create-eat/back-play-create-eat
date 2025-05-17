@@ -106,7 +106,11 @@ class AdminSeeder extends Seeder
             'create-booking',
         ]);
 
-        $superAdmin = Admin::find(1);
+        $superAdmin = Admin::create([
+            'name'     => 'Super Admin',
+            'email'    => 'admin@playcreate.ae',
+            'password' => Hash::make(config('auth.defaults.super_admin_password', 'password'))
+        ]);
 
         $superAdmin->assignRole($superAdminRole);
 
