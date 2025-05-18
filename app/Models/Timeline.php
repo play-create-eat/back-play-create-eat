@@ -10,11 +10,8 @@ class Timeline extends Model
     protected $fillable = [
         'title',
         'duration',
-        'is_premium',
-    ];
-
-    protected $casts = [
-        'is_premium' => 'boolean',
+        'package_id',
+        'order',
     ];
 
     public function packages(): BelongsTo

@@ -20,6 +20,7 @@ class Package extends Model implements HasMedia
         'duration_hours',
         'cashback_percentage',
         'bonus_playground_visit',
+        'order'
     ];
 
     protected $hidden = ['media'];
@@ -34,7 +35,7 @@ class Package extends Model implements HasMedia
 
     public function features(): HasMany
     {
-        return $this->hasMany(PackageFeature::class);
+        return $this->hasMany(PackageFeature::class)->orderBy('order');
     }
 
     public function registerMediaCollections(): void
@@ -53,6 +54,6 @@ class Package extends Model implements HasMedia
 
     public function timelines(): HasMany
     {
-        return $this->hasMany(Timeline::class);
+        return $this->hasMany(Timeline::class)->orderBy('order');
     }
 }
