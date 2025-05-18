@@ -11,6 +11,7 @@ class PackageFeature extends Model
         'package_id',
         'name',
         'status',
+        'order',
     ];
 
     public function package(): BelongsTo
