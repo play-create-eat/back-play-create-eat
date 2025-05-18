@@ -35,7 +35,7 @@ class Package extends Model implements HasMedia
 
     public function features(): HasMany
     {
-        return $this->hasMany(PackageFeature::class);
+        return $this->hasMany(PackageFeature::class)->orderBy('order');
     }
 
     public function registerMediaCollections(): void
@@ -54,6 +54,6 @@ class Package extends Model implements HasMedia
 
     public function timelines(): HasMany
     {
-        return $this->hasMany(Timeline::class);
+        return $this->hasMany(Timeline::class)->orderBy('order');
     }
 }
