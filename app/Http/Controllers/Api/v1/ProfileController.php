@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api\v1;
 
+use App\Enums\Otps\PurposeEnum;
+use App\Enums\Otps\TypeEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\v1\UserResource;
 use DB;

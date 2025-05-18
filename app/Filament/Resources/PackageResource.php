@@ -36,8 +36,7 @@ class PackageResource extends Resource
                         TextInput::make('order')
                             ->numeric()
                             ->label('Order')
-                            ->default(1)
-                            ->required(),
+                            ->default(1),
                     ])
                     ->columns(3),
 
@@ -56,8 +55,7 @@ class PackageResource extends Resource
                         TextInput::make('order')
                             ->numeric()
                             ->label('Order')
-                            ->default(1)
-                            ->required(),
+                            ->default(1),
                     ])
                     ->minItems(1)
                     ->addActionLabel('Add Feature'),
@@ -74,8 +72,7 @@ class PackageResource extends Resource
                         TextInput::make('order')
                             ->numeric()
                             ->label('Order')
-                            ->default(1)
-                            ->required(),
+                            ->default(1),
                     ])->addActionLabel('Add timeline'),
             ]);
     }

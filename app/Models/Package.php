@@ -20,6 +20,7 @@ class Package extends Model implements HasMedia
         'duration_hours',
         'cashback_percentage',
         'bonus_playground_visit',
+        'order'
     ];
 
     protected $hidden = ['media'];
