@@ -19,6 +19,7 @@ return new class extends Migration {
             $table->integer('price_weekend')->unsigned()->nullable();
             $table->decimal('fee_percent', 5)->default(0);
             $table->decimal('cashback_percent', 5)->default(0);
+            $table->decimal('discount_percent', 5)->default(0);
             $table->boolean('is_extendable')->default(false);
             $table->boolean('is_available')->default(false);
             $table->timestamps();
