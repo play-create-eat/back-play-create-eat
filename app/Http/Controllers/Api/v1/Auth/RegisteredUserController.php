@@ -135,7 +135,7 @@ class RegisteredUserController extends Controller
 
         $otpCode = $otpService->generate(null, TypeEnum::PHONE, PurposeEnum::REGISTER, $partialRegistration->phone_number);
 //        if ($partialRegistration->phone_number === '+37368411195') {
-//        $otpService->send($otpCode, $twilloService);
+        $otpService->send($otpCode, $twilloService);
 //        }
 
         return response()->json([

@@ -15,9 +15,9 @@ class OtpService
     public function generate(?User $user, TypeEnum $type, PurposeEnum $purpose, string $identifier): OtpCode
     {
 //        if ($identifier === '+37368411195') {
-//            $code = rand(1000, 9999);
+            $code = rand(1000, 9999);
 //        } else {
-            $code = 1234;
+//            $code = 1234;
 //        }
 
         return OtpCode::updateOrCreate([

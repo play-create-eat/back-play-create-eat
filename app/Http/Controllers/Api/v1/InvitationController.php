@@ -147,7 +147,7 @@ class InvitationController extends Controller
         ]);
 
         $otpCode = $otpService->generate(null, TypeEnum::PHONE, PurposeEnum::REGISTER, $partialRegistration->phone_number);
-//        $otpService->send($otpCode, $twilloService);
+        $otpService->send($otpCode, $twilloService);
 
         return response()->json([
             'message'         => 'Step 2 completed successfully.',
