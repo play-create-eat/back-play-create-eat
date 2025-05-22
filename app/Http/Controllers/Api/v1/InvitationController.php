@@ -84,8 +84,8 @@ class InvitationController extends Controller
             return response()->json(['message' => 'User is not part of a family.'], 400);
         }
 
-//        $code = rand(1000, 9999);
-        $code = 1234;
+        $code = rand(1000, 9999);
+//        $code = 1234;
 
         $invite = Invitation::create([
             'code'         => $code,
@@ -98,7 +98,7 @@ class InvitationController extends Controller
         ]);
 
         $message = "You’re invited to join PlayCreateEat: \nPlease use this link to join: play-create-eat://invite/$code \nOr set this code on register: $code";
-//        $twilloService->sendSms($invite->phone_number, $message);
+        $twilloService->sendSms($invite->phone_number, $message);
 
         return response()->json([
             'message' => 'Invitation sent successfully.',
