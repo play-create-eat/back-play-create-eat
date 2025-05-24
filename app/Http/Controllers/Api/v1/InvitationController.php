@@ -17,7 +17,7 @@ use App\Services\OtpService;
 use App\Services\TwilloService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Enum;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -71,7 +71,7 @@ class InvitationController extends Controller
     public function invite(Request $request, OtpService $otpService, TwilloService $twilloService)
     {
         $request->validate([
-            'phone_number'  => ['required', 'unique:profiles,phone_number'],
+            'phone_number'  => ['required', Rule::unique('profiles')->whereNull('deleted_at')],
             'role'          => ['required', 'exists:roles,name'],
             'permissions'   => ['nullable', 'array'],
             'permissions.*' => ['sometimes', 'exists:permissions,name']
@@ -132,8 +132,8 @@ class InvitationController extends Controller
         $request->validate([
             'code'            => ['required', 'exists:invitations,code'],
             'registration_id' => ['required', 'string', 'uuid', 'exists:partial_registrations,id'],
-            'email'           => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'phone_number'    => ['required', 'string', 'max:255', 'unique:profiles'],
+            'email'           => ['required', 'string', 'email', 'max:255', Rule::unique('users')->whereNull('deleted_at')],
+            'phone_number'    => ['required', 'string', 'max:255', Rule::unique('profiles')->whereNull('deleted_at')],
             'password'        => ['required', 'confirmed', Password::defaults()],
         ]);
 
