@@ -20,7 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'cashier.access' => CashierAccess::class,
+//            'cashier.access' => CashierAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
