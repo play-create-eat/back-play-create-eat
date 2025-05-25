@@ -1,15 +1,13 @@
-<div>
-    <p class="font-medium mb-2 text-base">{{$user->profile->first_name}} {{$user->profile->last_name}} - {{$user->family->name}}</p>
-    <div class="flex items-center text-xs gap-3 mb-2 text-gray-700">
-        <span>{{$user->profile->phone_number}}</span>
-        <span>[ {{$user->email}} ]</span>
-    </div>
-    <div class="flex items-center font-medium gap-3 text-xs">
-        <span>
-            Star Points: <span class="text-primary-600 font-mono">{{$user->family->main_wallet->balanceFloat}}</span>
-        </span>
-        <span>
-            Loyalty Points: <span class="text-primary-600 font-mono">{{$user->family->loyalty_wallet->balanceFloat}}</span>
-        </span>
+<div class="flex items-center space-x-2">
+    <div>
+        <div class="font-medium text-gray-900 dark:text-white">
+            {{ $user->profile->first_name }} {{ $user->profile->last_name }}
+        </div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">
+            {{ $user->email }}
+            @if($user->profile->phone_number)
+                · {{ $user->profile->phone_number }}
+            @endif
+        </div>
     </div>
 </div>
