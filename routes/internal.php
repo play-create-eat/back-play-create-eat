@@ -21,4 +21,7 @@ Route::prefix('internal')
 
         Route::post('/pass/info', [PassController::class, 'info'])
             ->name('internal.pass.info');
+
+        Route::post('/pass/bracelet-pdf', [PassController::class, 'braceletPdf'])
+            ->name('internal.pass.bracelet-pdf');
     });

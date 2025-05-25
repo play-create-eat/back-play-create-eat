@@ -36,4 +36,22 @@ class PassController extends Controller
 
         return new PassResource($pass);
     }
+
+
+    public function braceletPdf(Request $request)
+    {
+        $payload = $request->validate([
+            'serial' => ['required', 'exists:passes,serial'],
+        ]);
+
+        $serial = $payload['serial'];
+        $pdfFile = app(PassService::class)->getBraceletPdfPath(
+            serial: $serial,
+        );
+
+        return response()->file($pdfFile, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="pass-' . $serial . '.pdf"',
+        ]);
+    }
 }

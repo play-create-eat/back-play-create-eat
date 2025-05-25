@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers\Api\v1;
 
-use App\Enums\Otps\PurposeEnum;
-use App\Enums\Otps\TypeEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\v1\UserResource;
 use DB;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Throwable;
 
 class ProfileController extends Controller
@@ -17,8 +16,8 @@ class ProfileController extends Controller
         $user = auth()->guard('sanctum')->user();
 
         $request->validate([
-            'email'        => ['sometimes', 'unique:users,email'],
-            'phone_number' => ['sometimes', 'unique:profiles,phone_number']
+            'email'        => ['sometimes', Rule::unique('users')->whereNull('deleted_at')],
+            'phone_number' => ['sometimes', Rule::unique('profiles')->whereNull('deleted_at')],
         ]);
 
         if ($request->filled('email')) {
