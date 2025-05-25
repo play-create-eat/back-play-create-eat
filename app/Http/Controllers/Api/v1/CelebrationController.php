@@ -44,7 +44,8 @@ class CelebrationController extends Controller
         ])->where('family_id', auth()->guard('sanctum')->user()->family->id);
 
         if ($request->filled('completed')) {
-            $query->where('completed', $request->boolean('completed'));
+            $query->where('completed', $request->boolean('completed'))
+                ->whereTodayOrAfter('celebration_date');
         }
 
         if ($request->filled('unpaid')) {
