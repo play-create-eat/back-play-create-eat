@@ -44,7 +44,8 @@ class CelebrationController extends Controller
         ])->where('family_id', auth()->guard('sanctum')->user()->family->id);
 
         if ($request->filled('completed')) {
-            $query->where('completed', $request->boolean('completed'));
+            $query->where('completed', $request->boolean('completed'))
+                ->whereTodayOrAfter('celebration_date');
         }
 
         if ($request->filled('unpaid')) {
@@ -169,6 +170,7 @@ class CelebrationController extends Controller
     {
         $validated = $request->validate([
             'datetime' => ['required', 'date', 'after:now'],
+            'current_step' => ['required','integer']
         ]);
 
         try {
@@ -193,7 +195,8 @@ class CelebrationController extends Controller
 
             $celebration->update([
                 'celebration_date' => $validated['datetime'],
-                'total_amount'     => $price
+                'total_amount'     => $price,
+                'current_step' => $validated['current_step'],
             ]);
 
             return response()->json([
@@ -216,7 +219,10 @@ class CelebrationController extends Controller
             'current_step' => 'required|integer'
         ]);
 
-        $celebration->update(['theme_id' => $validated['theme_id']]);
+        $celebration->update([
+            'theme_id' => $validated['theme_id'],
+            'current_step' => $validated['current_step']
+        ]);
 
         return response()->json($celebration);
     }

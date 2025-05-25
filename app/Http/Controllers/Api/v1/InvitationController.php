@@ -17,7 +17,7 @@ use App\Services\OtpService;
 use App\Services\TwilloService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Enum;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -71,7 +71,7 @@ class InvitationController extends Controller
     public function invite(Request $request, OtpService $otpService, TwilloService $twilloService)
     {
         $request->validate([
-            'phone_number'  => ['required', 'unique:profiles,phone_number'],
+            'phone_number'  => ['required', Rule::unique('profiles')->whereNull('deleted_at')],
             'role'          => ['required', 'exists:roles,name'],
             'permissions'   => ['nullable', 'array'],
             'permissions.*' => ['sometimes', 'exists:permissions,name']
@@ -84,8 +84,8 @@ class InvitationController extends Controller
             return response()->json(['message' => 'User is not part of a family.'], 400);
         }
 
-//        $code = rand(1000, 9999);
-        $code = 1234;
+        $code = rand(1000, 9999);
+//        $code = 1234;
 
         $invite = Invitation::create([
             'code'         => $code,
@@ -98,7 +98,7 @@ class InvitationController extends Controller
         ]);
 
         $message = "You’re invited to join PlayCreateEat: \nPlease use this link to join: play-create-eat://invite/$code \nOr set this code on register: $code";
-//        $twilloService->sendSms($invite->phone_number, $message);
+        $twilloService->sendSms($invite->phone_number, $message);
 
         return response()->json([
             'message' => 'Invitation sent successfully.',
@@ -132,8 +132,8 @@ class InvitationController extends Controller
         $request->validate([
             'code'            => ['required', 'exists:invitations,code'],
             'registration_id' => ['required', 'string', 'uuid', 'exists:partial_registrations,id'],
-            'email'           => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'phone_number'    => ['required', 'string', 'max:255', 'unique:profiles'],
+            'email'           => ['required', 'string', 'email', 'max:255', Rule::unique('users')->whereNull('deleted_at')],
+            'phone_number'    => ['required', 'string', 'max:255', Rule::unique('profiles')->whereNull('deleted_at')],
             'password'        => ['required', 'confirmed', Password::defaults()],
         ]);
 
@@ -147,7 +147,7 @@ class InvitationController extends Controller
         ]);
 
         $otpCode = $otpService->generate(null, TypeEnum::PHONE, PurposeEnum::REGISTER, $partialRegistration->phone_number);
-//        $otpService->send($otpCode, $twilloService);
+        $otpService->send($otpCode, $twilloService);
 
         return response()->json([
             'message'         => 'Step 2 completed successfully.',

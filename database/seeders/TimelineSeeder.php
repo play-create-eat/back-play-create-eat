@@ -2,66 +2,96 @@
 
 namespace Database\Seeders;
 
-use App\Models\Timeline;
 use Illuminate\Database\Seeder;
+use App\Models\Timeline;
 
 class TimelineSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $timelines = [
             [
-                'title'      => 'Welcome and free themed play in the playground',
-                'duration'   => 30,
-                'is_premium' => false,
+                'id' => 1,
+                'title' => 'Welcome and free play in the playground',
+                'duration' => 30,
+                'package_id' => 1,
             ],
             [
-                'title'      => 'Themed team challenge play - with parents involved',
-                'duration'   => 15,
-                'is_premium' => false,
+                'id' => 2,
+                'title' => 'Team challenge play ',
+                'duration' => 15,
+                'package_id' => 1,
             ],
             [
-                'title'      => 'Animation',
-                'duration'   => 30,
-                'is_premium' => false,
+                'id' => 3,
+                'title' => 'Themed Games',
+                'duration' => 30,
+                'package_id' => 1,
             ],
             [
-                'title'      => 'Themed art craft',
-                'duration'   => 30,
-                'is_premium' => false,
+                'id' => 5,
+                'title' => 'Themed dancing and singing ',
+                'duration' => 15,
+                'package_id' => 1,
             ],
             [
-                'title'      => 'Themed dance and play',
-                'duration'   => 15,
-                'is_premium' => false,
+                'id' => 6,
+                'title' => 'Food and cake ceremony',
+                'duration' => 30,
+                'package_id' => 1,
             ],
             [
-                'title'      => 'Themed theatre acting play',
-                'duration'   => 15,
-                'is_premium' => true,
+                'id' => 7,
+                'title' => 'Welcome and free play in the playground',
+                'duration' => 30,
+                'package_id' => 2,
             ],
             [
-                'title'      => 'Animated theme games',
-                'duration'   => 15,
-                'is_premium' => true,
+                'id' => 8,
+                'title' => 'Team challenge play - with parents involved',
+                'duration' => 15,
+                'package_id' => 2,
             ],
             [
-                'title'      => 'Themed cooking master class',
-                'duration'   => 15,
-                'is_premium' => true,
+                'id' => 9,
+                'title' => 'Themed art craft',
+                'duration' => 15,
+                'package_id' => 2,
             ],
             [
-                'title'      => 'Food sharing and cake ceremony',
-                'duration'   => 30,
-                'is_premium' => false,
-            ]
+                'id' => 10,
+                'title' => 'Themed dancing and singing',
+                'duration' => 15,
+                'package_id' => 2,
+            ],
+            [
+                'id' => 11,
+                'title' => 'Mascot Parade ',
+                'duration' => 10,
+                'package_id' => 2,
+            ],
+            [
+                'id' => 12,
+                'title' => 'Puppet Show ( 1-3 years ) / Magician show ( > 3 years )',
+                'duration' => 20,
+                'package_id' => 2,
+            ],
+            [
+                'id' => 14,
+                'title' => 'Themed Games',
+                'duration' => 15,
+                'package_id' => 2,
+            ],
+            [
+                'id' => 15,
+                'title' => 'Food & Cake & Pinata ceremony',
+                'duration' => 30,
+                'package_id' => 2,
+            ],
         ];
 
         foreach ($timelines as $timeline) {
-            Timeline::create($timeline);
+            Timeline::updateOrCreate(['id' => $timeline['id']], $timeline);
         }
     }
 }

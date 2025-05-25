@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Celebration;
 use App\Models\Package;
 use App\Models\User;
 use Illuminate\Database\Migrations\Migration;
@@ -15,7 +16,13 @@ return new class extends Migration
     {
         Schema::create('bookings', function (Blueprint $table) {
             $table->id();
-            $table->foreignIdFor(User::class)->constrained()
+            $table->foreignIdFor(User::class)
+                ->constrained()
+                ->cascadeOnDelete();
+            $table->foreignIdFor(Celebration::class)
+                ->nullable()
+                ->after('user_id')
+                ->constrained()
                 ->cascadeOnDelete();
             $table->foreignIdFor(Package::class)
                 ->constrained();

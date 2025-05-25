@@ -45,7 +45,5 @@ class TableSeeder extends Seeder
                 $table
             );
         }
-
-        $this->command->info('Tables created: Table 1, Table 2, Table 3, Table 4');
     }
 }

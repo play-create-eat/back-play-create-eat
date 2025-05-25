@@ -18,6 +18,7 @@ use App\Services\TwilloService;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\Rules\Enum;
 use Illuminate\Validation\Rules\Password;
@@ -119,8 +120,8 @@ class RegisteredUserController extends Controller
     {
         $validated = $request->validate([
             'registration_id' => ['required', 'string', 'uuid', 'exists:partial_registrations,id'],
-            'email'           => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'phone_number'    => ['required', 'string', 'max:255', 'unique:profiles'],
+            'email'           => ['required', 'string', 'email', 'max:255', Rule::unique('users')->whereNull('deleted_at')],
+            'phone_number'    => ['required', 'string', 'max:255', Rule::unique('profiles')->whereNull('deleted_at')],
             'password'        => ['required', 'confirmed', Password::defaults()],
         ]);
 
@@ -135,7 +136,7 @@ class RegisteredUserController extends Controller
 
         $otpCode = $otpService->generate(null, TypeEnum::PHONE, PurposeEnum::REGISTER, $partialRegistration->phone_number);
 //        if ($partialRegistration->phone_number === '+37368411195') {
-//        $otpService->send($otpCode, $twilloService);
+        $otpService->send($otpCode, $twilloService);
 //        }
 
         return response()->json([

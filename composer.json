@@ -26,6 +26,7 @@
         "laravel/tinker": "^2.9",
         "league/flysystem-aws-s3-v3": "^3.0",
         "pandadoc/php-client": "^6.2",
+        "sentry/sentry-laravel": "^4.13",
         "spatie/laravel-medialibrary": "^11.12",
         "spatie/laravel-permission": "^6.10",
         "stripe/stripe-php": "^16.6",

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\v1\ProductPurchaseRequest;
+use App\Http\Requests\Api\v1\ProductRefundRequest;
 use App\Http\Resources\Api\v1\FamilyPassResource;
 use App\Http\Resources\Api\v1\ProductResource;
 use App\Models\Child;
@@ -50,10 +51,10 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $filters = $request->validate([
-            'limit'     => ['integer', 'min:1', 'max:50'],
-            'duration'  => ['array', 'min:1', Rule::in(array_keys(config('passes.durations')))],
-            'date'      => ['date', 'after_or_equal:today'],
-            'feature'   => ['array', 'min:1'],
+            'limit' => ['integer', 'min:1', 'max:50'],
+            'duration' => ['array', 'min:1', Rule::in(array_keys(config('passes.durations')))],
+            'date' => ['date', 'after_or_equal:today'],
+            'feature' => ['array', 'min:1'],
             'feature.*' => ['integer'],
         ]);
 
@@ -139,5 +140,57 @@ class ProductController extends Controller
         );
 
         return new FamilyPassResource($pass);
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/v1/product/refund",
+     *     summary="Refund a ticket",
+     *     tags={"Product"},
+     *     description="Refund an valid pass.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"pass_id"},
+     *             @OA\Property(property="pass_id", type="integer", format="int64", description="The ID of the pass", minimum=1, example=1)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=204,
+     *         description="Refund successfully processed"
+     *     ),
+     *     @OA\Response(
+     *         response=409,
+     *         description="Ticket has already been used.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Refund unavailable: this ticket has already been used.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation errors",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *         )
+     *     )
+     * )
+     */
+    public function refund(ProductRefundRequest $request)
+    {
+        $user = auth()->guard('sanctum')->user()->load('family');
+        $pass = $user->family->passes()->findOrFail($request->input('pass_id'));
+
+        app(PassService::class)->refund($pass);
+
+        return response()->noContent();
     }
 }

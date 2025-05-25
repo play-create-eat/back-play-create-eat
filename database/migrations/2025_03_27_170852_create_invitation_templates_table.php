@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Theme;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -12,6 +13,12 @@ return new class extends Migration {
     {
         Schema::create('invitation_templates', function (Blueprint $table) {
             $table->id();
+            $table->foreignIdFor(Theme::class)
+                ->after('decoration_type')
+                ->nullable()
+                ->constrained()
+                ->cascadeOnUpdate()
+                ->nullOnDelete();
             $table->string('logo_color')->nullable();
             $table->string('background_color')->nullable();
             $table->string('text_color')->nullable();

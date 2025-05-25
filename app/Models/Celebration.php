@@ -46,9 +46,15 @@ class Celebration extends Model
         return $this->belongsTo(Child::class);
     }
 
+    public function invitations():BelongsToMany
+    {
+        return $this->belongsToMany(Child::class, 'celebration_child')
+            ->withTimestamps();
+    }
+
     public function package(): BelongsTo
     {
-        return $this->belongsTo(Package::class);
+        return $this->belongsTo(Package::class)->orderBy('order');
     }
 
     public function theme(): BelongsTo
@@ -59,11 +65,6 @@ class Celebration extends Model
     public function cake(): BelongsTo
     {
         return $this->belongsTo(Cake::class);
-    }
-
-    public function menu(): BelongsTo
-    {
-        return $this->belongsTo(Menu::class);
     }
 
     public function menuItems(): BelongsToMany

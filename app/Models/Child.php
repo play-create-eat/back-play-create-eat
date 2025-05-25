@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use App\Enums\GenderEnum;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -13,11 +15,11 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property int $id
  * @property string $first_name
  * @property string $last_name
- * @property \App\Enums\GenderEnum $gender
- * @property \Carbon\Carbon $birth_date
- * @property ?\App\Models\Family $family
- * @property \Carbon\Carbon $created_at
- * @property \Carbon\Carbon $updated_at
+ * @property GenderEnum $gender
+ * @property Carbon $birth_date
+ * @property ?Family $family
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
  */
 class Child extends Model implements HasMedia
 {
@@ -29,6 +31,11 @@ class Child extends Model implements HasMedia
         'gender',
         'birth_date',
         'family_id'
+    ];
+
+    protected $appends = [
+        'full_name',
+        'custom_name'
     ];
 
     protected $casts = [
@@ -49,10 +56,29 @@ class Child extends Model implements HasMedia
             ->useDisk('s3');
     }
 
-    protected function fullName(): Attribute
+    public function celebrations(): HasMany
+    {
+        return $this->hasMany(Celebration::class);
+    }
+
+    public function parties()
+    {
+        return $this->belongsToMany(Celebration::class, 'celebration_child')
+            ->withTimestamps();
+    }
+
+    public function fullName(): Attribute
     {
         return Attribute::make(
-            get: fn () => "{$this->first_name} {$this->last_name}",
+            get: fn() => "$this->first_name $this->last_name",
         );
     }
+
+    public function customName(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => "$this->first_name $this->last_name - {$this->family->name}",
+        );
+    }
+
 }

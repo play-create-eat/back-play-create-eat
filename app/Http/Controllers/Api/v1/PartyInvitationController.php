@@ -25,6 +25,12 @@ class PartyInvitationController extends Controller
         try {
             $invitationUrl = $this->invitationService->generate($template, $celebration);
 
+            $validated = $request->validate([
+                'current_step' => 'required|integer',
+            ]);
+
+            $celebration->update(['current_step' => $validated['current_step']]);
+
             return response()->json([
                 'invitation_url' => $invitationUrl,
             ]);

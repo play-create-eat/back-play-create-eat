@@ -29,8 +29,17 @@ class PackageResource extends Resource
                 TextInput::make('weekend_price')->numeric()->required(),
                 TextInput::make('min_children')->numeric()->required(),
                 TextInput::make('duration_hours')->numeric()->required(),
-                TextInput::make('cashback_percentage')->numeric()->maxValue(100)->default(0),
-                TextInput::make('bonus_playground_visit')->required(),
+                Forms\Components\Grid::make()
+                    ->schema([
+                        TextInput::make('cashback_percentage')->numeric()->maxValue(100)->default(0),
+                        TextInput::make('bonus_playground_visit')->required(),
+                        TextInput::make('order')
+                            ->numeric()
+                            ->label('Order')
+                            ->default(1),
+                    ])
+                    ->columns(3),
+
 
                 Forms\Components\Repeater::make('features')
                     ->relationship('features')
@@ -43,6 +52,10 @@ class PackageResource extends Resource
                             ->default('locked')
                             ->required()
                             ->label('Feature Status'),
+                        TextInput::make('order')
+                            ->numeric()
+                            ->label('Order')
+                            ->default(1),
                     ])
                     ->minItems(1)
                     ->addActionLabel('Add Feature'),
@@ -56,6 +69,10 @@ class PackageResource extends Resource
                             ->numeric()
                             ->suffix('min')
                             ->required(),
+                        TextInput::make('order')
+                            ->numeric()
+                            ->label('Order')
+                            ->default(1),
                     ])->addActionLabel('Add timeline'),
             ]);
     }
