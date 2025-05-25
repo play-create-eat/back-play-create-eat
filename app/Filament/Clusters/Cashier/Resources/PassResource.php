@@ -6,6 +6,7 @@ use App\Filament\Clusters\Cashier;
 use App\Filament\Clusters\Cashier\Resources\PassResource\Pages;
 use App\Models\Child;
 use App\Models\Pass;
+use App\Models\User;
 use Carbon\CarbonInterval;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Forms;
@@ -20,6 +21,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\HtmlString;
+use Session;
 
 class PassResource extends Resource
 {
@@ -62,18 +64,35 @@ class PassResource extends Resource
 
     public static function table(Table $table): Table
     {
+        $selectedUserId = Session::get('cashier.selected_user_id');
+        $selectedUser = null;
+
+        $query = Pass::query();
+
+        if ($selectedUserId) {
+            $selectedUser = User::with(['family.children'])->find($selectedUserId);
+        }
+
         return $table
             ->recordUrl(function (Pass $record) {
                 return null;
 //                return self::getUrl('view', ['record' => $record]);
             })
-            ->modifyQueryUsing(function (Builder $query) {
+            ->modifyQueryUsing(function (Builder $query) use ($selectedUser) {
                 $query->with(['user.profile', 'user.family', 'children']);
+
+                if ($selectedUser?->family?->children->isNotEmpty()) {
+                    $childrenIds = $selectedUser->family->children->pluck('id')->toArray();
+
+                    $query->where('user_id', $selectedUser->id)
+                        ->whereIn('child_id', $childrenIds);
+                }
             })
             ->columns([
                 Tables\Columns\TextColumn::make('serial')
                     ->searchable()
-                    ->getStateUsing(fn(Pass $record): HtmlString => new HtmlString("<span class='text-xs font-mono'>{$record->serial}</span>")),
+                    ->getStateUsing(fn(Pass $record): HtmlString => new HtmlString("<span class='text-xs font-mono'>{$record->serial}</span>"))
+                ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('user')
                     ->label('Client')
                     ->getStateUsing(function (Pass $record) {
@@ -114,35 +133,32 @@ class PassResource extends Resource
                     ->sortable(),
             ])
             ->filters([
-                SelectFilter::make('family')
-                    ->relationship('children.family', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->modifyFormFieldUsing(function (Select $field) {
-                        $field
-                            ->reactive()
-                            ->afterStateUpdated(fn($state, callable $set, HasTable $livewire) => $livewire->removeTableFilter('children'));
-                    }),
-                SelectFilter::make('children')
-                    ->relationship(
-                        name: 'children',
-                        titleAttribute: 'first_name',
-                        modifyQueryUsing: function (
-                            Builder  $query,
-                            HasTable $livewire
-                        ) {
-                            $query->when(
-                                value: $livewire->getTableFilterState('family'),
-                                callback: fn($q, $familyId) => $q->where('family_id', $familyId)
-                            );
-                        }
-                    )
-                    ->getOptionLabelFromRecordUsing(
-                        fn(Child $record): string => "{$record->first_name} {$record->last_name}"
-                    )
-                    ->searchable()
-                    ->multiple()
-                    ->preload(),
+                SelectFilter::make('selectedUserFamilyChildren')
+                ->label('Children')
+                ->options(function () use ($selectedUser) {
+                    if (!$selectedUser || !$selectedUser->family) {
+                        return [];
+                    }
+
+                    $passChildrenIds = Pass::where('user_id', $selectedUser->id)
+                        ->pluck('child_id')
+                        ->unique()
+                        ->toArray();
+
+
+                    return $selectedUser->family->children
+                        ->filter(function (Child $child) use ($passChildrenIds) {
+                            return in_array($child->id, $passChildrenIds);
+                        })
+                        ->mapWithKeys(function (Child $child) {
+                            return [$child->id => $child->full_name];
+                        })
+                        ->toArray();
+                })
+                ->attribute('child_id')
+                ->multiple()
+                ->preload()
+                ->visible(fn() => $selectedUser?->family)
             ])
             ->deferFilters()
             ->filtersTriggerAction(

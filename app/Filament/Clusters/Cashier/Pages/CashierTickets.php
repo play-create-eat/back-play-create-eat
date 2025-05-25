@@ -13,6 +13,7 @@ use Bavix\Wallet\Internal\Exceptions\ExceptionInterface;
 use Bavix\Wallet\Objects\Cart;
 use Bavix\Wallet\Services\FormatterServiceInterface;
 use Carbon\Carbon;
+use Exception;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Repeater;
@@ -29,6 +30,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Url;
+use Throwable;
 
 class CashierTickets extends Page implements HasForms
 {
@@ -56,11 +58,10 @@ class CashierTickets extends Page implements HasForms
     #[Url]
     public ?string $order = null;
     public array $passes = [];
-    public string $step = 'checkout'; // checkout | fulfillment
+    public string $step = 'checkout';
 
     public function mount(): void
     {
-        // Make sure user selection is initialized properly
         if (method_exists($this, 'bootHasGlobalUserSearch')) {
             $this->bootHasGlobalUserSearch();
         }
@@ -68,11 +69,9 @@ class CashierTickets extends Page implements HasForms
         $this->passes = $this->order ? Cache::get("cashier.order.{$this->order}", []) : [];
         $this->products = Product::available()->with(['features'])->get()->keyBy('id');
 
-        // Initialize the form with default values
         $this->form->fill();
     }
 
-    // Add event listener for user selection to refresh the form
     protected function getListeners(): array
     {
         return [
@@ -80,15 +79,12 @@ class CashierTickets extends Page implements HasForms
         ];
     }
 
-    // Method to refresh the form after user selection
     public function refreshForm(): void
     {
-        // Reset the form data to start fresh
         $this->data = [
             'tickets' => []
         ];
 
-        // Force re-render the form with the current state
         $this->form->fill();
     }
 
@@ -155,6 +151,9 @@ class CashierTickets extends Page implements HasForms
             ->statePath('data');
     }
 
+    /**
+     * @throws Throwable
+     */
     public function submit(): void
     {
         $data = $this->form->getState();
@@ -164,7 +163,6 @@ class CashierTickets extends Page implements HasForms
 
             $tickets = $data['tickets'] ?? [];
 
-            // Validate that tickets have been added
             if (empty($tickets)) {
                 Notification::make()
                     ->title('No tickets added')
@@ -177,18 +175,15 @@ class CashierTickets extends Page implements HasForms
             $cart = app(Cart::class);
 
             if (!$this->selectedUser) {
-                throw new \Exception('No user selected');
+                throw new Exception('No user selected');
             }
 
-            // Make sure user and family are properly loaded with all needed relationships
-            // Using the correct naming as per Family model
             $client = User::with(['family.children', 'family.wallets'])->find($this->selectedUser->id);
 
             if (!$client || !$client->family) {
-                throw new \Exception('User has no associated family');
+                throw new Exception('User has no associated family');
             }
 
-            // Ensure the wallets are loaded
             if (!$client->family->relationLoaded('wallets')) {
                 $client->family->load('wallets');
             }
@@ -198,7 +193,7 @@ class CashierTickets extends Page implements HasForms
                 $product = $this->products->get($ticket['product_id'] ?? null);
 
                 if (!$product) {
-                    throw new \Exception('Invalid product selected');
+                    throw new Exception('Invalid product selected');
                 }
 
                 $date = Carbon::parse($ticket['activation_date']);
@@ -235,7 +230,7 @@ class CashierTickets extends Page implements HasForms
                 $child = $children->get($childId);
 
                 if (!$child) {
-                    throw new \Exception("Child with ID {$childId} not found");
+                    throw new Exception("Child with ID {$childId} not found");
                 }
 
                 $passes[] = $passService->purchase(
@@ -277,7 +272,7 @@ class CashierTickets extends Page implements HasForms
                 ->body($e->getMessage())
                 ->danger()
                 ->send();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Notification::make()
                 ->title('An error occurred')
