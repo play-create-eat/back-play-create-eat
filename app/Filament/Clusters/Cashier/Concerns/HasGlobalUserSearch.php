@@ -5,55 +5,52 @@ namespace App\Filament\Clusters\Cashier\Concerns;
 use App\Models\User;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Get;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 
 trait HasGlobalUserSearch
 {
     public ?string $selectedUserId = null;
     public ?User $selectedUser = null;
-    
-    // Livewire lifecycle hook that will be called automatically
+
     public function bootHasGlobalUserSearch(): void
     {
         $this->selectedUserId = session('cashier.selected_user_id');
-        
+
         if ($this->selectedUserId) {
-            // Load user with family but without children
             $this->selectedUser = User::with([
-                'profile', 
+                'profile',
                 'family'
             ])->find($this->selectedUserId);
-            
-            \Illuminate\Support\Facades\Log::info('Boot - User selection restored from session', [
+
+            Log::info('Boot - User selection restored from session', [
                 'selectedUserId' => $this->selectedUserId,
                 'has_user' => (bool)$this->selectedUser,
-                'has_family' => $this->selectedUser && $this->selectedUser->family ? true : false,
-                'family_loaded' => $this->selectedUser ? $this->selectedUser->relationLoaded('family') : false,
+                'has_family' => $this->selectedUser && $this->selectedUser->family,
+                'family_loaded' => $this->selectedUser && $this->selectedUser->relationLoaded('family'),
                 'family_id' => $this->selectedUser && $this->selectedUser->family ? $this->selectedUser->family->id : null,
             ]);
         }
     }
-    
+
     public function selectUser(?string $userId): void
     {
-        \Illuminate\Support\Facades\Log::info('Select User called', ['userId' => $userId]);
-        
+        Log::info('Select User called', ['userId' => $userId]);
+
         if ($userId) {
             Session::put('cashier.selected_user_id', $userId);
             $this->selectedUserId = $userId;
-            
-            // Load user with family but without children to avoid deep nesting issues
+
             $this->selectedUser = User::with([
-                'profile', 
+                'profile',
                 'family'
             ])->find($userId);
-            
-            // Add debug logging to check relationships
+
             if ($this->selectedUser) {
-                \Illuminate\Support\Facades\Log::info('User selected', [
+                Log::info('User selected', [
                     'user_id' => $userId,
                     'selectedUserId' => $this->selectedUserId,
-                    'has_family' => $this->selectedUser->family ? true : false,
+                    'has_family' => (bool)$this->selectedUser->family,
                     'family_loaded' => $this->selectedUser->relationLoaded('family'),
                     'family_id' => $this->selectedUser->family ? $this->selectedUser->family->id : null,
                 ]);
@@ -63,16 +60,14 @@ trait HasGlobalUserSearch
             $this->selectedUserId = null;
             $this->selectedUser = null;
         }
-        
-        // Dispatch an event to notify components that user has been selected
+
         $this->dispatch('user-selected', userId: $userId);
-        
-        // This ensures the whole component is re-initialized
+
         if (method_exists($this, 'reset')) {
             $this->reset(['data']);
         }
     }
-    
+
     public function getUserSearchField(): Select
     {
         return Select::make('selectedUserId')
@@ -114,9 +109,9 @@ trait HasGlobalUserSearch
                 $this->selectUser($state);
             });
     }
-    
+
     public function clearSelectedUser(): void
     {
         $this->selectUser(null);
     }
-} 
+}

@@ -50,7 +50,7 @@ class CashierTickets extends Page implements HasForms
     public ?array $data = [
         'tickets' => [],
     ];
-    
+
     public ?Collection $products = null;
 
     #[Url]
@@ -64,10 +64,10 @@ class CashierTickets extends Page implements HasForms
         if (method_exists($this, 'bootHasGlobalUserSearch')) {
             $this->bootHasGlobalUserSearch();
         }
-        
+
         $this->passes = $this->order ? Cache::get("cashier.order.{$this->order}", []) : [];
         $this->products = Product::available()->with(['features'])->get()->keyBy('id');
-        
+
         // Initialize the form with default values
         $this->form->fill();
     }
@@ -79,7 +79,7 @@ class CashierTickets extends Page implements HasForms
             'user-selected' => 'refreshForm',
         ];
     }
-    
+
     // Method to refresh the form after user selection
     public function refreshForm(): void
     {
@@ -87,7 +87,7 @@ class CashierTickets extends Page implements HasForms
         $this->data = [
             'tickets' => []
         ];
-        
+
         // Force re-render the form with the current state
         $this->form->fill();
     }
@@ -100,7 +100,7 @@ class CashierTickets extends Page implements HasForms
                     ->hiddenOn('edit')
                     ->visible(fn() => !$this->selectedUser)
                     ->columnSpanFull(),
-                
+
                 Repeater::make('tickets')
                     ->schema([
                         Select::make('child_id')
@@ -144,7 +144,7 @@ class CashierTickets extends Page implements HasForms
                             ->columnSpan(2)
                         ,
                     ])
-                    ->columns(2)
+                    ->columns()
                     ->addActionLabel('Add ticket')
                     ->minItems(1)
                     ->disabled(fn() => !$this->selectedUser)
@@ -163,7 +163,7 @@ class CashierTickets extends Page implements HasForms
             DB::beginTransaction();
 
             $tickets = $data['tickets'] ?? [];
-            
+
             // Validate that tickets have been added
             if (empty($tickets)) {
                 Notification::make()
@@ -173,21 +173,21 @@ class CashierTickets extends Page implements HasForms
                     ->send();
                 return;
             }
-            
+
             $cart = app(Cart::class);
-            
+
             if (!$this->selectedUser) {
                 throw new \Exception('No user selected');
             }
-            
+
             // Make sure user and family are properly loaded with all needed relationships
             // Using the correct naming as per Family model
             $client = User::with(['family.children', 'family.wallets'])->find($this->selectedUser->id);
-            
+
             if (!$client || !$client->family) {
                 throw new \Exception('User has no associated family');
             }
-            
+
             // Ensure the wallets are loaded
             if (!$client->family->relationLoaded('wallets')) {
                 $client->family->load('wallets');
@@ -196,11 +196,11 @@ class CashierTickets extends Page implements HasForms
             foreach ($tickets as $ticket) {
                 /** @var Product $product */
                 $product = $this->products->get($ticket['product_id'] ?? null);
-                
+
                 if (!$product) {
                     throw new \Exception('Invalid product selected');
                 }
-                
+
                 $date = Carbon::parse($ticket['activation_date']);
                 $productPrice = $product->getFinalPrice($date);
                 $cart = $cart->withItem($product, pricePerItem: $productPrice);
@@ -233,12 +233,11 @@ class CashierTickets extends Page implements HasForms
             foreach ($tickets as $ticket) {
                 $childId = $ticket['child_id'];
                 $child = $children->get($childId);
-                
+
                 if (!$child) {
                     throw new \Exception("Child with ID {$childId} not found");
                 }
-                
-                // Explicitly set loyaltyPointAmount to 0 to avoid issues with loyalty wallet
+
                 $passes[] = $passService->purchase(
                     user: $client,
                     child: $child,
@@ -250,17 +249,16 @@ class CashierTickets extends Page implements HasForms
             }
 
             DB::commit();
-            Cache::put("cashier.order.{$orderId}", $passes, now()->addDays(2));
+            Cache::put("cashier.order.$orderId", $passes, now()->addDays(2));
 
             $this->passes = $passes;
             $this->order = $orderId;
             $this->step = 'fulfillment';
-            
-            // Reset form after successful submission
+
             $this->data = [
                 'tickets' => []
             ];
-            
+
             Notification::make()
                 ->title('Tickets purchased successfully')
                 ->success()
