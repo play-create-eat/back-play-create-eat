@@ -3,19 +3,34 @@
 namespace App\Filament\Clusters\Cashier\Pages;
 
 use App\Filament\Clusters\Cashier;
+use App\Filament\Clusters\Cashier\Concerns\HasGlobalUserSearch;
 use App\Models\Family;
+use App\Models\User;
 use Bavix\Wallet\Internal\Exceptions\ExceptionInterface;
+use Bavix\Wallet\Models\Transaction;
 use Bavix\Wallet\Models\Wallet;
+use Bavix\Wallet\Services\FormatterServiceInterface;
+use Exception;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Support\RawJs;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
+use Illuminate\Support\Facades\Log;
+use Filament\Tables\Contracts\HasTable;
 
-class WalletBalance extends Page
+
+class WalletBalance extends Page implements HasTable
 {
     use InteractsWithForms;
+    use InteractsWithTable;
+    use HasGlobalUserSearch;
 
     protected static ?string $cluster = Cashier::class;
 
@@ -29,49 +44,179 @@ class WalletBalance extends Page
 
     public function mount(): void
     {
+        if (method_exists($this, 'bootHasGlobalUserSearch')) {
+            $this->bootHasGlobalUserSearch();
+        }
+
+        $this->form->fill();
+    }
+
+    public function refreshForm(): void
+    {
+        Log::info('Refreshing wallet form', [
+            'selectedUserId' => $this->selectedUserId,
+            'hasUser'        => (bool)$this->selectedUser,
+        ]);
+
+        if ($this->selectedUserId) {
+            $this->selectedUser = User::with([
+                'profile',
+                'family',
+                'family.children'
+            ])->find($this->selectedUserId);
+        }
+
+        $this->data = [];
+
         $this->form->fill();
     }
 
     public function form(Form $form): Form
     {
+        Log::info('Wallet form method called', [
+            'selectedUserId' => $this->selectedUserId,
+            'hasUser'        => (bool)$this->selectedUser,
+        ]);
+
         return $form
             ->schema([
-                Select::make('family_id')
-                    ->label('Select Family')
-                    ->options(Family::pluck('name', 'id'))
-                    ->searchable()
-                    ->required(),
+                $this->getUserSearchField()
+                    ->hiddenOn('edit')
+                    ->visible(fn() => !$this->selectedUser)
+                    ->columnSpanFull(),
 
-                Select::make('wallet_type')
-                    ->label('Wallet Type')
+                Select::make('payment_method')
+                    ->label('Payment Method')
                     ->options([
-                        'main'     => 'Main Wallet',
-                        'cashback' => 'Cashback Wallet',
+                        'cash' => 'Cash Payment',
+                        'card' => 'Card Payment',
                     ])
-                    ->required(),
+                    ->default('cash')
+                    ->required()
+                    ->visible(fn() => (bool)$this->selectedUser),
 
                 TextInput::make('amount')
-                    ->label('Amount')
+                    ->label('Amount (AED)')
+                    ->prefix('AED ')
+                    ->mask(RawJs::make('$money($input)'))
+                    ->stripCharacters(',')
                     ->numeric()
+                    ->required()
+                    ->visible(fn() => (bool)$this->selectedUser)
                     ->minValue(2)
-                    ->required(),
             ])
             ->statePath('data');
     }
 
+    /**
+     * @throws Exception
+     */
+    public function table(Table $table): Table
+    {
+        $query = Transaction::query();
+
+        if ($this->selectedUser && $this->selectedUser->family) {
+            $query->where('payable_type', Family::class)
+                ->where('payable_id', $this->selectedUser->family->id);
+        }
+
+        return $table
+            ->query($query)
+            ->columns([
+                TextColumn::make('uuid')->label('ID')->searchable()
+                ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('wallet.name')->label('Wallet Type')
+                ->toggleable(),
+                TextColumn::make('type')->sortable()->searchable()->toggleable(),
+                TextColumn::make('amount')->money('AED')->getStateUsing(function(Transaction $record) { $amount = $record->amount / 100;
+                    if (floor($amount) == $amount) {
+                        return 'AED ' . number_format($amount);
+                    } else {
+                        return 'AED ' . number_format($amount, 2);
+                    }
+                }),
+                TextColumn::make('meta.description')->label('Description')->wrap(),
+                TextColumn::make('created_at')->label('Date')->dateTime()->sortable(),
+            ])
+            ->filters([
+                SelectFilter::make('wallet_id')
+                    ->label('Wallet')
+                    ->options(function () {
+                        if (!$this->selectedUser || !$this->selectedUser->family) {
+                            return [];
+                        }
+
+                        $walletIds = Transaction::where('payable_type', Family::class)
+                            ->where('payable_id', $this->selectedUser->family->id)
+                            ->pluck('wallet_id')
+                            ->unique();
+
+                        return Wallet::whereIn('id', $walletIds)
+                            ->pluck('name', 'id')
+                            ->toArray();
+
+                    }),
+
+                SelectFilter::make('type')
+                    ->options([
+                        'deposit'  => 'Deposit',
+                        'withdraw' => 'Withdraw',
+                    ])
+                    ->label('Transaction Type'),
+
+            ])
+            ->emptyStateHeading('No transactions found')
+            ->emptyStateDescription(fn() => $this->selectedUserId
+                ? 'No transactions found for this user.'
+                : 'Please select a user to view their transactions.')
+            ->emptyStateIcon('heroicon-o-receipt-refund')
+            ->defaultSort('created_at', 'desc')
+            ->searchable();
+    }
+
     public function submit(): void
     {
-        $data = $this->form->getState();
-        $family = Family::findOrFail($data['family_id']);
+        if (!$this->selectedUser || !$this->selectedUser->family) {
+            Notification::make()
+                ->title('No user selected')
+                ->body('Please select a user first.')
+                ->danger()
+                ->send();
+            return;
+        }
 
-        $wallet = match ($data['wallet_type']) {
-            'cashback' => $family->loyalty_wallet,
-            default => $family->main_wallet,
+        $data = $this->form->getState();
+        $family = $this->selectedUser->family;
+
+        $paymentMethod = match ($data['payment_method']) {
+            'card' => 'Card Payment',
+            default => 'Cash Payment',
         };
 
+        $description = "Manual top-up by cashier ($paymentMethod)";
+
         try {
-            $wallet->deposit((float) $data['amount']);
+            $family->main_wallet->deposit((float)$data['amount'] * 100, [
+                'description' => $description,
+                'payment_method' => $data['payment_method'],
+                'cashier_id'  => auth()->id(),
+            ]);
+
+            Log::info('Wallet topped up', [
+                'user_id'     => $this->selectedUserId,
+                'family_id'   => $family->id,
+                'wallet_type' => 'main_wallet',
+                'amount'      => $data['amount'],
+            ]);
+
         } catch (ExceptionInterface $e) {
+            Log::error('Failed to top up wallet', [
+                'user_id'     => $this->selectedUserId,
+                'family_id'   => $family->id,
+                'wallet_type' => 'main_wallet',
+                'amount'      => $data['amount'],
+                'error'       => $e->getMessage(),
+            ]);
 
             Notification::make()
                 ->title('Failed to top up wallet.')
@@ -81,13 +226,20 @@ class WalletBalance extends Page
             return;
         }
 
-
         Notification::make()
             ->title('Wallet topped up successfully.')
-            ->body("{$data['amount']} was added to the {$data['wallet_type']} wallet.")
+            ->body("{$data['amount']} was added to the main wallet.")
             ->success()
             ->send();
 
+        $this->data = [];
         $this->form->fill();
+    }
+
+    protected function getListeners(): array
+    {
+        return [
+            'user-selected' => 'refreshForm',
+        ];
     }
 }
