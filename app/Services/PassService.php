@@ -436,11 +436,13 @@ class PassService
             ->withItem($product, pricePerItem: $productPrice)
             ->withMeta([
                 ...$meta,
-                'loyalty_points_used' => $loyaltyPointAmount,
-                'discount_percent' => $product->discount_percent,
-                'cashback_percent' => $product->cashback_percent,
-                'cashback_amount' => $cashbackAmount,
-                'fee_percent' => $product->fee_percent,
+                'loyalty_points_used'       => $loyaltyPointAmount,
+                'discount_price_weekday'    => $product->discount_price_weekday,
+                'discount_price_weekend'    => $product->discount_price_weekend,
+                'discount_percent'          => $product->discount_percent,
+                'cashback_percent'          => $product->cashback_percent,
+                'cashback_amount'           => $cashbackAmount,
+                'fee_percent'               => $product->fee_percent,
             ]);
 
         list($transfer) = array_values($family->payCart($cart));
