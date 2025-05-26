@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\v1\ChildController;
 use App\Http\Controllers\Api\v1\FamilyController;
 use App\Http\Controllers\Api\v1\InvitationController;
+use App\Http\Controllers\Api\v1\NotificationController;
 use App\Http\Controllers\Api\v1\PandaDocController;
 use App\Http\Controllers\Api\v1\PaymentController;
 use App\Http\Controllers\Api\v1\ProductController;
@@ -57,6 +58,7 @@ Route::prefix('v1')->group(function () {
 
         Route::post('payments/{payment}/card-pay', [PaymentController::class, 'cardPay']);
 
+        Route::post('/notifications/test', [NotificationController::class, 'sendTestNotification']);
     });
 
     Route::post('invite/register-step-1', [InvitationController::class, 'validateStep1']);
