@@ -401,9 +401,7 @@ class PassService
         $productPrice = $product->getFinalPrice($date);
         $loyaltyWallet = $family->loyalty_wallet;
 
-        // Initialize loyaltyWallet variable
-        $loyaltyWallet = null;
-        
+
         if ($loyaltyPointAmount > 0) {
             if ($loyaltyPointAmount > $productPrice) {
                 $loyaltyPointAmount = $productPrice;
@@ -448,11 +446,7 @@ class PassService
         list($transfer) = array_values($family->payCart($cart));
 
         if ($cashbackAmount > 0) {
-            // Make sure we have a valid loyalty wallet before attempting to deposit
-            if ($loyaltyWallet === null) {
-                $loyaltyWallet = $family->loyalty_wallet;
-            }
-            
+
             $loyaltyWallet->deposit(
                 $cashbackAmount,
                 [
