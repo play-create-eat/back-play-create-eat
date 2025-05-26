@@ -159,6 +159,12 @@ class CelebrationController extends Controller
             $celebration->children_count
         );
 
+        if (Carbon::parse($validated['date'])->isSameDay(Carbon::now())) {
+            $slots = array_filter($slots, function ($slot) {
+                return Carbon::parse($slot['start_time'])->gt(Carbon::now());
+            });
+        }
+
         return response()->json([
             'date'     => $validated['date'],
             'duration' => $celebration->package->duration_hours,
