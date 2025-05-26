@@ -66,6 +66,11 @@ trait HasGlobalUserSearch
         if (method_exists($this, 'reset')) {
             $this->reset(['data']);
         }
+
+        if (method_exists($this, 'resetTable')) {
+            $this->resetTable();
+        }
+
     }
 
     public function getUserSearchField(): Select

@@ -4,12 +4,12 @@ namespace App\Filament\Clusters\Cashier\Pages;
 
 use App\Filament\Clusters\Cashier;
 use App\Filament\Clusters\Cashier\Concerns\HasGlobalUserSearch;
+use App\Filament\Clusters\Cashier\Concerns\HasUserSearchForm;
 use App\Models\Family;
 use App\Models\User;
 use Bavix\Wallet\Internal\Exceptions\ExceptionInterface;
 use Bavix\Wallet\Models\Transaction;
 use Bavix\Wallet\Models\Wallet;
-use Bavix\Wallet\Services\FormatterServiceInterface;
 use Exception;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -31,6 +31,7 @@ class WalletBalance extends Page implements HasTable
     use InteractsWithForms;
     use InteractsWithTable;
     use HasGlobalUserSearch;
+    use HasUserSearchForm;
 
     protected static ?string $cluster = Cashier::class;
 
@@ -48,6 +49,7 @@ class WalletBalance extends Page implements HasTable
             $this->bootHasGlobalUserSearch();
         }
 
+        $this->mountHasUserSearchForm();
         $this->form->fill();
     }
 
@@ -67,8 +69,9 @@ class WalletBalance extends Page implements HasTable
         }
 
         $this->data = [];
-
         $this->form->fill();
+        $this->refreshUserSearchForm();
+        $this->resetTable();
     }
 
     public function form(Form $form): Form
@@ -78,33 +81,36 @@ class WalletBalance extends Page implements HasTable
             'hasUser'        => (bool)$this->selectedUser,
         ]);
 
+        $schema = [];
+
+        if (!$this->selectedUser) {
+            $schema[] = $this->getUserSearchComponent();
+        }
+
+        if ($this->selectedUser) {
+            $schema[] = Select::make('payment_method')
+                ->label('Payment Method')
+                ->options([
+                    'cash' => 'Cash Payment',
+                    'card' => 'Card Payment',
+                ])
+                ->default('cash')
+                ->required()
+                ->visible(fn() => (bool)$this->selectedUser);
+
+            $schema[] = TextInput::make('amount')
+                ->label('Amount (AED)')
+                ->prefix('AED ')
+                ->mask(RawJs::make('$money($input)'))
+                ->stripCharacters(',')
+                ->numeric()
+                ->required()
+                ->visible(fn() => (bool)$this->selectedUser)
+                ->minValue(2);
+        }
+
         return $form
-            ->schema([
-                $this->getUserSearchField()
-                    ->hiddenOn('edit')
-                    ->visible(fn() => !$this->selectedUser)
-                    ->columnSpanFull(),
-
-                Select::make('payment_method')
-                    ->label('Payment Method')
-                    ->options([
-                        'cash' => 'Cash Payment',
-                        'card' => 'Card Payment',
-                    ])
-                    ->default('cash')
-                    ->required()
-                    ->visible(fn() => (bool)$this->selectedUser),
-
-                TextInput::make('amount')
-                    ->label('Amount (AED)')
-                    ->prefix('AED ')
-                    ->mask(RawJs::make('$money($input)'))
-                    ->stripCharacters(',')
-                    ->numeric()
-                    ->required()
-                    ->visible(fn() => (bool)$this->selectedUser)
-                    ->minValue(2)
-            ])
+            ->schema($schema)
             ->statePath('data');
     }
 
@@ -233,7 +239,19 @@ class WalletBalance extends Page implements HasTable
             ->send();
 
         $this->data = [];
+        $this->refreshUserSearchForm();
         $this->form->fill();
+
+        $this->resetTable();
+    }
+
+    public function clearSelectedUser(): void
+    {
+        $this->selectUser(null);
+        $this->refreshUserSearchForm();
+        $this->form->fill();
+        $this->resetTable();
+
     }
 
     protected function getListeners(): array
