@@ -1,9 +1,14 @@
 <x-filament::page>
+    @include('filament.clusters.cashier.components.selected-user-info', ['selectedUser' => $this->selectedUser])
     <div class="space-y-6">
         <div class="p-4 bg-white rounded-lg shadow dark:bg-gray-800">
             <div class="flex items-center mb-4">
-                <x-heroicon-o-banknotes class="w-6 h-6 text-primary-500 mr-4" />
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white ml-4">Top Up</h3>
+                @if($this->selectedUser)
+                    <x-heroicon-o-banknotes class="w-6 h-6 text-primary-500 mr-4" />
+                @endif
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white ml-4">
+                    {{ $this->selectedUser ? 'Top Up' : 'Search for a client' }}
+                </h3>
             </div>
 
             {{ $this->form }}

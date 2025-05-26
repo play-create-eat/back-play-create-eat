@@ -3,6 +3,7 @@
 namespace App\Filament\Clusters\Cashier\Resources;
 
 use App\Filament\Clusters\Cashier;
+use App\Filament\Clusters\Cashier\Concerns\HasGlobalUserSearch;
 use App\Filament\Clusters\Cashier\Resources\PassResource\Pages;
 use App\Models\Child;
 use App\Models\Pass;
