@@ -1,3 +1,4 @@
+
 <x-filament-panels::page>
     @if($transaction && count($receipt) > 0)
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
@@ -64,19 +65,30 @@
             </div>
         </div>
     @else
-        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-            <form wire:submit="submit">
-                {{ $this->form }}
+        @if(!$this->selectedUser)
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 mb-4">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Search for a client</h3>
+                <x-filament-panels::form wire:submit="search">
+                    {{ $this->form }}
+                </x-filament-panels::form>
+            </div>
+        @else
+            @include('filament.clusters.cashier.components.selected-user-info', ['selectedUser' => $this->selectedUser])
 
-                <div class="mt-6 flex justify-end">
-                    <x-filament::button
-                        type="submit"
-                        :disabled="blank($this->data['celebration_id'])"
-                    >
-                        Process Payment
-                    </x-filament::button>
-                </div>
-            </form>
-        </div>
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                <form wire:submit="submit">
+                    {{ $this->form }}
+
+                    <div class="mt-6 flex justify-end">
+                        <x-filament::button
+                            type="submit"
+                            :disabled="blank($this->data['celebration_id'])"
+                        >
+                            Process Payment
+                        </x-filament::button>
+                    </div>
+                </form>
+            </div>
+        @endif
     @endif
 </x-filament-panels::page>
