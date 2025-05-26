@@ -30,7 +30,7 @@
             @foreach($this->passes as $pass)
                 @include('filament.clusters.cashier.components.pass', ['pass' => $pass])
             @endforeach
-            
+
             <div class="mt-6">
                 <x-filament::button wire:click="back" color="gray">
                     Back to Purchase
@@ -44,18 +44,26 @@
             </div>
         @endif
 
-        @include('filament.clusters.cashier.components.selected-user-info', ['selectedUser' => $this->selectedUser])
+        @if(!$this->selectedUser)
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 mb-4">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Search for a client</h3>
+                <x-filament-panels::form wire:submit="search">
+                    {{ $this->form }}
+                </x-filament-panels::form>
+            </div>
+        @else
+            @include('filament.clusters.cashier.components.selected-user-info', ['selectedUser' => $this->selectedUser])
 
-        <x-filament-panels::form>
-            {{ $this->form }}
-            
-            @if($this->selectedUser)
+            <x-filament-panels::form wire:submit="submit">
+                {{ $this->form }}
+
                 <div class="mt-4">
-                    <x-filament::button wire:click="submit">
+                    <x-filament::button type="submit">
                         Continue to Purchase
                     </x-filament::button>
                 </div>
-            @endif
-        </x-filament-panels::form>
+            </x-filament-panels::form>
+        @endif
+
     @endif
 </x-filament-panels::page>

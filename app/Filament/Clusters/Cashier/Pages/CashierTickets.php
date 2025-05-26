@@ -5,6 +5,7 @@ namespace App\Filament\Clusters\Cashier\Pages;
 use App\Exceptions\InsufficientBalanceException;
 use App\Filament\Clusters\Cashier;
 use App\Filament\Clusters\Cashier\Concerns\HasGlobalUserSearch;
+use App\Filament\Clusters\Cashier\Concerns\HasUserSearchForm;
 use App\Models\Child;
 use App\Models\Product;
 use App\Models\User;
@@ -14,20 +15,21 @@ use Bavix\Wallet\Objects\Cart;
 use Bavix\Wallet\Services\FormatterServiceInterface;
 use Carbon\Carbon;
 use Exception;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
-use Filament\Facades\Filament;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Url;
 use Throwable;
@@ -36,6 +38,7 @@ class CashierTickets extends Page implements HasForms
 {
     use InteractsWithForms;
     use HasGlobalUserSearch;
+    use HasUserSearchForm;
 
     protected static ?string $cluster = Cashier::class;
 
@@ -44,21 +47,17 @@ class CashierTickets extends Page implements HasForms
 
     protected static ?string $navigationLabel = 'Tickets Purchase';
     protected static ?string $title = 'Tickets Purchase';
-
-    protected $queryString = [
-        'order' => ['except' => null],
-    ];
-
     public ?array $data = [
         'tickets' => [],
     ];
-
     public ?Collection $products = null;
-
     #[Url]
     public ?string $order = null;
     public array $passes = [];
     public string $step = 'checkout';
+    protected $queryString = [
+        'order' => ['except' => null],
+    ];
 
     public function mount(): void
     {
@@ -66,44 +65,56 @@ class CashierTickets extends Page implements HasForms
             $this->bootHasGlobalUserSearch();
         }
 
+        $this->mountHasUserSearchForm();
         $this->passes = $this->order ? Cache::get("cashier.order.{$this->order}", []) : [];
         $this->products = Product::available()->with(['features'])->get()->keyBy('id');
 
         $this->form->fill();
     }
 
-    protected function getListeners(): array
-    {
-        return [
-            'user-selected' => 'refreshForm',
-        ];
-    }
-
     public function refreshForm(): void
     {
+        Log::info('Refreshing tickets form', [
+            'selectedUserId' => $this->selectedUserId,
+            'hasUser'        => (bool)$this->selectedUser,
+        ]);
+
+        if ($this->selectedUserId) {
+            $this->selectedUser = User::with([
+                'profile',
+                'family',
+                'family.children'
+            ])->find($this->selectedUserId);
+        }
+
         $this->data = [
             'tickets' => []
         ];
 
+        $this->refreshUserSearchForm();
         $this->form->fill();
     }
 
     public function form(Form $form): Form
     {
+        if (!$this->selectedUser) {
+            return $form
+                ->schema([
+                    $this->getUserSearchField()
+                        ->columnSpanFull(),
+                ])
+                ->statePath('data');
+        }
+
         return $form
             ->schema([
-                $this->getUserSearchField()
-                    ->hiddenOn('edit')
-                    ->visible(fn() => !$this->selectedUser)
-                    ->columnSpanFull(),
-
                 Repeater::make('tickets')
                     ->schema([
                         Select::make('child_id')
                             ->label('Child')
                             ->native(false)
                             ->live()
-                            ->dehydrated(true)
+                            ->dehydrated()
                             ->options(function () {
                                 if (!$this->selectedUser || !$this->selectedUser->family) {
                                     return [];
@@ -111,7 +122,7 @@ class CashierTickets extends Page implements HasForms
 
                                 return $this->selectedUser->family->children
                                     ->mapWithKeys(fn(Child $child) => [
-                                        $child->id => "{$child->first_name} {$child->last_name}"
+                                        $child->id => "$child->first_name $child->last_name"
                                     ])
                                     ->toArray();
                             })
@@ -138,7 +149,6 @@ class CashierTickets extends Page implements HasForms
                             ->exists(table: Product::class, column: 'id')
                             ->required()
                             ->columnSpan(2)
-                        ,
                     ])
                     ->columns()
                     ->addActionLabel('Add ticket')
@@ -149,6 +159,25 @@ class CashierTickets extends Page implements HasForms
                     ->columnSpanFull()
             ])
             ->statePath('data');
+    }
+
+    protected function getProductOptions(string $activationDate = null): array
+    {
+        if ($this->products) {
+            $date = $activationDate ? Carbon::parse($activationDate) : today();
+            return $this->products
+                ->mapWithKeys(function (Product $product) use ($date) {
+                    return [
+                        "{$product->id}" => view('filament.clusters.cashier.components.ticket-option', [
+                            'name'     => $product->name,
+                            'features' => $product->features->pluck('name')->toArray(),
+                            'price'    => app(FormatterServiceInterface::class)->floatValue($product->getFinalPrice($date), 2),
+                        ])->render()
+                    ];
+                })
+                ->toArray();
+        }
+        return [];
     }
 
     /**
@@ -214,7 +243,7 @@ class CashierTickets extends Page implements HasForms
             $orderId = (string)Str::uuid7(time: now());
             $orderMeta = [
                 'cashier_order_id' => $orderId,
-                'cashier_user_id' => $cashierUser->id,
+                'cashier_user_id'  => $cashierUser->id,
             ];
 
             $children = $client->family->children()
@@ -288,22 +317,17 @@ class CashierTickets extends Page implements HasForms
         $this->passes = [];
     }
 
-    protected function getProductOptions(string $activationDate = null): array
+    public function clearSelectedUser(): void
     {
-        if ($this->products) {
-            $date = $activationDate ? Carbon::parse($activationDate) : today();
-            return $this->products
-                ->mapWithKeys(function (Product $product) use ($date) {
-                    return [
-                        "{$product->id}" => view('filament.clusters.cashier.components.ticket-option', [
-                            'name' => $product->name,
-                            'features' => $product->features->pluck('name')->toArray(),
-                            'price' => app(FormatterServiceInterface::class)->floatValue($product->getFinalPrice($date), 2),
-                        ])->render()
-                    ];
-                })
-                ->toArray();
-        }
-        return [];
+        $this->selectUser(null);
+        $this->refreshUserSearchForm();
+        $this->form->fill();
+    }
+
+    protected function getListeners(): array
+    {
+        return [
+            'user-selected' => 'refreshForm',
+        ];
     }
 }
