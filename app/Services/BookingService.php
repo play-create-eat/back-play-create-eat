@@ -28,7 +28,9 @@ class BookingService
         $duration = (int)$package->duration_hours;
 
         $workStartTime = Carbon::parse($date . ' 10:00');
-        $workEndTime = Carbon::parse($date . ' 20:00');
+        $workEndTime = Carbon::parse($date)->isWeekend()
+            ? Carbon::parse($date . ' 22:00')
+            : Carbon::parse($date . ' 20:00');
 
         Log::debug('Work hours', [
             'workStartTime' => $workStartTime->format('Y-m-d H:i'),
