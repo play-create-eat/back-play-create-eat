@@ -45,6 +45,7 @@ class ThemeResource extends Resource
                             ->label('Main Image')
                             ->helperText('Only one main image allowed')
                             ->maxFiles(1)
+                            ->maxSize(102400)
                             ->customProperties([
                                 'main' => true,
                             ])
@@ -62,6 +63,7 @@ class ThemeResource extends Resource
                             ->multiple()
                             ->reorderable()
                             ->maxFiles(5)
+                            ->maxSize(102400)
                             ->deleteUploadedFileUsing(static function (SpatieMediaLibraryFileUpload $component, string $file) {
                                 if (!$file) return;
 

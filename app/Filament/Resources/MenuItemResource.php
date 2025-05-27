@@ -50,7 +50,7 @@ class MenuItemResource extends Resource
                     ->collection('menu_item_images')
                     ->image()
                     ->required()
-                    ->maxSize(10240),
+                    ->maxSize(102400),
                 Repeater::make('options')
                     ->relationship('options')
                     ->schema([
@@ -58,7 +58,7 @@ class MenuItemResource extends Resource
                         SpatieMediaLibraryFileUpload::make('menu_item_option_image')
                             ->collection('menu_item_option_image')
                             ->image()
-                            ->maxSize(10240),
+                            ->maxSize(102400),
                     ])->addActionLabel('Add Option'),
             ]);
     }
