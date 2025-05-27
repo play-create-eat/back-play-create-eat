@@ -7,9 +7,12 @@ use App\Filament\Clusters\Cashier\Concerns\HasGlobalUserSearch;
 use App\Filament\Clusters\Cashier\Concerns\HasUserSearchForm;
 use App\Models\Celebration;
 use App\Models\Child;
+use App\Models\Product;
 use App\Models\User;
+use App\Services\PassService;
+use Carbon\Carbon;
+use Exception;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Infolists\Components\TextEntry;
@@ -58,24 +61,10 @@ class CelebrationChildrenPage extends Page implements HasForms, HasInfolists, Ha
     public $guestUserId = null;
     public ?User $guestUser = null;
     public $childId = null;
-    public $notes = null;
 
     public static function canAccess(): bool
     {
         return auth()->guard('admin')->user()->can('manageCelebrationChildren');
-    }
-
-    protected function getForms(): array
-    {
-        return [
-            'form' => $this->makeForm()
-                ->schema($this->getFormSchema())
-                ->statePath('data'),
-            'guestSearchForm' => $this->makeForm()
-                ->schema($this->getGuestSearchFormSchema()),
-            'addChildForm' => $this->makeForm()
-                ->schema($this->getAddChildFormSchema()),
-        ];
     }
 
     public function mount(): void
@@ -134,6 +123,365 @@ class CelebrationChildrenPage extends Page implements HasForms, HasInfolists, Ha
 
         $this->refreshUserSearchForm();
         $this->form->fill($this->data);
+    }
+
+    public function celebrationInfolist(Infolist $infolist): Infolist
+    {
+        return $infolist
+            ->record($this->celebration)
+            ->schema([
+                TextEntry::make('child.first_name')
+                    ->label('Child'),
+                TextEntry::make('theme.name')
+                    ->label('Theme'),
+                TextEntry::make('celebration_date')
+                    ->dateTime()
+                    ->label('Date'),
+                TextEntry::make('children_count')
+                    ->numeric()
+                    ->label('Children Count'),
+                TextEntry::make('parents_count')
+                    ->numeric()
+                    ->label('Parents Count'),
+            ])
+            ->columns(5);
+    }
+
+    public function searchGuest(): void
+    {
+        if (empty($this->guestUserId)) {
+            return;
+        }
+
+        $this->guestUser = User::with(['profile', 'family.children'])->find($this->guestUserId);
+
+        if (!$this->guestUser) {
+            Notification::make()
+                ->title('No user found with the provided information')
+                ->warning()
+                ->send();
+            return;
+        }
+
+        $this->childId = null;
+
+        Notification::make()
+            ->title('User found')
+            ->success()
+            ->send();
+    }
+
+    /**
+     * @throws \Throwable
+     */
+    public function addChild(): void
+    {
+        if (!$this->childId || !$this->celebration) {
+            Notification::make()
+                ->title('Please select a child')
+                ->warning()
+                ->send();
+            return;
+        }
+
+        $exists = DB::table('celebration_child')
+            ->where('celebration_id', $this->celebration->id)
+            ->where('child_id', $this->childId)
+            ->exists();
+
+        if ($exists) {
+            Notification::make()
+                ->title('Child already invited to this celebration')
+                ->warning()
+                ->send();
+            return;
+        }
+        $this->celebration->invitations()->attach($this->childId, [
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $child = Child::find($this->childId);
+        if ($child) {
+            $this->createFreePlaygroundTicket($child);
+        }
+
+        $this->childId = null;
+
+        Notification::make()
+            ->title('Child added to celebration')
+            ->success()
+            ->send();
+    }
+
+    public function table(Table $table): Table
+    {
+        return $table
+            ->query(function () {
+                if (!$this->celebration) {
+                    return Child::query()->whereNull('id');
+                }
+
+                return Child::query()
+                    ->select('children.*')
+                    ->join('celebration_child', 'children.id', '=', 'celebration_child.child_id')
+                    ->where('celebration_child.celebration_id', $this->celebration->id);
+            })
+            ->recordTitle(fn(Child $record): string => "{$record->first_name}")
+            ->columns([
+                TextColumn::make('first_name')
+                    ->label('Child Name')
+                    ->searchable(),
+                TextColumn::make('last_name')
+                    ->label('Last Name')
+                    ->searchable(),
+                TextColumn::make('gender')
+                    ->badge()
+                    ->formatStateUsing(fn($state) => $state->value ?? $state)
+                    ->color(fn($state) => match ($state->value ?? $state) {
+                        'male' => 'success',
+                        'female' => 'danger',
+                        default => 'warning',
+                    }),
+                TextColumn::make('birth_date')
+                    ->date()
+                    ->sortable(),
+                TextColumn::make('family.name')
+                    ->label('Family')
+                    ->searchable(),
+                TextColumn::make('pivot_created_at')
+                    ->label('Added At')
+                    ->dateTime()
+                    ->getStateUsing(function (Child $record) {
+                        if ($this->celebration) {
+                            $pivot = DB::table('celebration_child')
+                                ->where('celebration_id', $this->celebration->id)
+                                ->where('child_id', $record->id)
+                                ->first();
+
+                            return $pivot ? $pivot->created_at : null;
+                        }
+
+                        return null;
+                    }),
+
+            ])
+            ->filters([])
+            ->headerActions([])
+            ->actions([
+                Action::make('printTicket')
+                    ->label('Print')
+                    ->icon('heroicon-o-printer')
+                    ->color('success')
+                    ->button()
+                    ->action(function (Child $record) {
+                        $pass = DB::table('passes')
+                            ->where('child_id', $record->id)
+                            ->orderBy('created_at', 'desc')
+                            ->first();
+
+                        if ($pass) {
+                            $printUrl = route('filament.admin.pass.print', ['serial' => $pass->serial]);
+
+                            $this->js("window.open('$printUrl', '_blank')");
+
+                            Notification::make()
+                                ->title('Print page opened')
+                                ->success()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('No ticket found')
+                                ->body('Please create a ticket first using "Recreate Ticket" button')
+                                ->warning()
+                                ->send();
+                        }
+                    }),
+                Action::make('recreateTicket')
+                    ->label('Recreate Ticket')
+                    ->icon('heroicon-o-ticket')
+                    ->color('primary')
+                    ->button()
+                    ->action(function (Child $record) {
+                        $this->createFreePlaygroundTicket($record);
+                    }),
+                Action::make('remove')
+                    ->label('Remove')
+                    ->color('danger')
+                    ->icon('heroicon-o-trash')
+                    ->requiresConfirmation()
+                    ->action(function (Child $record) {
+                        if ($this->celebration) {
+                            $this->celebration->invitations()->detach($record->id);
+
+                            Notification::make()
+                                ->title('Child removed from celebration')
+                                ->success()
+                                ->send();
+                        }
+                    }),
+            ])
+            ->bulkActions([])
+            ->emptyStateHeading('No children invited yet')
+            ->emptyStateDescription('Add children to this celebration by using the form above')
+            ->emptyStateIcon('heroicon-o-user-group');
+    }
+
+    /**
+     * Create a free playground ticket for a child when they're added to a celebration
+     *
+     * @param Child $child
+     * @return void
+     * @throws Throwable
+     * @throws \Throwable
+     */
+    protected function createFreePlaygroundTicket(Child $child): void
+    {
+        try {
+            DB::beginTransaction();
+
+            $celebration = $this->celebration;
+
+            Log::info('Creating playground ticket for child', [
+                'child_id'       => $child->id,
+                'child_name'     => $child->full_name ?? "{$child->first_name} {$child->last_name}",
+                'celebration_id' => $celebration->id,
+            ]);
+
+            $availableProducts = Product::available()->get();
+
+            $playgroundProduct = $availableProducts->first(function ($product) {
+                return stripos($product->name, 'playground') !== false;
+            });
+
+            if (!$playgroundProduct) {
+                $playgroundProduct = $availableProducts->first(function ($product) {
+                    return stripos($product->name, 'play') !== false ||
+                        stripos($product->name, 'entry') !== false;
+                });
+            }
+
+            if (!$playgroundProduct && $availableProducts->isNotEmpty()) {
+                $playgroundProduct = $availableProducts->sortBy(function ($product) {
+                    return $product->getFinalPrice(now());
+                })->first();
+            }
+
+            if (!$playgroundProduct) {
+                Notification::make()
+                    ->title('Playground ticket creation failed')
+                    ->body('Could not find any available products')
+                    ->danger()
+                    ->send();
+                DB::rollBack();
+                return;
+            }
+
+            $user = $child->family->users()->first();
+            if (!$user) {
+                Notification::make()
+                    ->title('Playground ticket creation failed')
+                    ->body('Could not find a user associated with the child\'s family')
+                    ->danger()
+                    ->send();
+                DB::rollBack();
+                return;
+            }
+
+            $pass = app(PassService::class)->purchase(
+                user: $user,
+                child: $child,
+                product: $playgroundProduct,
+                isFree: true,
+                activationDate: $celebration->celebration_date ?? Carbon::now(),
+                meta: [
+                    'celebration_id' => $celebration->id,
+                    'auto_generated' => true,
+                    'description'    => 'Free ticket for celebration attendance'
+                ]
+            );
+
+            app(PassService::class)->generateQRCode($pass->serial, true);
+
+            $printUrl = route('filament.admin.pass.print', ['serial' => $pass->serial]);
+
+            DB::commit();
+
+            Notification::make()
+                ->title('Free ticket created')
+                ->body("A free {$playgroundProduct->name} ticket has been created for {$child->first_name}")
+                ->success()
+                ->actions([
+                    \Filament\Notifications\Actions\Action::make('print')
+                        ->label('Print Ticket')
+                        ->url($printUrl)
+                        ->openUrlInNewTab()
+                        ->button(),
+                ])
+                ->send();
+
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            Log::error('Error creating free ticket', [
+                'exception'      => $e->getMessage(),
+                'trace'          => $e->getTraceAsString(),
+                'child_id'       => $child->id ?? null,
+                'celebration_id' => $this->celebration->id ?? null,
+            ]);
+
+            Notification::make()
+                ->title('Ticket creation failed')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+
+    public function getTitle(): string|Htmlable
+    {
+        if ($this->celebration) {
+            $childName = $this->celebration->child->first_name ?? 'Unknown';
+            return "$childName's Celebration Children";
+        }
+
+        return parent::getTitle();
+    }
+
+    public function clearSelectedUser(): void
+    {
+        $this->selectUser(null);
+        $this->refreshUserSearchForm();
+
+        $this->celebrationId = null;
+        $this->celebration = null;
+
+        $this->data = [
+            'selectedCelebration' => null,
+        ];
+
+        $this->form->fill($this->data);
+    }
+
+    public function clearGuestUser(): void
+    {
+        $this->guestUser = null;
+        $this->guestUserId = null;
+        $this->childId = null;
+    }
+
+    protected function getForms(): array
+    {
+        return [
+            'form'            => $this->makeForm()
+                ->schema($this->getFormSchema())
+                ->statePath('data'),
+            'guestSearchForm' => $this->makeForm()
+                ->schema($this->getGuestSearchFormSchema()),
+            'addChildForm'    => $this->makeForm()
+                ->schema($this->getAddChildFormSchema()),
+        ];
     }
 
     protected function getFormSchema(): array
@@ -197,7 +545,7 @@ class CelebrationChildrenPage extends Page implements HasForms, HasInfolists, Ha
                         })
                         ->toArray();
                 })
-                ->getOptionLabelUsing(fn ($value): ?string => User::find($value)?->full_name)
+                ->getOptionLabelUsing(fn($value): ?string => User::find($value)?->full_name)
                 ->helperText('Select a user to add their child to the celebration'),
         ];
     }
@@ -230,199 +578,6 @@ class CelebrationChildrenPage extends Page implements HasForms, HasInfolists, Ha
                 ->searchable()
                 ->required(),
         ];
-    }
-
-    public function celebrationInfolist(Infolist $infolist): Infolist
-    {
-        return $infolist
-            ->record($this->celebration)
-            ->schema([
-                TextEntry::make('child.first_name')
-                    ->label('Child'),
-                TextEntry::make('theme.name')
-                    ->label('Theme'),
-                TextEntry::make('celebration_date')
-                    ->dateTime()
-                    ->label('Date'),
-                TextEntry::make('children_count')
-                    ->numeric()
-                    ->label('Children Count'),
-                TextEntry::make('parents_count')
-                    ->numeric()
-                    ->label('Parents Count'),
-            ])
-            ->columns(5);
-    }
-
-    public function table(Table $table): Table
-    {
-        return $table
-            ->query(function () {
-                if (!$this->celebration) {
-                    return Child::query()->whereNull('id');
-                }
-
-                return Child::query()
-                    ->select('children.*')
-                    ->join('celebration_child', 'children.id', '=', 'celebration_child.child_id')
-                    ->where('celebration_child.celebration_id', $this->celebration->id);
-            })
-            ->recordTitle(fn (Child $record): string => "{$record->first_name}")
-            ->columns([
-                TextColumn::make('first_name')
-                    ->label('Child Name')
-                    ->searchable(),
-                TextColumn::make('last_name')
-                    ->label('Last Name')
-                    ->searchable(),
-                TextColumn::make('gender')
-                    ->badge()
-                    ->formatStateUsing(fn($state) => $state->value ?? $state)
-                    ->color(fn($state) => match ($state->value ?? $state) {
-                        'male' => 'success',
-                        'female' => 'danger',
-                        default => 'warning',
-                    }),
-                TextColumn::make('birth_date')
-                    ->date()
-                    ->sortable(),
-                TextColumn::make('family.name')
-                    ->label('Family')
-                    ->searchable(),
-                TextColumn::make('pivot_created_at')
-                    ->label('Added At')
-                    ->dateTime()
-                    ->getStateUsing(function (Child $record) {
-                        if ($this->celebration) {
-                            $pivot = DB::table('celebration_child')
-                                ->where('celebration_id', $this->celebration->id)
-                                ->where('child_id', $record->id)
-                                ->first();
-
-                            return $pivot ? $pivot->created_at : null;
-                        }
-
-                        return null;
-                    }),
-            ])
-            ->filters([])
-            ->headerActions([])
-            ->actions([
-                Action::make('remove')
-                    ->label('Remove')
-                    ->color('danger')
-                    ->icon('heroicon-o-trash')
-                    ->requiresConfirmation()
-                    ->action(function (Child $record) {
-                        if ($this->celebration) {
-                            $this->celebration->invitations()->detach($record->id);
-
-                            Notification::make()
-                                ->title('Child removed from celebration')
-                                ->success()
-                                ->send();
-                        }
-                    }),
-            ])
-            ->bulkActions([])
-            ->emptyStateHeading('No children invited yet')
-            ->emptyStateDescription('Add children to this celebration by using the form above')
-            ->emptyStateIcon('heroicon-o-user-group');
-    }
-
-    public function searchGuest(): void
-    {
-        if (empty($this->guestUserId)) {
-            return;
-        }
-
-        $this->guestUser = User::with(['profile', 'family.children'])->find($this->guestUserId);
-
-        if (!$this->guestUser) {
-            Notification::make()
-                ->title('No user found with the provided information')
-                ->warning()
-                ->send();
-            return;
-        }
-
-        $this->childId = null;
-        $this->notes = null;
-
-        Notification::make()
-            ->title('User found')
-            ->success()
-            ->send();
-    }
-
-    public function addChild(): void
-    {
-        if (!$this->childId || !$this->celebration) {
-            Notification::make()
-                ->title('Please select a child')
-                ->warning()
-                ->send();
-            return;
-        }
-
-        $exists = DB::table('celebration_child')
-            ->where('celebration_id', $this->celebration->id)
-            ->where('child_id', $this->childId)
-            ->exists();
-
-        if ($exists) {
-            Notification::make()
-                ->title('Child already invited to this celebration')
-                ->warning()
-                ->send();
-            return;
-        }
-
-        $this->celebration->invitations()->attach($this->childId, [
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $this->childId = null;
-        $this->notes = null;
-
-        Notification::make()
-            ->title('Child added to celebration')
-            ->success()
-            ->send();
-    }
-
-    public function getTitle(): string|Htmlable
-    {
-        if ($this->celebration) {
-            $childName = $this->celebration->child->first_name ?? 'Unknown';
-            return "$childName's Celebration Children";
-        }
-
-        return parent::getTitle();
-    }
-
-    public function clearSelectedUser(): void
-    {
-        $this->selectUser(null);
-        $this->refreshUserSearchForm();
-
-        $this->celebrationId = null;
-        $this->celebration = null;
-
-        $this->data = [
-            'selectedCelebration' => null,
-        ];
-
-        $this->form->fill($this->data);
-    }
-
-    public function clearGuestUser(): void
-    {
-        $this->guestUser = null;
-        $this->guestUserId = null;
-        $this->childId = null;
-        $this->notes = null;
     }
 
     protected function getListeners(): array
