@@ -20,10 +20,10 @@ use Filament\Pages\Page;
 use Filament\Support\RawJs;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Log;
-use Filament\Tables\Contracts\HasTable;
 
 
 class WalletBalance extends Page implements HasTable
@@ -43,6 +43,12 @@ class WalletBalance extends Page implements HasTable
     protected static ?int $navigationSort = 1;
 
     public array $data = [];
+
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('topUpWallet')
+            && auth()->guard('admin')->user()->can('viewWalletBalance');
+    }
 
     public function mount(): void
     {
@@ -131,11 +137,12 @@ class WalletBalance extends Page implements HasTable
             ->query($query)
             ->columns([
                 TextColumn::make('uuid')->label('ID')->searchable()
-                ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('wallet.name')->label('Wallet Type')
-                ->toggleable(),
+                    ->toggleable(),
                 TextColumn::make('type')->sortable()->searchable()->toggleable(),
-                TextColumn::make('amount')->money('AED')->getStateUsing(function(Transaction $record) { $amount = $record->amount / 100;
+                TextColumn::make('amount')->money('AED')->getStateUsing(function (Transaction $record) {
+                    $amount = $record->amount / 100;
                     if (floor($amount) == $amount) {
                         return 'AED ' . number_format($amount);
                     } else {
@@ -204,9 +211,9 @@ class WalletBalance extends Page implements HasTable
 
         try {
             $family->main_wallet->deposit((float)$data['amount'] * 100, [
-                'description' => $description,
+                'description'    => $description,
                 'payment_method' => $data['payment_method'],
-                'cashier_id'  => auth()->id(),
+                'cashier_id'     => auth()->id(),
             ]);
 
             Log::info('Wallet topped up', [
