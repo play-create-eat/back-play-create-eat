@@ -289,14 +289,12 @@ class CelebrationResource extends Resource
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
             ])
-            ->bulkActions([
-            ]);
+            ->bulkActions([]);
     }
 
     public static function getRelations(): array
     {
         return [
-            InvitationsRelationManager::class,
             CelebrationChildrenRelationManager::class
         ];
     }
@@ -305,7 +303,6 @@ class CelebrationResource extends Resource
     {
         return [
             'index'  => Pages\ListCelebrations::route('/'),
-            'create' => Pages\CreateCelebration::route('/create'),
             'view'   => Pages\ViewCelebration::route('/{record}'),
             'edit'   => Pages\EditCelebration::route('/{record}/edit'),
             'manage-invited-children' => Pages\ManageInvitedChildren::route('/{record}/invited-children'),

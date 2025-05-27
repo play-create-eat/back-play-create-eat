@@ -13,7 +13,6 @@ class ManageCelebrationChildren extends ManageRelatedRecords
     protected static string $resource = CelebrationResource::class;
 
     protected static string $relationship = 'invitations';
-
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
 
     protected static ?string $title = 'Manage Celebration Children';
