@@ -178,6 +178,19 @@ class CelebrationResource extends Resource
                                     $paymentAmount = (float)$data['payment_amount'] * 100;
                                     $paymentMethod = $data['payment_method'];
                                     try {
+
+                                        $record->family->main_wallet->withdraw($paymentAmount, [
+                                            'description' => "Celebration Payment for {$record->child->first_name} on {$record->celebration_date}",
+                                            'type' => 'celebration_payment',
+                                            'celebration_id' => $record->id,
+                                        ])->save();
+
+                                        $record->family->loyalty_wallet->deposit($paymentAmount * $record->package->cashback_percentage / 100, [
+                                            'description' => "Loyalty Points for Celebration Payment for {$record->child->first_name} on {$record->celebration_date}",
+                                            'type' => 'celebration_loyalty',
+                                            'celebration_id' => $record->id,
+                                        ])->save();
+
                                         $record->paid_amount += $paymentAmount;
                                         $record->save();
 
