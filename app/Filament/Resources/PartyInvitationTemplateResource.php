@@ -20,7 +20,9 @@ class PartyInvitationTemplateResource extends Resource
 {
     protected static ?string $model = PartyInvitationTemplate::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Celebration Management';
+
+    protected static ?int $navigationSort = 6;
 
     public static function form(Form $form): Form
     {

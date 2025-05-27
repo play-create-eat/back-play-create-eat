@@ -32,6 +32,8 @@ class PassResource extends Resource
 
     protected static ?string $cluster = Cashier::class;
 
+    protected static ?int $navigationSort = 5;
+
     public static function form(Form $form): Form
     {
         return $form
