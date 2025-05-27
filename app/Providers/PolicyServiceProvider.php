@@ -21,6 +21,9 @@ class PolicyServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::before(function ($user, $ability) {
+            return $user->hasRole('super-admin') ? true : null;
+        });
         Gate::define('viewWalletBalance', [CashierPolicy::class, 'viewWalletBalance']);
         Gate::define('topUpWallet', [CashierPolicy::class, 'topUpWallet']);
         Gate::define('viewTickets', [CashierPolicy::class, 'viewTickets']);
