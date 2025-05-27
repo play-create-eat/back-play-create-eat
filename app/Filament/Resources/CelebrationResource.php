@@ -28,9 +28,9 @@ class CelebrationResource extends Resource
 {
     protected static ?string $model = Celebration::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-cake';
+    protected static ?string $navigationGroup = 'Celebration Management';
 
-    protected static ?string $navigationGroup = 'Celebration';
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {

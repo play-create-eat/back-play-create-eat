@@ -38,8 +38,9 @@ class WalletBalance extends Page implements HasTable
     protected static string $view = 'filament.clusters.cashier.pages.wallet-balance';
 
     protected static ?string $navigationIcon = 'heroicon-o-wallet';
-    protected static ?string $navigationLabel = 'Top Up Wallet';
-    protected static ?string $title = 'Top Up Wallet';
+    protected static ?string $navigationLabel = 'Wallet';
+
+    protected static ?int $navigationSort = 1;
 
     public array $data = [];
 

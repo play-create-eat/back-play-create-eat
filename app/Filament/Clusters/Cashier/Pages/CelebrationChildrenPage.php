@@ -39,13 +39,13 @@ class CelebrationChildrenPage extends Page implements HasForms, HasInfolists, Ha
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
     protected static ?string $navigationLabel = 'Celebration Children';
 
-    protected static ?string $title = 'Manage Celebration Children';
-
     protected static ?string $slug = 'celebration-children';
 
     protected static ?string $cluster = Cashier::class;
 
     protected static string $view = 'filament.clusters.cashier.pages.celebration-children';
+
+    protected static ?int $navigationSort = 3;
 
     #[Url]
     public ?string $celebrationId = null;

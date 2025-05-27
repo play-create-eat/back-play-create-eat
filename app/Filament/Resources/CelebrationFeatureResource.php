@@ -16,7 +16,9 @@ class CelebrationFeatureResource extends Resource
 {
     protected static ?string $model = CelebrationFeature::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Celebration Management';
+
+    protected static ?int $navigationSort = 4;
 
     public static function form(Form $form): Form
     {

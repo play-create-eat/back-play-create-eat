@@ -18,8 +18,6 @@ class AdminRoleResource extends Resource
 {
     protected static ?string $model = Role::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-shield-check';
-
     protected static ?string $navigationGroup = 'Admin Management';
 
     protected static ?int $navigationSort = 1;

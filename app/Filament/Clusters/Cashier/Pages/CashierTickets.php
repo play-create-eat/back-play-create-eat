@@ -44,9 +44,9 @@ class CashierTickets extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-ticket';
     protected static string $view = 'filament.clusters.cashier.pages.tickets';
-
     protected static ?string $navigationLabel = 'Tickets Purchase';
-    protected static ?string $title = 'Tickets Purchase';
+
+    protected static ?int $navigationSort = 2;
     public ?array $data = [
         'tickets' => [],
     ];

@@ -38,9 +38,10 @@ class CashierCelebrationsPage extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-cake';
     protected static string $view = 'filament.clusters.cashier.pages.cashier-celebrations';
-
     protected static ?string $navigationLabel = 'Celebration Payments';
     protected static ?string $title = 'Celebration Payments';
+
+    protected static ?int $navigationSort = 4;
     protected $queryString = [
         'transaction' => ['except' => null],
     ];
