@@ -14,6 +14,7 @@ class ViewCelebration extends ViewRecord
     {
         return [
             Actions\EditAction::make()
+            ->visible(fn ($record): bool => auth()->guard('admin')->user()->can('updateCelebrations'))
             ];
     }
 

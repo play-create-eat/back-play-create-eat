@@ -23,6 +23,11 @@ class MenuCategoryResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('manageMenu');
+    }
+
     public static function form(Form $form): Form
     {
         return $form

@@ -16,12 +16,15 @@ class MenuTypeResource extends Resource
 {
     protected static ?string $model = MenuType::class;
     protected static ?string $navigationLabel = 'Types';
-
     protected static ?string $navigationGroup = 'Menu Management';
-
     protected static ?int $navigationSort = 1;
     protected static ?string $pluralLabel = 'Types';
     protected static ?string $slug = 'menu-types';
+
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('manageMenu');
+    }
 
     public static function form(Form $form): Form
     {

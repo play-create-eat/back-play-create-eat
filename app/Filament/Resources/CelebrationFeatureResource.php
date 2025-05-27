@@ -20,6 +20,11 @@ class CelebrationFeatureResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('viewCelebrationFeatures');
+    }
+
     public static function form(Form $form): Form
     {
         return $form

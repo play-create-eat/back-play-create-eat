@@ -37,6 +37,11 @@ class ProductResource extends Resource
 
     protected static ?string $navigationGroup = 'Product Management';
 
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('viewProducts');
+    }
+
     public static function form(Form $form): Form
     {
         return $form

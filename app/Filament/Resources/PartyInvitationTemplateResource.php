@@ -24,6 +24,11 @@ class PartyInvitationTemplateResource extends Resource
 
     protected static ?int $navigationSort = 6;
 
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('viewPartyInvitationTemplates');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
