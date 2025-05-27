@@ -133,6 +133,10 @@ class CelebrationChildrenRelationManager extends RelationManager
                                     ->disabled(fn (callable $get) => !$get('guestUserId')),
                             ])
                     ])
+                    ->visible(function () {
+                        $celebration = $this->getOwnerRecord();
+                        return is_null($celebration->closed_at);
+                    })
                     ->action(function (array $data) {
                         $childId = $data['childId'] ?? null;
 
@@ -181,6 +185,10 @@ class CelebrationChildrenRelationManager extends RelationManager
                     ->icon('heroicon-o-printer')
                     ->color('success')
                     ->button()
+                    ->visible(function (Child $record) {
+                        $celebration = $this->getOwnerRecord();
+                        return is_null($celebration->closed_at);
+                    })
                     ->action(function (Child $record) {
                         $pass = DB::table('passes')
                             ->where('child_id', $record->id)
@@ -209,6 +217,10 @@ class CelebrationChildrenRelationManager extends RelationManager
                     ->icon('heroicon-o-ticket')
                     ->color('primary')
                     ->button()
+                    ->visible(function (Child $record) {
+                        $celebration = $this->getOwnerRecord();
+                        return is_null($celebration->closed_at);
+                    })
                     ->action(function (Child $record) {
                         $this->createFreePlaygroundTicket($record);
                     }),

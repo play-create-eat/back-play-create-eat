@@ -162,7 +162,7 @@ class CelebrationResource extends Resource
                                             }
                                         })
                                         ->minValue(function ($record) {
-                                            if ($record && $record->min_amount) {
+                                            if ($record && $record->min_amount && is_null($record->paid_amount)) {
                                                 return $record->min_amount / 100;
                                             }
                                             return 0.01;
@@ -270,7 +270,11 @@ class CelebrationResource extends Resource
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(),
+                Tables\Columns\TextColumn::make('closed_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('theme')

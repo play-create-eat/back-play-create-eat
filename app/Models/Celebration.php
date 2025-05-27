@@ -31,7 +31,8 @@ class Celebration extends Model
         'paid_amount',
         'current_step',
         'min_amount',
-        'family_id'
+        'family_id',
+        'closed_at'
     ];
 
     protected $casts = [

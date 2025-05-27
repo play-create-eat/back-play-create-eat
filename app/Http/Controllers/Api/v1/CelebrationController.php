@@ -84,6 +84,7 @@ class CelebrationController extends Controller
 
                 foreach ($celebrations as $celebration) {
                     Booking::where('celebration_id', $celebration->id)->delete();
+                    DB::table('celebration_child')->where('celebration_id', $celebration->id)->delete();
                 }
 
                 Celebration::where('user_id', auth()->guard('sanctum')->user()->id)
@@ -131,7 +132,6 @@ class CelebrationController extends Controller
         ]);
 
         $minChildren = $celebration->package->min_children;
-
         if ($validated['children_count'] < $minChildren) {
             return response()->json([
                 'message' => "Minimum children count is $minChildren"
