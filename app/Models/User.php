@@ -92,6 +92,6 @@ class User extends Authenticatable implements HasName
 
     public function routeNotificationForOneSignal(Notification $notification): array
     {
-        return ['include_external_user_ids' => $this->id];
+        return ['include_external_user_ids' => ["$this->id"]];
     }
 }
