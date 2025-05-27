@@ -20,6 +20,11 @@ class ManageCelebrationChildren extends ManageRelatedRecords
 
     protected static ?string $cluster = Cashier::class;
 
+    public static function canAccess(array $parameters = []): bool
+    {
+        return auth()->guard('admin')->user()->can('manageCelebrationChildren');
+    }
+
     protected function getHeaderActions(): array
     {
         return [

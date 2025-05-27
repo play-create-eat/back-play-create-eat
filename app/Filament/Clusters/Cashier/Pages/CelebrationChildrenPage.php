@@ -60,6 +60,11 @@ class CelebrationChildrenPage extends Page implements HasForms, HasInfolists, Ha
     public $childId = null;
     public $notes = null;
 
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('manageCelebrationChildren');
+    }
+
     protected function getForms(): array
     {
         return [

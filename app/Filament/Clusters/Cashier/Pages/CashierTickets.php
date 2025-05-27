@@ -59,6 +59,12 @@ class CashierTickets extends Page implements HasForms
         'order' => ['except' => null],
     ];
 
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('viewTickets')
+            && auth()->guard('admin')->user()->can('buyTickets');
+    }
+
     public function mount(): void
     {
         if (method_exists($this, 'bootHasGlobalUserSearch')) {

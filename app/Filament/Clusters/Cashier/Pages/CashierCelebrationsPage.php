@@ -55,6 +55,11 @@ class CashierCelebrationsPage extends Page implements HasForms
     public array $receipt = [];
     public string $step = 'payment';
 
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('payCelebration');
+    }
+
     public function mount(): void
     {
         if (method_exists($this, 'bootHasGlobalUserSearch')) {
