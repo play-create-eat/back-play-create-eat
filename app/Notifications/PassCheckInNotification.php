@@ -33,17 +33,12 @@ class PassCheckInNotification extends Notification
         return [OneSignalChannel::class];
     }
 
-    public function toOneSignal(): OneSignalMessage
+    public function toOneSignal($notifiable): OneSignalMessage
     {
         $this->pass->loadMissing('children');
 
         return OneSignalMessage::create()
             ->setSubject('Pass Check-In')
             ->setBody('You have successfully checked in with your pass.');
-    }
-
-    public function routeNotificationForOneSignal(): array
-    {
-        return ['include_external_user_ids' => $this->id];
     }
 }

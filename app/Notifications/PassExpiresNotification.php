@@ -43,9 +43,4 @@ class PassExpiresNotification extends Notification
             ->setSubject('Pass Expiration Warning')
             ->setBody("Your pass will expire in {$this->minutes} minutes.");
     }
-
-    public function routeNotificationForOneSignal(): array
-    {
-        return ['include_external_user_ids' => $this->id];
-    }
 }
