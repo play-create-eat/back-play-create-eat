@@ -287,7 +287,8 @@ class CelebrationResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                ->visible(fn($record) => auth()->guard('admin')->user()->can('updateCelebrations')),
             ])
             ->bulkActions([]);
     }

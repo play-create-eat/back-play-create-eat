@@ -21,6 +21,11 @@ class PackageResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('viewPackages');
+    }
+
     public static function form(Form $form): Form
     {
         return $form

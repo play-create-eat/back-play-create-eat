@@ -18,6 +18,11 @@ class AdminPermissionResource extends AdminResourceBase
 
     protected static ?int $navigationSort = 2;
 
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('viewPermissions');
+    }
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->where('guard_name', 'admin');

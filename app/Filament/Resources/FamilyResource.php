@@ -28,6 +28,11 @@ class FamilyResource extends Resource
     protected static ?string $model = Family::class;
     protected static ?string $navigationGroup = 'User Management';
 
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('viewFamilies');
+    }
+
     public static function table(Table $table): Table
     {
         return $table

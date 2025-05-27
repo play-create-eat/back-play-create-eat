@@ -22,6 +22,11 @@ class AdminRoleResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('viewRoles');
+    }
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->where('guard_name', 'admin');

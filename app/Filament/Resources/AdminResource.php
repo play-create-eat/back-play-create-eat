@@ -19,6 +19,11 @@ class AdminResource extends AdminResourceBase
 
     protected static ?int $navigationSort = 0;
 
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('viewAdmins');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
