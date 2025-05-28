@@ -12,6 +12,10 @@ use Illuminate\Support\Facades\Mail;
 
 class OtpService
 {
+    public function __construct(protected TwilloService $twilloService, protected MyInboxMediaService $myInboxMediaService)
+    {
+    }
+
     public function generate(?User $user, TypeEnum $type, PurposeEnum $purpose, string $identifier): OtpCode
     {
 //        if ($identifier === '+37368411195') {
@@ -60,16 +64,16 @@ class OtpService
     /**
      * @throws Exception
      */
-    public function send(OtpCode $otpCode, TwilloService $twilloService, MyInboxMediaService $myInboxMediaService): OtpService
+    public function send(OtpCode $otpCode): OtpService
     {
 
         $message = "Your OTP is $otpCode->code. It will expire in 2 minutes.";
 
         if ($otpCode->type === TypeEnum::PHONE) {
             if (str_starts_with($otpCode->identifier, '+971')) {
-                $result = $myInboxMediaService->sendSms($otpCode->identifier, $message);
+                $result = $this->myInboxMediaService->sendSms($otpCode->identifier, $message);
             } else {
-                $result = $twilloService->sendSms($otpCode->identifier, $message);
+                $result = $this->twilloService->sendSms($otpCode->identifier, $message);
             }
 
             if ($result !== true) {

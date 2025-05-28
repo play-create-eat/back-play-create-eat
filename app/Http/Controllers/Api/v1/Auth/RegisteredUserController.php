@@ -116,7 +116,7 @@ class RegisteredUserController extends Controller
      * )
      * @throws Exception
      */
-    public function step2(Request $request, OtpService $otpService, TwilloService $twilloService)
+    public function step2(Request $request, OtpService $otpService)
     {
         $validated = $request->validate([
             'registration_id' => ['required', 'string', 'uuid', 'exists:partial_registrations,id'],
@@ -136,7 +136,7 @@ class RegisteredUserController extends Controller
 
         $otpCode = $otpService->generate(null, TypeEnum::PHONE, PurposeEnum::REGISTER, $partialRegistration->phone_number);
 //        if ($partialRegistration->phone_number === '+37368411195') {
-        $otpService->send($otpCode, $twilloService);
+        $otpService->send($otpCode);
 //        }
 
         return response()->json([
