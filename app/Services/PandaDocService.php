@@ -63,7 +63,7 @@ class PandaDocService
     public function sendDocument($documentId): DocumentSendResponse
     {
         $sendRequest = (new DocumentSendRequest())
-            ->setSilent(true)
+            ->setSilent(false)
             ->setSender(['email' => 'tech@playcreateeat.ae'])
             ->setSubject('Please sign this document')
             ->setMessage('Review and sign this document.');
