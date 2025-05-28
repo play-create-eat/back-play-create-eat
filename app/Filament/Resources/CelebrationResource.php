@@ -5,7 +5,6 @@ namespace App\Filament\Resources;
 use App\Filament\Clusters\Cashier\Pages\ManageCelebrationChildren;
 use App\Filament\Clusters\Cashier\Resources\CelebrationResource\RelationManagers\CelebrationChildrenRelationManager;
 use App\Filament\Resources\CelebrationResource\Pages;
-use App\Filament\Resources\CelebrationResource\RelationManagers\InvitationsRelationManager;
 use App\Models\Celebration;
 use Carbon\Carbon;
 use Exception;
@@ -40,6 +39,17 @@ class CelebrationResource extends Resource
                     ->schema([
                         Select::make('child_id')
                             ->relationship('child', 'first_name')
+                            ->searchable()
+                            ->preload()
+                            ->required(),
+                        Select::make('family_id')
+                            ->relationship('family', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->required(),
+
+                        Select::make('user_id')
+                            ->relationship('user.profile', 'phone_number')
                             ->searchable()
                             ->preload()
                             ->required(),
@@ -180,14 +190,14 @@ class CelebrationResource extends Resource
                                     try {
 
                                         $record->family->main_wallet->withdraw($paymentAmount, [
-                                            'description' => "Celebration Payment for {$record->child->first_name} on {$record->celebration_date}",
-                                            'type' => 'celebration_payment',
+                                            'description'    => "Celebration Payment for {$record->child->first_name} on {$record->celebration_date}",
+                                            'type'           => 'celebration_payment',
                                             'celebration_id' => $record->id,
                                         ])->save();
 
                                         $record->family->loyalty_wallet->deposit($paymentAmount * $record->package->cashback_percentage / 100, [
-                                            'description' => "Loyalty Points for Celebration Payment for {$record->child->first_name} on {$record->celebration_date}",
-                                            'type' => 'celebration_loyalty',
+                                            'description'    => "Loyalty Points for Celebration Payment for {$record->child->first_name} on {$record->celebration_date}",
+                                            'type'           => 'celebration_loyalty',
                                             'celebration_id' => $record->id,
                                         ])->save();
 
@@ -210,9 +220,75 @@ class CelebrationResource extends Resource
                                             ->send();
                                     }
 
-                                })->visible(fn($record) => $record && ($record->total_amount > $record->paid_amount))
-                        ])->alignment('right')->verticallyAlignEnd(),
-                    ])->columns(4),
+                                })->visible(fn($record) => $record && ($record->total_amount > $record->paid_amount)),
+                            Actions\Action::make('topUpWallet')
+                                ->label('Top Up Wallet')
+                                ->icon('heroicon-o-currency-dollar')
+                                ->button()
+                                ->color('success')
+                                ->modalHeading('Top Up Family Wallet')
+                                ->modalDescription('Add funds to the family wallet')
+                                ->modalSubmitActionLabel('Add Funds')
+                                ->form([
+                                    TextInput::make('top_up_amount')
+                                        ->label('Amount')
+                                        ->prefix('AED')
+                                        ->numeric()
+                                        ->minValue(0.01)
+                                        ->required()
+                                        ->afterStateHydrated(function ($component, $record) {
+                                            if ($record) {
+                                                $amountNeededCents = max(0, $record->total_amount - $record->paid_amount);
+                                                $walletBalanceCents = $record->family->main_wallet->balance;
+
+                                                if ($walletBalanceCents < $amountNeededCents) {
+                                                    $suggestedAmountCents = $amountNeededCents - $walletBalanceCents;
+                                                    $component->state(ceil($suggestedAmountCents) / 100);
+                                                } else {
+                                                    $component->state($amountNeededCents / 100);
+                                                }
+                                            }
+                                        }),
+                                    Select::make('payment_method')
+                                        ->label('Payment Method')
+                                        ->options([
+                                            'card' => 'Card Payment',
+                                            'cash' => 'Cash Payment',
+                                        ])
+                                        ->required(),
+                                ])->action(function (array $data, $record, Action $action) {
+                                    $topUpAmount = (float)$data['top_up_amount'] * 100;
+                                    $paymentMethod = $data['payment_method'];
+                                    try {
+                                        $record->family->main_wallet->deposit($topUpAmount, [
+                                            'description'    => "Top up via {$paymentMethod}",
+                                            'type'           => 'wallet_top_up',
+                                            'payment_method' => $paymentMethod,
+                                        ])->save();
+
+                                        Notification::make()
+                                            ->title('Wallet topped up successfully')
+                                            ->body("Added AED " . number_format($data['top_up_amount'], 2) . " via {$paymentMethod}")
+                                            ->success()
+                                            ->send();
+
+                                        $record->refresh();
+
+                                    } catch (Exception $e) {
+                                        Notification::make()
+                                            ->title('Top up failed')
+                                            ->body($e->getMessage())
+                                            ->danger()
+                                            ->send();
+                                    }
+                                })->visible(function ($record) {
+                                    return $record->total_amount - $record->paid_amount > 0 &&
+                                        $record->family &&
+                                        $record->family->main_wallet &&
+                                        $record->family->main_wallet->balance < ($record->total_amount - $record->paid_amount);
+                                })
+                        ])->alignment('right')->verticallyAlignEnd()->columnSpan(2),
+                    ])->columns(5),
 
                 Section::make('Progress')
                     ->schema([
@@ -238,6 +314,16 @@ class CelebrationResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('child.first_name')
                     ->label('Child')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('family.name')
+                    ->label('Family')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('user.profile.phone_number')
+                    ->label('User Phone')
                     ->searchable()
                     ->sortable(),
 
@@ -292,20 +378,11 @@ class CelebrationResource extends Resource
             ->filters([
                 SelectFilter::make('theme')
                     ->relationship('theme', 'name'),
-
-                Filter::make('upcoming')
-                    ->query(fn($query) => $query->where('celebration_date', '>=', now()))
-                    ->toggle(),
-
-                Filter::make('completed')
-                    ->query(fn($query) => $query->where('completed', true))
-                    ->toggle(),
-
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make()
-                ->visible(fn($record) => auth()->guard('admin')->user()->can('updateCelebrations')),
+                    ->visible(fn($record) => auth()->guard('admin')->user()->can('updateCelebrations')),
             ])
             ->bulkActions([]);
     }
@@ -320,9 +397,9 @@ class CelebrationResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListCelebrations::route('/'),
-            'view'   => Pages\ViewCelebration::route('/{record}'),
-            'edit'   => Pages\EditCelebration::route('/{record}/edit'),
+            'index'                   => Pages\ListCelebrations::route('/'),
+            'view'                    => Pages\ViewCelebration::route('/{record}'),
+            'edit'                    => Pages\EditCelebration::route('/{record}/edit'),
             'manage-invited-children' => Pages\ManageInvitedChildren::route('/{record}/invited-children'),
             'cashier-manage-children' => ManageCelebrationChildren::route('/{record}/cashier/children'),
         ];

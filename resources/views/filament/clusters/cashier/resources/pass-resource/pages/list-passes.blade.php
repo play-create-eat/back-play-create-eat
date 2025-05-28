@@ -8,5 +8,20 @@
         </div>
     @endif
 
-    {{ $this->table }}
+        <div class="mb-4 flex justify-center">
+            <x-filament::tabs>
+                @foreach($this->getTabs() as $key => $tab)
+                    <x-filament::tabs.item
+                        :active="$this->activeTab === $key"
+                        wire:click="$set('activeTab', '{{ $key }}')"
+                        :badge="$tab->getBadge()"
+                    >
+                        {{ $tab->getLabel() ?? Str::headline($key) }}
+                    </x-filament::tabs.item>
+                @endforeach
+            </x-filament::tabs>
+        </div>
+
+
+        {{ $this->table }}
 </x-filament-panels::page>
