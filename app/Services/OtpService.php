@@ -8,6 +8,7 @@ use App\Enums\Otps\TypeEnum;
 use App\Models\OtpCode;
 use App\Models\User;
 use Exception;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class OtpService
@@ -75,6 +76,8 @@ class OtpService
             } else {
                 $result = $this->twilloService->sendSms($otpCode->identifier, $message);
             }
+
+            Log::info(json_encode($result));
 
             if ($result !== true) {
                 throw new Exception("Failed to send SMS: " . json_encode($result));
