@@ -7,8 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Survey extends Model
 {
-    use HasFactory;
-
     /**
      * The attributes that are mass assignable.
      *
@@ -44,4 +42,4 @@ class Survey extends Model
             'create_staff_friendly' => 'boolean',
         ];
     }
-} 
+}

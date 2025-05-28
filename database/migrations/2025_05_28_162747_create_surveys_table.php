@@ -12,29 +12,21 @@ return new class extends Migration {
     {
         Schema::create('surveys', function (Blueprint $table) {
             $table->id();
-            
-            // Play section
             $table->boolean('play_interesting')->nullable();
             $table->boolean('play_safe')->nullable();
             $table->boolean('play_staff_friendly')->nullable();
-            
-            // Create section
             $table->boolean('create_activities_interesting')->nullable();
             $table->boolean('create_staff_friendly')->nullable();
-            
-            // Eat section
-            $table->string('eat_liked_food')->nullable(); // yes/no/cannot_judge
-            $table->string('eat_liked_drinks')->nullable(); // yes/no/cannot_judge
-            $table->string('eat_liked_pastry')->nullable(); // yes/no/cannot_judge
-            $table->string('eat_team_friendly')->nullable(); // yes/no/cannot_judge
-            
-            // Conclusion section
+            $table->string('eat_liked_food')->nullable();
+            $table->string('eat_liked_drinks')->nullable();
+            $table->string('eat_liked_pastry')->nullable();
+            $table->string('eat_team_friendly')->nullable();
+
             $table->text('conclusion_suggestions')->nullable();
             
-            // Optional: Add user tracking if needed
             $table->string('user_email')->nullable();
             $table->string('ip_address')->nullable();
-            
+
             $table->timestamps();
         });
     }
@@ -46,4 +38,4 @@ return new class extends Migration {
     {
         Schema::dropIfExists('surveys');
     }
-}; 
+};

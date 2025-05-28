@@ -41,7 +41,6 @@ class SurveyController extends Controller
             'ip_address' => $request->ip(),
         ];
 
-        // Remove null values
         $surveyData = array_filter($surveyData, function ($value) {
             return $value !== null;
         });
@@ -75,4 +74,4 @@ class SurveyController extends Controller
             'data' => $survey
         ]);
     }
-} 
+}
