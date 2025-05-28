@@ -401,9 +401,7 @@ class PassService
         $productPrice = $product->getFinalPrice($date);
         $loyaltyWallet = $family->loyalty_wallet;
 
-        // Initialize loyaltyWallet variable
-        $loyaltyWallet = null;
-        
+
         if ($loyaltyPointAmount > 0) {
             if ($loyaltyPointAmount > $productPrice) {
                 $loyaltyPointAmount = $productPrice;
@@ -438,21 +436,19 @@ class PassService
             ->withItem($product, pricePerItem: $productPrice)
             ->withMeta([
                 ...$meta,
-                'loyalty_points_used' => $loyaltyPointAmount,
-                'discount_percent' => $product->discount_percent,
-                'cashback_percent' => $product->cashback_percent,
-                'cashback_amount' => $cashbackAmount,
-                'fee_percent' => $product->fee_percent,
+                'loyalty_points_used'       => $loyaltyPointAmount,
+                'discount_price_weekday'    => $product->discount_price_weekday,
+                'discount_price_weekend'    => $product->discount_price_weekend,
+                'discount_percent'          => $product->discount_percent,
+                'cashback_percent'          => $product->cashback_percent,
+                'cashback_amount'           => $cashbackAmount,
+                'fee_percent'               => $product->fee_percent,
             ]);
 
         list($transfer) = array_values($family->payCart($cart));
 
         if ($cashbackAmount > 0) {
-            // Make sure we have a valid loyalty wallet before attempting to deposit
-            if ($loyaltyWallet === null) {
-                $loyaltyWallet = $family->loyalty_wallet;
-            }
-            
+
             $loyaltyWallet->deposit(
                 $cashbackAmount,
                 [

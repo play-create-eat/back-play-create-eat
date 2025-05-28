@@ -35,9 +35,12 @@ class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-tag';
-
     protected static ?string $navigationGroup = 'Product Management';
+
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('viewProducts');
+    }
 
     public static function form(Form $form): Form
     {
@@ -88,6 +91,26 @@ class ProductResource extends Resource
                                     ->numeric()
                                     ->prefix('$')
                                     ->minValue(0),
+                            ]),
+
+                        Section::make('Discounts')
+                            ->schema([
+                                TextInput::make('discount_price_weekday')
+                                    ->formatStateUsing(fn(?string $state): string => $state ? app(FormatterServiceInterface::class)->floatValue($state, 2) : '')
+                                    ->dehydrateStateUsing(fn(string $state): string => $state ? app(FormatterServiceInterface::class)->intValue($state, 2) : null)
+                                    ->mask(RawJs::make('$money($input)'))
+                                    ->stripCharacters(',')
+                                    ->numeric()
+                                    ->prefix('$')
+                                    ->minValue(0),
+                                TextInput::make('discount_price_weekend')
+                                    ->formatStateUsing(fn(?string $state): string => $state ? app(FormatterServiceInterface::class)->floatValue($state, 2) : '')
+                                    ->dehydrateStateUsing(fn(string $state): string => $state ? app(FormatterServiceInterface::class)->intValue($state, 2) : null)
+                                    ->mask(RawJs::make('$money($input)'))
+                                    ->stripCharacters(',')
+                                    ->numeric()
+                                    ->prefix('$')
+                                    ->minValue(0),
                                 TextInput::make('discount_percent')
                                     ->numeric()
                                     ->prefix('%')
@@ -95,6 +118,10 @@ class ProductResource extends Resource
                                     ->maxValue(100)
                                     ->step(0.1)
                                     ->default(0),
+                            ]),
+
+                        Section::make('Fees')
+                            ->schema([
                                 TextInput::make('fee_percent')
                                     ->numeric()
                                     ->prefix('%')
@@ -103,6 +130,7 @@ class ProductResource extends Resource
                                     ->step(0.1)
                                     ->default(0),
                             ]),
+
                         Section::make('Rewarding')
                             ->schema([
                                 TextInput::make('cashback_percent')
@@ -155,6 +183,24 @@ class ProductResource extends Resource
                         }
                     )
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('discount_price_weekday')
+                    ->label('Discount price')
+                    ->fontFamily(FontFamily::Mono)
+                    ->money('USD', divideBy: 100)
+                    ->description(
+                        function (Product $record): HtmlString {
+                            $value = $record->discount_price_weekend ? Number::currency($record->discount_price_weekend / 100, 'USD', config('app.locale')) : '';
+
+                            return new HtmlString(
+                                '<span class="font-mono">' . $value . '</span>'
+                            );
+                        }
+                    )
+                    ->sortable(),
+
+
+
                 Tables\Columns\TextColumn::make('cashback_percent')
                     ->label('Cashback')
                     ->fontFamily(FontFamily::Mono)

@@ -14,11 +14,14 @@ class AdminPermissionResource extends AdminResourceBase
 {
     protected static ?string $model = Permission::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-key';
-
     protected static ?string $navigationGroup = 'Admin Management';
 
     protected static ?int $navigationSort = 2;
+
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('viewPermissions');
+    }
 
     public static function getEloquentQuery(): Builder
     {

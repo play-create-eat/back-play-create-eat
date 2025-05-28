@@ -15,11 +15,18 @@ use Filament\Tables\Table;
 class MenuCategoryResource extends Resource
 {
     protected static ?string $model = MenuCategory::class;
+    protected static ?string $navigationLabel = 'Categories';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-    protected static ?string $navigationLabel = 'Menu Categories';
+    protected static ?string $navigationGroup = 'Menu Management';
     protected static ?string $pluralLabel = 'Menu Categories';
     protected static ?string $slug = 'menu-categories';
+
+    protected static ?int $navigationSort = 2;
+
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('manageMenu');
+    }
 
     public static function form(Form $form): Form
     {

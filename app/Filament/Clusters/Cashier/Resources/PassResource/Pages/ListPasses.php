@@ -12,7 +12,6 @@ use Filament\Forms\Form;
 use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Session;
 use Log;
 
 class ListPasses extends ListRecords implements HasForms

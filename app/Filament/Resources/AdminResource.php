@@ -15,11 +15,14 @@ class AdminResource extends AdminResourceBase
 {
     protected static ?string $model = Admin::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-users';
-
     protected static ?string $navigationGroup = 'Admin Management';
 
     protected static ?int $navigationSort = 0;
+
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('viewAdmins');
+    }
 
     public static function form(Form $form): Form
     {

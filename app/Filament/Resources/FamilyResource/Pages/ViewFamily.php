@@ -4,8 +4,8 @@ namespace App\Filament\Resources\FamilyResource\Pages;
 
 use App\Filament\Resources\FamilyResource;
 use Bavix\Wallet\Models\Transaction;
+use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ViewRecord;
-use Filament\Resources\Pages\ViewRecord\Tab;
 
 class ViewFamily extends ViewRecord
 {

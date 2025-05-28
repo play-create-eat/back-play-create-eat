@@ -17,7 +17,16 @@ class MenuTagResource extends Resource
 {
     protected static ?string $model = MenuTag::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Menu Management';
+
+    protected static ?string $navigationLabel = 'Tags';
+
+    protected static ?int $navigationSort = 6;
+
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('manageMenu');
+    }
 
     public static function form(Form $form): Form
     {

@@ -17,7 +17,14 @@ class ModifierGroupResource extends Resource
 {
     protected static ?string $model = ModifierGroup::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Menu Management';
+
+    protected static ?int $navigationSort = 4;
+
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('manageMenu');
+    }
 
     public static function form(Form $form): Form
     {

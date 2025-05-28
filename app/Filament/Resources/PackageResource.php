@@ -17,7 +17,14 @@ class PackageResource extends Resource
 {
     protected static ?string $model = Package::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Celebration Management';
+
+    protected static ?int $navigationSort = 2;
+
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('viewPackages');
+    }
 
     public static function form(Form $form): Form
     {

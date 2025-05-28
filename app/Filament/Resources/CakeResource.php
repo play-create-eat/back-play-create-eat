@@ -16,7 +16,14 @@ class CakeResource extends Resource
 {
     protected static ?string $model = Cake::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Menu Management';
+
+    protected static ?int $navigationSort = 7;
+
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('manageMenu');
+    }
 
     public static function form(Form $form): Form
     {

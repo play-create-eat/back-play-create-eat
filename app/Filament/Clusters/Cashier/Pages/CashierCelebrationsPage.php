@@ -4,11 +4,14 @@ namespace App\Filament\Clusters\Cashier\Pages;
 
 use App\Exceptions\InsufficientBalanceException;
 use App\Filament\Clusters\Cashier;
+use App\Filament\Clusters\Cashier\Concerns\HasGlobalUserSearch;
+use App\Filament\Clusters\Cashier\Concerns\HasUserSearchForm;
 use App\Models\Celebration;
 use App\Models\User;
 use Bavix\Wallet\Internal\Exceptions\ExceptionInterface;
 use Bavix\Wallet\Services\FormatterServiceInterface;
 use Carbon\Carbon;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -17,166 +20,266 @@ use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
-use Filament\Facades\Filament;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Url;
+use Log;
+use Throwable;
 
 class CashierCelebrationsPage extends Page implements HasForms
 {
     use InteractsWithForms;
+    use HasGlobalUserSearch;
+    use HasUserSearchForm;
 
     protected static ?string $cluster = Cashier::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-cake';
     protected static string $view = 'filament.clusters.cashier.pages.cashier-celebrations';
-
     protected static ?string $navigationLabel = 'Celebration Payments';
     protected static ?string $title = 'Celebration Payments';
 
+    protected static ?int $navigationSort = 4;
     protected $queryString = [
         'transaction' => ['except' => null],
     ];
-
     public ?array $data = [
-        'user_id' => null,
         'celebration_id' => null,
-        'amount' => null,
+        'amount'         => null,
     ];
-
     public ?Collection $celebrations = null;
-    public ?User $client = null;
-
     #[Url]
     public ?string $transaction = null;
     public array $receipt = [];
     public string $step = 'payment';
 
+    public bool $hasSufficientBalance = true;
+
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('payCelebration');
+    }
+
     public function mount(): void
     {
+        if (method_exists($this, 'bootHasGlobalUserSearch')) {
+            $this->bootHasGlobalUserSearch();
+        }
+
+        $this->mountHasUserSearchForm();
         $this->receipt = $this->transaction ? Cache::get("cashier.celebration.{$this->transaction}", []) : [];
+
+        if ($this->selectedUserId) {
+            $this->updateCelebrationsForUser();
+        }
+
         $this->form->fill();
+    }
+
+    public function refreshForm(): void
+    {
+        Log::info('Refreshing celebration payments form', [
+            'selectedUserId' => $this->selectedUserId,
+            'hasUser'        => (bool)$this->selectedUser,
+        ]);
+
+        if ($this->selectedUserId) {
+            $this->selectedUser = User::with([
+                'profile',
+                'family',
+                'family.children'
+            ])->find($this->selectedUserId);
+
+            $this->updateCelebrationsForUser();
+        }
+
+        $this->data = [
+            'celebration_id' => null,
+            'amount'         => null,
+        ];
+
+        $this->refreshUserSearchForm();
+        $this->form->fill();
+        $this->checkBalance();
+    }
+
+    protected function updateCelebrationsForUser(): void
+    {
+        if ($this->selectedUser && $this->selectedUser->family) {
+            $this->celebrations = Celebration::where('family_id', $this->selectedUser->family->id)
+                ->where('completed', false)
+                ->with(['child', 'package', 'theme'])
+                ->get();
+        } else {
+            $this->celebrations = null;
+        }
     }
 
     public function form(Form $form): Form
     {
-        return $form
-            ->schema([
-                Select::make('user_id')
-                    ->label('Client')
-                    ->searchable()
-                    ->native(false)
-                    ->allowHtml()
-                    ->required()
-                    ->live()
-                    ->getSearchResultsUsing(function (string $search): array {
-                        return User::query()
-                            ->where('email', 'ILIKE', "%{$search}%")
-                            ->orWhereHas('profile', function ($q) use ($search) {
-                                $q->where('first_name', 'ILIKE', "%{$search}%")
-                                    ->orWhere('last_name', 'ILIKE', "%{$search}%")
-                                    ->orWhere('phone_number', 'ILIKE', "%{$search}%");
-                            })
-                            ->with(['profile', 'family'])
-                            ->limit(50)
-                            ->get()
-                            ->mapWithKeys(fn($user) => [
-                                $user->id => view('filament.clusters.cashier.components.user-option', ['user' => $user])->render(),
-                            ])
-                            ->toArray();
-                    })
-                    ->getOptionLabelUsing(function ($value) {
-                        $user = User::with(['profile', 'family'])->find($value);
-                        return $user ? view('filament.clusters.cashier.components.user-option', ['user' => $user])->render() : '';
-                    })
-                    ->afterStateUpdated(function ($state) {
-                        if ($state) {
-                            $this->client = User::with('family')->find($state);
-                            $this->celebrations = Celebration::where('family_id', $this->client->family_id)
-                                ->where('completed', false)
-                                ->with(['child', 'package', 'theme'])
-                                ->get();
-                        } else {
-                            $this->client = null;
-                            $this->celebrations = null;
-                        }
-                    }),
-                Select::make('celebration_id')
-                    ->label('Celebration')
-                    ->native(false)
-                    ->options(function () {
-                        if (!$this->celebrations) {
-                            return [];
-                        }
+        Log::info('Celebration payments form method called', [
+            'selectedUserId' => $this->selectedUserId,
+            'hasUser'        => (bool)$this->selectedUser,
+        ]);
 
-                        return $this->celebrations->mapWithKeys(function ($celebration) {
+        $schema = [];
+
+        if (!$this->selectedUser) {
+            $schema[] = $this->getUserSearchField()
+                ->columnSpanFull();
+        }
+
+        if ($this->selectedUser) {
+            $schema[] = Select::make('celebration_id')
+                ->label('Celebration')
+                ->native(false)
+                ->options(function () {
+                    if (!$this->celebrations) {
+                        return [];
+                    }
+
+                    return $this->celebrations->mapWithKeys(function ($celebration) {
+                        $remaining = $celebration->total_amount - $celebration->paid_amount;
+                        $formattedRemaining = app(FormatterServiceInterface::class)->floatValue($remaining, 2);
+
+                        return [
+                            $celebration->id => "{$celebration->child?->first_name}'s Celebration - {$celebration->package?->name} - {$celebration->celebration_date?->format('d.m.Y')} - Balance Due: $formattedRemaining"
+                        ];
+                    })->toArray();
+                })
+                ->required()
+                ->live()
+                ->disabled(fn() => !$this->selectedUser)
+                ->afterStateUpdated(function ($state) {
+                    if ($state && $this->celebrations) {
+                        $celebration = $this->celebrations->firstWhere('id', $state);
+                        if ($celebration) {
                             $remaining = $celebration->total_amount - $celebration->paid_amount;
-                            $formattedRemaining = app(FormatterServiceInterface::class)->floatValue($remaining, 2);
-
-                            return [
-                                $celebration->id => "{$celebration->child->first_name}'s Celebration - {$celebration->package->name} - {$celebration->celebration_date->format('d.m.Y')} - Balance Due: {$formattedRemaining}"
-                            ];
-                        })->toArray();
-                    })
-                    ->required()
-                    ->live()
-                    ->disabled(fn(Get $get): bool => blank($get('user_id')))
-                    ->afterStateUpdated(function ($state, Get $get) {
-                        if ($state && $this->celebrations) {
-                            $celebration = $this->celebrations->firstWhere('id', $state);
-                            if ($celebration) {
-                                $remaining = $celebration->total_amount - $celebration->paid_amount;
-                                $this->data['amount'] = $remaining;
-                            }
+                            $this->data['amount'] = $remaining / 100;
+                            $this->checkBalance();
                         }
-                    }),
-                TextInput::make('amount')
-                    ->label('Payment Amount')
-                    ->numeric()
-                    ->required()
-                    ->minValue(0.01)
-                    ->maxValue(function (Get $get) {
-                        if (!$get('celebration_id') || !$this->celebrations) {
-                            return null;
-                        }
+                    }
+                });
 
-                        $celebration = $this->celebrations->firstWhere('id', $get('celebration_id'));
-                        return $celebration ? $celebration->total_amount - $celebration->paid_amount : null;
-                    })
-                    ->disabled(fn(Get $get): bool => blank($get('celebration_id')))
-            ])
+            $schema[] = TextInput::make('amount')
+                ->label('Payment Amount')
+                ->numeric()
+                ->required()
+                ->minValue(0.01)
+                ->maxValue(function (Get $get) {
+                    if (!$get('celebration_id') || !$this->celebrations) {
+                        return null;
+                    }
+
+                    $celebration = $this->celebrations->firstWhere('id', $get('celebration_id'));
+                    return $celebration ? $celebration->total_amount - $celebration->paid_amount : null;
+                })
+                ->disabled(fn(Get $get): bool => blank($get('celebration_id')))
+                ->live()
+                ->afterStateUpdated(function () {
+                    $this->checkBalance();
+                });
+
+        }
+        return $form
+            ->schema($schema)
             ->statePath('data');
     }
 
+    /**
+     * Check if the user has sufficient balance for the current payment amount
+     */
+    public function checkBalance(): void
+    {
+        $this->hasSufficientBalance = true;
+
+        if ($this->selectedUser &&
+            $this->selectedUser->family &&
+            isset($this->data['amount']) &&
+            is_numeric($this->data['amount']) &&
+            $this->data['amount'] > 0
+        ) {
+            $amount = $this->data['amount'] * 100;
+            $this->hasSufficientBalance = $this->selectedUser->family->canWithdraw($amount);
+        }
+    }
+
+    /**
+     * Check if user has sufficient balance for the payment
+     *
+     * @return bool
+     */
+    public function hasSufficientBalance(): bool
+    {
+        if (!$this->selectedUser || !$this->selectedUser->family || !isset($this->data['amount'])) {
+            return false;
+        }
+
+        $amount = (float)$this->data['amount'] * 100;
+        return $this->selectedUser->family->canWithdraw($amount);
+    }
+
+    /**
+     * Get the tooltip message for the submit button
+     *
+     * @return string|null
+     */
+    public function getSubmitTooltip(): ?string
+    {
+        if (!$this->hasSufficientBalance()) {
+            return "Not enough money in your wallet. Please top up it.";
+        }
+
+        return null;
+    }
+
+
+    /**
+     * @throws Throwable
+     */
     public function submit(): void
     {
+        if (!$this->selectedUser || !$this->selectedUser->family) {
+            Notification::make()
+                ->title('No user selected')
+                ->body('Please select a user first.')
+                ->danger()
+                ->send();
+            return;
+        }
+
         $data = $this->form->getState();
 
         try {
             DB::beginTransaction();
 
-            $client = User::with('family')->findOrFail($data['user_id']);
+            $client = $this->selectedUser;
             $celebration = Celebration::findOrFail($data['celebration_id']);
-            $amount = (float) $data['amount'];
+            $amount = $data['amount'] * 100;
 
-            throw_unless($client->family->canWithdraw($amount),
-                new InsufficientBalanceException(
-                    amount: $amount,
-                    balance: $client->family->main_wallet->balance,
-                )
-            );
+            if (!$client->family->canWithdraw($amount)) {
+                $formattedAmount = app(FormatterServiceInterface::class)->floatValue($amount, 2);
+                $formattedBalance = app(FormatterServiceInterface::class)->floatValue($client->family->main_wallet->balance, 2);
 
-            // Process the payment
+                Notification::make()
+                    ->title('Insufficient balance')
+                    ->body("Not enough money in the wallet. Required: {$formattedAmount}, Available: {$formattedBalance}")
+                    ->danger()
+                    ->send();
+                return;
+            }
+
             $client->family->withdraw($amount, [
-                'description' => "Payment for celebration #{$celebration->id}",
+                'description'    => "Payment for celebration #$celebration->id",
                 'celebration_id' => $celebration->id,
             ]);
 
-            // Update the celebration paid amount
-            $celebration->paid_amount = $celebration->paid_amount + $amount;
-            $celebration->save();
+            $celebration->update([
+                'paid_amount' => $celebration->paid_amount + $amount,
+                'completed' => true
+            ]);
 
             $cashierUser = Filament::auth()->user();
             $transactionId = (string)Str::uuid7(time: now());
@@ -184,16 +287,16 @@ class CashierCelebrationsPage extends Page implements HasForms
             $receipt = [
                 'transaction_id' => $transactionId,
                 'celebration_id' => $celebration->id,
-                'client_name' => $client->profile->full_name,
-                'child_name' => $celebration->child->first_name,
-                'amount' => $amount,
-                'date' => Carbon::now()->format('d.m.Y H:i'),
-                'cashier' => $cashierUser->name,
-                'remaining' => $celebration->total_amount - $celebration->paid_amount,
+                'client_name'    => $client->full_name,
+                'child_name'     => $celebration->child->first_name,
+                'amount'         => $amount,
+                'date'           => Carbon::now()->format('d.m.Y H:i'),
+                'cashier'        => $cashierUser->name,
+                'remaining'      => $celebration->total_amount - $celebration->paid_amount,
             ];
 
             DB::commit();
-            Cache::put("cashier.celebration.{$transactionId}", $receipt, now()->addDays(2));
+            Cache::put("cashier.celebration.$transactionId", $receipt, now()->addDays(2));
 
             $this->receipt = $receipt;
             $this->transaction = $transactionId;
@@ -214,9 +317,24 @@ class CashierCelebrationsPage extends Page implements HasForms
         }
     }
 
-    public function back()
+    public function back(): void
     {
         $this->transaction = null;
         $this->step = 'payment';
     }
+
+    public function clearSelectedUser(): void
+    {
+        $this->selectUser(null);
+        $this->refreshUserSearchForm();
+        $this->form->fill();
+    }
+
+    protected function getListeners(): array
+    {
+        return [
+            'user-selected' => 'refreshForm',
+        ];
+    }
+
 }

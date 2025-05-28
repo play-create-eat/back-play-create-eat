@@ -8,14 +8,19 @@ use App\Enums\Otps\TypeEnum;
 use App\Models\OtpCode;
 use App\Models\User;
 use Exception;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class OtpService
 {
+    public function __construct(protected TwilloService $twilloService, protected MyInboxMediaService $myInboxMediaService)
+    {
+    }
+
     public function generate(?User $user, TypeEnum $type, PurposeEnum $purpose, string $identifier): OtpCode
     {
 //        if ($identifier === '+37368411195') {
-            $code = rand(1000, 9999);
+        $code = rand(1000, 9999);
 //        } else {
 //            $code = 1234;
 //        }
@@ -60,16 +65,24 @@ class OtpService
     /**
      * @throws Exception
      */
-    public function send(OtpCode $otpCode, TwilloService $twilloService): OtpService
+    public function send(OtpCode $otpCode): OtpService
     {
 
         $message = "Your OTP is $otpCode->code. It will expire in 2 minutes.";
 
         if ($otpCode->type === TypeEnum::PHONE) {
-            $result = $twilloService->sendSms($otpCode->identifier, $message);
+            if (str_starts_with($otpCode->identifier, '+971')) {
+                $result = $this->myInboxMediaService->sendSms($otpCode->identifier, $message);
 
-            if ($result !== true) {
-                throw new Exception("Failed to send SMS: $result");
+                if ($result['success'] !== true) {
+                    throw new Exception("Failed to send SMS via MyInboxMedia: " . ($result['error'] ?? 'Unknown error'));
+                }
+            } else {
+                $result = $this->twilloService->sendSms($otpCode->identifier, $message);
+
+                if ($result !== true) {
+                    throw new Exception("Failed to send SMS via Twilio: $result");
+                }
             }
         }
 

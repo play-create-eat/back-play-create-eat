@@ -13,4 +13,9 @@ class AdminResourceBase extends Resource
     {
         return 'Admin Management';
     }
+
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('viewAdmins');
+    }
 }

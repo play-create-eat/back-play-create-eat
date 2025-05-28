@@ -31,7 +31,8 @@ class Celebration extends Model
         'paid_amount',
         'current_step',
         'min_amount',
-        'family_id'
+        'family_id',
+        'closed_at'
     ];
 
     protected $casts = [
@@ -44,6 +45,11 @@ class Celebration extends Model
     public function child(): BelongsTo
     {
         return $this->belongsTo(Child::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function invitations():BelongsToMany

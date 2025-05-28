@@ -41,9 +41,4 @@ class PassCheckOutNotification extends Notification
             ->setSubject('Pass Check-Out')
             ->setBody('You have successfully checked out.');
     }
-
-    public function routeNotificationForOneSignal(): array
-    {
-        return ['include_external_user_ids' => $this->id];
-    }
 }

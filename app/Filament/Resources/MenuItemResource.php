@@ -20,7 +20,15 @@ class MenuItemResource extends Resource
 {
     protected static ?string $model = MenuItem::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Menu Management';
+    protected static ?string $navigationLabel = 'Items';
+
+    protected static ?int $navigationSort = 3;
+
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('manageMenu');
+    }
 
     public static function form(Form $form): Form
     {
@@ -47,7 +55,7 @@ class MenuItemResource extends Resource
                     ->collection('menu_item_images')
                     ->image()
                     ->required()
-                    ->maxSize(10240),
+                    ->maxSize(102400),
                 Repeater::make('options')
                     ->relationship('options')
                     ->schema([
@@ -55,7 +63,7 @@ class MenuItemResource extends Resource
                         SpatieMediaLibraryFileUpload::make('menu_item_option_image')
                             ->collection('menu_item_option_image')
                             ->image()
-                            ->maxSize(10240),
+                            ->maxSize(102400),
                     ])->addActionLabel('Add Option'),
             ]);
     }

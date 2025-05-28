@@ -18,11 +18,14 @@ class AdminRoleResource extends Resource
 {
     protected static ?string $model = Role::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-shield-check';
-
     protected static ?string $navigationGroup = 'Admin Management';
 
     protected static ?int $navigationSort = 1;
+
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('viewRoles');
+    }
 
     public static function getEloquentQuery(): Builder
     {

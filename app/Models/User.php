@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Notifications\Notification;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Bavix\Wallet\Traits\CanPay;
@@ -87,5 +88,10 @@ class User extends Authenticatable implements HasName
     public function getFilamentName(): string
     {
         return $this->email;
+    }
+
+    public function routeNotificationForOneSignal(Notification $notification): array
+    {
+        return ['include_external_user_ids' => ["$this->id"]];
     }
 }

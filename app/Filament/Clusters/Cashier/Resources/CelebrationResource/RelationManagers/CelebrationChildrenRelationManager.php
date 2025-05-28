@@ -4,16 +4,17 @@ namespace App\Filament\Clusters\Cashier\Resources\CelebrationResource\RelationMa
 
 use App\Models\Child;
 use App\Models\Product;
+use App\Models\User;
 use App\Services\PassService;
 use Carbon\Carbon;
 use Exception;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -21,6 +22,8 @@ use Throwable;
 class CelebrationChildrenRelationManager extends RelationManager
 {
     protected static string $relationship = 'invitations';
+
+    public ?User $selectedGuestUser = null;
 
     public function table(Table $table): Table
     {
@@ -53,32 +56,122 @@ class CelebrationChildrenRelationManager extends RelationManager
                     ->sortable()
                     ->label('Added At'),
             ])
-            ->filters([
-                Tables\Filters\SelectFilter::make('gender')
-                    ->options([
-                        'male'   => 'Male',
-                        'female' => 'Female',
-                    ]),
-            ])
+            ->defaultSort('celebration_child.created_at', 'desc')
+            ->filters([])
             ->headerActions([
-                Tables\Actions\AttachAction::make()
-                    ->preloadRecordSelect()
+                Tables\Actions\Action::make('addChild')
                     ->label('Add Child')
-                    ->modalHeading('Add Child to Celebration')
-                    ->modalDescription('Select a child to add to this celebration')
-                    ->recordTitle(fn(Child $record) => "$record->first_name $record->last_name")
-                    ->recordSelect(fn(Select $select) => $select
-                        ->getOptionLabelFromRecordUsing(fn(Child $record) => "$record->first_name $record->last_name")
-                        ->searchable(['first_name', 'last_name']))
-                    ->after(function (array $data) {
-                        $childId = $data['recordId'] ?? null;
+                    ->icon('heroicon-o-user-plus')
+                    ->form([
+                        Grid::make()
+                            ->schema([
+                                Select::make('guestUserId')
+                                    ->label('Search for Guest')
+                                    ->placeholder('Search by name, email, or phone')
+                                    ->searchable()
+                                    ->preload()
+                                    ->getSearchResultsUsing(function (string $search): array {
+                                        return User::where(function ($query) use ($search) {
+                                            $query->where('email', 'like', "%{$search}%")
+                                                ->orWhereHas('profile', function ($q) use ($search) {
+                                                    $q->where('phone_number', 'like', "%{$search}%")
+                                                        ->orWhere('first_name', 'like', "%{$search}%")
+                                                        ->orWhere('last_name', 'like', "%{$search}%");
+                                                });
+                                        })
+                                            ->limit(50)
+                                            ->get()
+                                            ->mapWithKeys(function (User $user) {
+                                                $name = $user->profile ? "{$user->profile->first_name} {$user->profile->last_name}" : $user->email;
+                                                $phone = $user->profile?->phone_number ? " ({$user->profile->phone_number})" : '';
+                                                return [$user->id => $name . $phone];
+                                            })
+                                            ->toArray();
+                                    })
+                                    ->getOptionLabelUsing(fn($value): ?string => User::find($value)?->profile ?
+                                        User::find($value)->profile->first_name . ' ' . User::find($value)->profile->last_name :
+                                        User::find($value)?->email)
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, $set) {
+                                        $set('childId', null);
+                                    })
+                                    ->required(),
 
-                        if ($childId) {
-                            $child = Child::find($childId);
-                            if ($child) {
-                                $this->createFreePlaygroundTicket($child);
-                            }
+                                Select::make('childId')
+                                    ->label('Select Child')
+                                    ->options(function (callable $get) {
+                                        $userId = $get('guestUserId');
+                                        if (!$userId) {
+                                            return [];
+                                        }
+
+                                        $user = User::with('family.children')->find($userId);
+                                        if (!$user || !$user->family) {
+                                            return [];
+                                        }
+
+                                        $celebration = $this->getOwnerRecord();
+                                        $invitedChildIds = DB::table('celebration_child')
+                                            ->where('celebration_id', $celebration->id)
+                                            ->pluck('child_id')
+                                            ->toArray();
+
+                                        return Child::where('family_id', $user->family->id)
+                                            ->whereNotIn('id', $invitedChildIds)
+                                            ->get()
+                                            ->mapWithKeys(function ($child) {
+                                                return [$child->id => "{$child->first_name} {$child->last_name}"];
+                                            });
+                                    })
+                                    ->searchable()
+                                    ->required()
+                                    ->disabled(fn(callable $get) => !$get('guestUserId')),
+                            ])
+                    ])
+                    ->visible(function () {
+                        $celebration = $this->getOwnerRecord();
+                        return is_null($celebration->closed_at);
+                    })
+                    ->action(function (array $data) {
+                        $childId = $data['childId'] ?? null;
+
+                        if (!$childId) {
+                            Notification::make()
+                                ->title('Please select a child')
+                                ->warning()
+                                ->send();
+                            return;
                         }
+
+                        $celebration = $this->getOwnerRecord();
+
+                        $exists = DB::table('celebration_child')
+                            ->where('celebration_id', $celebration->id)
+                            ->where('child_id', $childId)
+                            ->exists();
+
+                        if ($exists) {
+                            Notification::make()
+                                ->title('Child already invited to this celebration')
+                                ->warning()
+                                ->send();
+                            return;
+                        }
+
+                        $celebration->invitations()->attach($childId, [
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+
+                        $child = Child::find($childId);
+                        if ($child) {
+                            $this->createFreePlaygroundTicket($child);
+                        }
+
+                        Notification::make()
+                            ->title('Child added to celebration')
+                            ->success()
+                            ->send();
                     })
             ])
             ->actions([
@@ -87,6 +180,10 @@ class CelebrationChildrenRelationManager extends RelationManager
                     ->icon('heroicon-o-printer')
                     ->color('success')
                     ->button()
+                    ->visible(function (Child $record) {
+                        $celebration = $this->getOwnerRecord();
+                        return is_null($celebration->closed_at);
+                    })
                     ->action(function (Child $record) {
                         $pass = DB::table('passes')
                             ->where('child_id', $record->id)
@@ -110,16 +207,6 @@ class CelebrationChildrenRelationManager extends RelationManager
                                 ->send();
                         }
                     }),
-                Tables\Actions\Action::make('recreateTicket')
-                    ->label('Recreate Ticket')
-                    ->icon('heroicon-o-ticket')
-                    ->color('primary')
-                    ->button()
-                    ->action(function (Child $record) {
-                        $this->createFreePlaygroundTicket($record);
-                    }),
-                Tables\Actions\DetachAction::make()
-                    ->label('Remove')
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -210,7 +297,7 @@ class CelebrationChildrenRelationManager extends RelationManager
 
             Notification::make()
                 ->title('Free ticket created')
-                ->body("A free {$playgroundProduct->name} ticket has been created for {$child->first_name}")
+                ->body("A free $playgroundProduct->name ticket has been created for {$child->first_name}")
                 ->success()
                 ->actions([
                     Action::make('print')

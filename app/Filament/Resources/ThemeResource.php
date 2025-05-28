@@ -20,7 +20,14 @@ class ThemeResource extends Resource
 {
     protected static ?string $model = Theme::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Celebration Management';
+
+    protected static ?int $navigationSort = 3;
+
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('viewThemes');
+    }
 
     public static function form(Form $form): Form
     {
@@ -43,6 +50,7 @@ class ThemeResource extends Resource
                             ->label('Main Image')
                             ->helperText('Only one main image allowed')
                             ->maxFiles(1)
+                            ->maxSize(102400)
                             ->customProperties([
                                 'main' => true,
                             ])
@@ -60,6 +68,7 @@ class ThemeResource extends Resource
                             ->multiple()
                             ->reorderable()
                             ->maxFiles(5)
+                            ->maxSize(102400)
                             ->deleteUploadedFileUsing(static function (SpatieMediaLibraryFileUpload $component, string $file) {
                                 if (!$file) return;
 

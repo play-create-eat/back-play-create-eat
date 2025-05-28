@@ -84,6 +84,7 @@ class CelebrationController extends Controller
 
                 foreach ($celebrations as $celebration) {
                     Booking::where('celebration_id', $celebration->id)->delete();
+                    DB::table('celebration_child')->where('celebration_id', $celebration->id)->delete();
                 }
 
                 Celebration::where('user_id', auth()->guard('sanctum')->user()->id)
@@ -131,7 +132,6 @@ class CelebrationController extends Controller
         ]);
 
         $minChildren = $celebration->package->min_children;
-
         if ($validated['children_count'] < $minChildren) {
             return response()->json([
                 'message' => "Minimum children count is $minChildren"
@@ -158,6 +158,12 @@ class CelebrationController extends Controller
             $celebration->package,
             $celebration->children_count
         );
+
+        if (Carbon::parse($validated['date'])->isSameDay(Carbon::now())) {
+            $slots = array_filter($slots, function ($slot) {
+                return Carbon::parse($slot['start_time'])->gt(Carbon::now());
+            });
+        }
 
         return response()->json([
             'date'     => $validated['date'],
