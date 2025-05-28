@@ -77,7 +77,7 @@ class OtpService
             }
 
             if ($result !== true) {
-                throw new Exception("Failed to send SMS: $result");
+                throw new Exception("Failed to send SMS: " . json_encode($result));
             }
         }
 
