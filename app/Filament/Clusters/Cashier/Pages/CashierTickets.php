@@ -297,7 +297,7 @@ class CashierTickets extends Page implements HasForms
             DB::rollBack();
             Notification::make()
                 ->title('Insufficient balance')
-                ->body("The family doesn't have enough funds. Required: " . $e->getAmount() . ", Available: " . $e->getBalance())
+                ->body("The family doesn't have enough funds. Required: " . number_format($e->getAmount() / 100, 2) . ", Available: " . number_format($e->getBalance() / 100, 2))
                 ->danger()
                 ->send();
         } catch (ExceptionInterface $e) {
