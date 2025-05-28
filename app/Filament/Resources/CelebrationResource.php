@@ -202,6 +202,7 @@ class CelebrationResource extends Resource
                                         ])->save();
 
                                         $record->paid_amount += $paymentAmount;
+                                        $record->completed = true;
                                         $record->save();
 
                                         Notification::make()
