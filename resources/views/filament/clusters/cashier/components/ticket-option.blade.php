@@ -3,7 +3,7 @@
         {{ $name }}
     </div>
     <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-        Price: {{ $price }} €
+        Price: {{ $price }} AED
     </div>
     @if(!empty($features))
         <div class="mt-1 flex flex-wrap gap-1">
