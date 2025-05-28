@@ -71,18 +71,19 @@ class ViewCelebration extends ViewRecord
                             $celebration->family->main_wallet->deposit($refundAmount, [
                                 'description' => 'Refund from celebration #' . $celebration->id,
                                 'type'        => 'celebration_refund'
-                            ]);
+                            ])->save();
+
                             $currentLoyaltyAmount = $currentPaidAmount * $celebration->package->cashback_percentage / 100;
                             $celebration->family->loyalty_wallet->withdraw($currentLoyaltyAmount, [
                                 'description' => 'Loyalty points deduction for celebration #' . $celebration->id,
                                 'type'        => 'celebration_loyalty_deduction'
-                            ]);
+                            ])->save();
 
                             $newLoyaltyAmount = $newTotalAmount * $celebration->package->cashback_percentage / 100;
                             $celebration->family->loyalty_wallet->deposit($newLoyaltyAmount, [
                                 'description' => 'Loyalty points for celebration #' . $celebration->id,
                                 'type'        => 'celebration_loyalty_deposit'
-                            ]);
+                            ])->save();
 
                             Notification::make()
                                 ->title('Celebration Closed Successfully')
@@ -96,7 +97,7 @@ class ViewCelebration extends ViewRecord
                         } else {
                             Notification::make()
                                 ->title('Celebration Closed Successfully')
-                                ->body("The celebration has been closed with the correct payment amount.")
+                                ->body("The celebration has been closed.")
                                 ->success()
                                 ->send();
                         }
@@ -147,13 +148,6 @@ class ViewCelebration extends ViewRecord
         $childrenAmount = $packagePrice * $celebrationCurrentChildrenCount;
 
         $celebrationPriceWithoutChildren = $totalAmount - $childrenAmount;
-
-        $loyaltyAmount = $celebration->paid_amount * $celebration->package->cashback_percentage / 100;
-
-        $celebration->family->loyalty_wallet->withdraw($loyaltyAmount, [
-            'description' => 'Loyalty points deduction for celebration #' . $celebration->id,
-            'type'        => 'celebration_loyalty_deduction'
-        ]);
 
         $realChildrenCount = $celebration->invitations()->count();
         $realChildrenAmount = $packagePrice * $realChildrenCount;
