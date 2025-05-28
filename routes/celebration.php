@@ -35,6 +35,7 @@ Route::prefix('celebration')
             Route::delete('slideshow/{media}', [SlideshowImageController::class, 'destroy']);
             Route::post('invitations/{template}', [PartyInvitationController::class, 'generate']);
             Route::post('payments', [PaymentController::class, 'store']);
+            Route::post('confirm', 'confirm');
         });
     });
 

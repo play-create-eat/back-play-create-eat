@@ -5,6 +5,7 @@ namespace App\Services;
 use Exception;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Support\Facades\Log;
 
 class MyInboxMediaService
 {
@@ -40,6 +41,12 @@ class MyInboxMediaService
 
         try {
             $response = $this->client->post($this->apiUrl, $payload);
+
+            Log::info('MyInboxMediaService sendSms response', [
+                'status_code' => $response->getStatusCode(),
+                'body'        => $response->getBody()->getContents(),
+            ]);
+
             $body = json_decode($response->getBody()->getContents(), true);
 
             if (is_array($body) && isset($body[0]['Response'])) {
