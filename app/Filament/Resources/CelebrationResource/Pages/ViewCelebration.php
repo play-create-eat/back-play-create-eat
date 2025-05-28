@@ -4,7 +4,6 @@ namespace App\Filament\Resources\CelebrationResource\Pages;
 
 use App\Filament\Resources\CelebrationResource;
 use App\Models\Celebration;
-use Bavix\Wallet\Internal\Exceptions\ExceptionInterface;
 use Carbon\Carbon;
 use Exception;
 use Filament\Actions;
@@ -136,8 +135,7 @@ class ViewCelebration extends ViewRecord
      * Recalculate the total amount based on package pricing and actual attendees
      *
      * @param Celebration $celebration
-     * @return int Total amount in cents
-     * @throws ExceptionInterface
+     * @return int
      */
     protected function recalculateTotalAmount(Celebration $celebration): int
     {
@@ -149,8 +147,8 @@ class ViewCelebration extends ViewRecord
 
         $celebrationPriceWithoutChildren = $totalAmount - $childrenAmount;
 
-        $realChildrenCount = $celebration->invitations()->count();
-        $realChildrenAmount = $packagePrice * $realChildrenCount;
+        $billingChildrenCount = max($celebration->invitations()->count(), $celebration->package->min_children);
+        $realChildrenAmount = $packagePrice * $billingChildrenCount;
 
         return $celebrationPriceWithoutChildren + $realChildrenAmount;
     }

@@ -55,6 +55,8 @@ class CashierCelebrationsPage extends Page implements HasForms
     public array $receipt = [];
     public string $step = 'payment';
 
+    public bool $hasSufficientBalance = true;
+
     public static function canAccess(): bool
     {
         return auth()->guard('admin')->user()->can('payCelebration');
@@ -100,7 +102,7 @@ class CashierCelebrationsPage extends Page implements HasForms
 
         $this->refreshUserSearchForm();
         $this->form->fill();
-
+        $this->checkBalance();
     }
 
     protected function updateCelebrationsForUser(): void
@@ -156,6 +158,7 @@ class CashierCelebrationsPage extends Page implements HasForms
                         if ($celebration) {
                             $remaining = $celebration->total_amount - $celebration->paid_amount;
                             $this->data['amount'] = $remaining / 100;
+                            $this->checkBalance();
                         }
                     }
                 });
@@ -173,12 +176,65 @@ class CashierCelebrationsPage extends Page implements HasForms
                     $celebration = $this->celebrations->firstWhere('id', $get('celebration_id'));
                     return $celebration ? $celebration->total_amount - $celebration->paid_amount : null;
                 })
-                ->disabled(fn(Get $get): bool => blank($get('celebration_id')));
+                ->disabled(fn(Get $get): bool => blank($get('celebration_id')))
+                ->live()
+                ->afterStateUpdated(function () {
+                    $this->checkBalance();
+                });
+
         }
         return $form
             ->schema($schema)
             ->statePath('data');
     }
+
+    /**
+     * Check if the user has sufficient balance for the current payment amount
+     */
+    public function checkBalance(): void
+    {
+        $this->hasSufficientBalance = true;
+
+        if ($this->selectedUser &&
+            $this->selectedUser->family &&
+            isset($this->data['amount']) &&
+            is_numeric($this->data['amount']) &&
+            $this->data['amount'] > 0
+        ) {
+            $amount = $this->data['amount'] * 100;
+            $this->hasSufficientBalance = $this->selectedUser->family->canWithdraw($amount);
+        }
+    }
+
+    /**
+     * Check if user has sufficient balance for the payment
+     *
+     * @return bool
+     */
+    public function hasSufficientBalance(): bool
+    {
+        if (!$this->selectedUser || !$this->selectedUser->family || !isset($this->data['amount'])) {
+            return false;
+        }
+
+        $amount = (float)$this->data['amount'] * 100;
+        return $this->selectedUser->family->canWithdraw($amount);
+    }
+
+    /**
+     * Get the tooltip message for the submit button
+     *
+     * @return string|null
+     */
+    public function getSubmitTooltip(): ?string
+    {
+        if (!$this->hasSufficientBalance()) {
+            return "Not enough money in your wallet. Please top up it.";
+        }
+
+        return null;
+    }
+
 
     /**
      * @throws Throwable
@@ -203,12 +259,17 @@ class CashierCelebrationsPage extends Page implements HasForms
             $celebration = Celebration::findOrFail($data['celebration_id']);
             $amount = $data['amount'] * 100;
 
-            throw_unless($client->family->canWithdraw($amount),
-                new InsufficientBalanceException(
-                    amount: $amount,
-                    balance: $client->family->main_wallet->balance,
-                )
-            );
+            if (!$client->family->canWithdraw($amount)) {
+                $formattedAmount = app(FormatterServiceInterface::class)->floatValue($amount, 2);
+                $formattedBalance = app(FormatterServiceInterface::class)->floatValue($client->family->main_wallet->balance, 2);
+
+                Notification::make()
+                    ->title('Insufficient balance')
+                    ->body("Not enough money in the wallet. Required: {$formattedAmount}, Available: {$formattedBalance}")
+                    ->danger()
+                    ->send();
+                return;
+            }
 
             $client->family->withdraw($amount, [
                 'description'    => "Payment for celebration #$celebration->id",

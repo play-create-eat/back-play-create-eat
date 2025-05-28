@@ -56,13 +56,8 @@ class CelebrationChildrenRelationManager extends RelationManager
                     ->sortable()
                     ->label('Added At'),
             ])
-            ->filters([
-                Tables\Filters\SelectFilter::make('gender')
-                    ->options([
-                        'male'   => 'Male',
-                        'female' => 'Female',
-                    ]),
-            ])
+            ->defaultSort('celebration_child.created_at', 'desc')
+            ->filters([])
             ->headerActions([
                 Tables\Actions\Action::make('addChild')
                     ->label('Add Child')
@@ -130,7 +125,7 @@ class CelebrationChildrenRelationManager extends RelationManager
                                     })
                                     ->searchable()
                                     ->required()
-                                    ->disabled(fn (callable $get) => !$get('guestUserId')),
+                                    ->disabled(fn(callable $get) => !$get('guestUserId')),
                             ])
                     ])
                     ->visible(function () {
@@ -212,20 +207,6 @@ class CelebrationChildrenRelationManager extends RelationManager
                                 ->send();
                         }
                     }),
-                Tables\Actions\Action::make('recreateTicket')
-                    ->label('Recreate Ticket')
-                    ->icon('heroicon-o-ticket')
-                    ->color('primary')
-                    ->button()
-                    ->visible(function (Child $record) {
-                        $celebration = $this->getOwnerRecord();
-                        return is_null($celebration->closed_at);
-                    })
-                    ->action(function (Child $record) {
-                        $this->createFreePlaygroundTicket($record);
-                    }),
-                Tables\Actions\DetachAction::make()
-                    ->label('Remove')
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

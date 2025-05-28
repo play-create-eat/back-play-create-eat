@@ -30,6 +30,7 @@ use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Url;
+use Throwable;
 
 class CelebrationChildrenPage extends Page implements HasForms, HasInfolists, HasTable
 {
@@ -172,7 +173,7 @@ class CelebrationChildrenPage extends Page implements HasForms, HasInfolists, Ha
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function addChild(): void
     {
@@ -297,14 +298,6 @@ class CelebrationChildrenPage extends Page implements HasForms, HasInfolists, Ha
                                 ->send();
                         }
                     }),
-                Action::make('recreateTicket')
-                    ->label('Recreate Ticket')
-                    ->icon('heroicon-o-ticket')
-                    ->color('primary')
-                    ->button()
-                    ->action(function (Child $record) {
-                        $this->createFreePlaygroundTicket($record);
-                    }),
                 Action::make('remove')
                     ->label('Remove')
                     ->color('danger')
@@ -333,7 +326,6 @@ class CelebrationChildrenPage extends Page implements HasForms, HasInfolists, Ha
      * @param Child $child
      * @return void
      * @throws Throwable
-     * @throws \Throwable
      */
     protected function createFreePlaygroundTicket(Child $child): void
     {
@@ -502,7 +494,7 @@ class CelebrationChildrenPage extends Page implements HasForms, HasInfolists, Ha
 
             $schema[] = Select::make('selectedCelebration')
                 ->label('Select Celebration')
-                ->options($query->get()
+                ->options($query->whereTodayOrAfter('celebration_date')->get()
                     ->mapWithKeys(function ($celebration) {
                         $childName = $celebration->child?->first_name ?? 'Unknown';
                         $date = $celebration->celebration_date?->format('d M Y') ?? 'No date';
