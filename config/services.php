@@ -58,4 +58,11 @@ return [
         'guzzle_client_timeout' => env('ONESIGNAL_GUZZLE_CLIENT_TIMEOUT', 0),
     ],
 
+    'myinboxmedia' => [
+        'user_id' => env('MYINBOXMEDIA_USER_ID', ''),
+        'password' => env('MYINBOXMEDIA_USER_PASSWORD', ''),
+        'sender_id' => env('MYINBOXMEDIA_USER_SENDER_ID', ''),
+        'api_url' => env('MYINBOXMEDIA_USER_API_URL', 'https://myinboxmedia.in'),
+    ],
+
 ];
