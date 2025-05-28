@@ -73,14 +73,16 @@ class OtpService
         if ($otpCode->type === TypeEnum::PHONE) {
             if (str_starts_with($otpCode->identifier, '+971')) {
                 $result = $this->myInboxMediaService->sendSms($otpCode->identifier, $message);
+
+                if ($result['success'] !== true) {
+                    throw new Exception("Failed to send SMS via MyInboxMedia: " . ($result['error'] ?? 'Unknown error'));
+                }
             } else {
                 $result = $this->twilloService->sendSms($otpCode->identifier, $message);
-            }
 
-            Log::info(json_encode($result));
-
-            if ($result !== true) {
-                throw new Exception("Failed to send SMS: " . json_encode($result));
+                if ($result !== true) {
+                    throw new Exception("Failed to send SMS via Twilio: $result");
+                }
             }
         }
 
