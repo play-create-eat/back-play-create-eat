@@ -194,14 +194,14 @@ class CelebrationController extends Controller
                 'celebration_date' => $validated['datetime'],
             ]);
 
-            $packagePrice = Carbon::parse($celebration->celebration_date)->isWeekday() ? $celebration->package->weekday_price : $celebration->package->weekend_price;
-            Log::info("Package Price: $packagePrice");
-            $price = $celebration->total_amount + ($packagePrice * 100) * $celebration->children_count;
-            Log::info("Package Price * children count: $price");
+//            $packagePrice = Carbon::parse($celebration->celebration_date)->isWeekday() ? $celebration->package->weekday_price : $celebration->package->weekend_price;
+//            Log::info("Package Price: $packagePrice");
+//            $price = $celebration->total_amount + ($packagePrice * 100) * $celebration->children_count;
+//            Log::info("Package Price * children count: $price");
 
             $celebration->update([
                 'celebration_date' => $validated['datetime'],
-                'total_amount'     => $price,
+//                'total_amount'     => $price,
                 'current_step' => $validated['current_step'],
             ]);
 
@@ -247,7 +247,7 @@ class CelebrationController extends Controller
             'cake_id'      => $validated['cake_id'],
             'cake_weight'  => $validated['cake_weight'],
             'current_step' => $validated['current_step'],
-            'total_amount' => $celebration->total_amount + $validated['cake_weight'] * $cakePrice,
+//            'total_amount' => $celebration->total_amount + $validated['cake_weight'] * $cakePrice,
         ]);
         $celebration->refresh();
 
@@ -360,7 +360,7 @@ class CelebrationController extends Controller
         }
 
         $celebration->update([
-            'total_amount' => $celebration->total_amount + $priceChange,
+//            'total_amount' => $celebration->total_amount + $priceChange,
             'photographer' => $validated['photographer'],
             'current_step' => $validated['current_step']
         ]);
@@ -393,7 +393,7 @@ class CelebrationController extends Controller
         }
 
         $celebration->update([
-            'total_amount' => $celebration->total_amount + $priceChange,
+//            'total_amount' => $celebration->total_amount + $priceChange,
             'photo_album' => $validated['photo_album'],
             'current_step' => $validated['current_step']
         ]);
@@ -447,6 +447,55 @@ class CelebrationController extends Controller
 
     public function confirm(Celebration $celebration)
     {
-        return response()->json($celebration->load('child', 'cake', 'package', 'theme', 'menuItems'));
+        $celebration->load([
+            'child',
+            'cake',
+            'package',
+            'theme',
+            'menuItems',
+            'features',
+            'cart.items.menuItem.tags',
+            'cart.items.modifiers.modifierOption'
+        ]);
+
+        $packagePrice = Carbon::parse($celebration->celebration_date)->isWeekday()
+            ? $celebration->package->weekday_price
+            : $celebration->package->weekend_price;
+
+        $basePackageCost = ($packagePrice * 100) * $celebration->children_count;
+
+        $cakeCost = 0;
+        if ($celebration->cake && $celebration->cake_weight) {
+            $cakeCost = $celebration->cake->price_per_kg * 100 * $celebration->cake_weight;
+        }
+
+        $menuCost = 0;
+        if ($celebration->cart) {
+            $menuCost = $celebration->cart->items
+                ->where('audience', 'parents')
+                ->sum(function ($item) {
+                    $base = $item->menuItem->cents_price * $item->quantity;
+                    $mods = $item->modifiers->sum(fn($mod) => $mod->modifierOption->cents_price ?? 0) * $item->quantity;
+                    return $base + $mods;
+                });
+        }
+
+        $featuresCost = $celebration->features->sum('cents_price');
+
+        $totalCost = $basePackageCost + $cakeCost + $menuCost + $featuresCost;
+
+        $celebration->update(['total_amount' => $totalCost]);
+
+        return response()->json([
+            'celebration' => $celebration,
+            'price_breakdown' => [
+                'package_price' => $packagePrice,
+                'base_package_cost' => $basePackageCost / 100,
+                'cake_cost' => $cakeCost / 100,
+                'menu_cost' => $menuCost / 100,
+                'features_cost' => $featuresCost / 100,
+                'total_cost' => $totalCost / 100
+            ]
+        ]);
     }
 }

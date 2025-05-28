@@ -75,7 +75,7 @@ class OtpService
                 $result = $this->myInboxMediaService->sendSms($otpCode->identifier, $message);
 
                 if ($result['success'] !== true) {
-                    throw new Exception("Failed to send SMS via MyInboxMedia: " . ($result['error'] ?? 'Unknown error'));
+                    throw new Exception("Failed to send SMS via MyInboxMedia: " . ($result ? json_encode($result) : 'Unknown error'));
                 }
             } else {
                 $result = $this->twilloService->sendSms($otpCode->identifier, $message);
