@@ -5,7 +5,6 @@ namespace App\Filament\Resources;
 use App\Enums\ProductTypeEnum;
 use App\Filament\Resources\ProductResource\Pages;
 use App\Models\Product;
-use Carbon\CarbonInterval;
 use Bavix\Wallet\Services\FormatterServiceInterface;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\TextInput;
@@ -25,13 +24,10 @@ use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Table;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Infolists;
-use Filament\Infolists\Infolist;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Number;
-use Illuminate\Support\Str;
 
 class ProductResource extends Resource
 {

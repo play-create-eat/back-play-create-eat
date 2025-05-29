@@ -6,6 +6,7 @@ use App\Enums\ProductTypeEnum;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Bavix\Wallet\Traits\HasWallet;
 use Bavix\Wallet\Interfaces\Customer;
@@ -27,6 +28,7 @@ use Bavix\Wallet\Interfaces\ProductLimitedInterface;
  * @property bool $is_extendable
  * @property bool $is_available
  * @property ProductTypeEnum $type
+ * @property ?ProductPackage $productPackage
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  * @property ?\Carbon\Carbon $deleted_at
@@ -86,6 +88,11 @@ class Product extends Model implements ProductLimitedInterface
     public function features(): BelongsToMany
     {
         return $this->belongsToMany(ProductType::class, 'product_features', 'product_id', 'product_type_id');
+    }
+
+    public function productPackage(): HasOne
+    {
+        return $this->hasOne(ProductPackage::class);
     }
 
     /**
