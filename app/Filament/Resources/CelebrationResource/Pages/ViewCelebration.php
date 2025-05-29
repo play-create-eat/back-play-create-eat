@@ -24,7 +24,7 @@ class ViewCelebration extends ViewRecord
 
             Action::make('printBill')
                 ->label('Print Bill')
-                ->icon('heroicon-o-document')
+                ->icon('heroicon-o-printer')
                 ->color('success')
                 ->url(fn($record) => URL::signedRoute(
                     'celebration.print-bill',
@@ -68,8 +68,6 @@ class ViewCelebration extends ViewRecord
 
             /** @var Celebration $celebration */
             $celebration = $this->record;
-
-            // Simply mark the celebration as closed
             $celebration->children_count = $celebration->invitations()->count();
             $celebration->closed_at = now();
             $celebration->completed = true;
