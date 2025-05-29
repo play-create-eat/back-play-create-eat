@@ -60,7 +60,7 @@ Route::prefix('v1')->group(function () {
         Route::post('payments/{payment}/card-pay', [PaymentController::class, 'cardPay']);
 
         Route::post('/notifications/test', [NotificationController::class, 'sendTestNotification']);
-        
+
         // Survey routes (admin access)
         Route::get('surveys', [SurveyController::class, 'index']);
         Route::get('surveys/{survey}', [SurveyController::class, 'show']);
@@ -80,5 +80,7 @@ Route::prefix('v1')->group(function () {
     require __DIR__ . '/stripe.php';
     require __DIR__ . '/internal.php';
 });
+
+require __DIR__ . '/filament.php';
 
 
