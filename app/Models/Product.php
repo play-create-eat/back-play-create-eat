@@ -110,7 +110,8 @@ class Product extends Model implements ProductLimitedInterface
             $priceWeekend = $this->price_weekend;
         }
 
-        if ($date?->isWeekend() && $priceWeekend > 0) {
+        $isWeekend = collect(config('passes.weekend_days'))->contains($date?->dayOfWeekIso);
+        if ($isWeekend && $priceWeekend > 0) {
             $price = $priceWeekend;
         }
 

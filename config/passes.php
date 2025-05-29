@@ -9,4 +9,5 @@ return [
         14400 => '10 days',
         28800 => '20 days',
     ],
+    'weekend_days' => [5, 6, 7],
 ];
