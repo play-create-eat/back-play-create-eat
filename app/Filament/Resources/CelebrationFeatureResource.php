@@ -18,7 +18,7 @@ class CelebrationFeatureResource extends Resource
 
     protected static ?string $navigationGroup = 'Celebration Management';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 5;
 
     public static function canAccess(): bool
     {
