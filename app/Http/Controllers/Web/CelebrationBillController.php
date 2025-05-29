@@ -32,7 +32,7 @@ class CelebrationBillController extends Controller
             'celebration' => $celebration,
             'packagePrice' => $this->getPackagePrice($celebration),
             'dateFormatted' => Carbon::parse($celebration->celebration_date)->format('d M Y'),
-            'isWeekend' => Carbon::parse($celebration->celebration_date)->isWeekend(),
+            'isWeekend' => Carbon::parse($celebration->celebration_date)->isBusinessWeekend(),
             'actualChildrenCount' => $celebration->invitations->count(),
             'billingChildrenCount' => max($celebration->invitations->count(), $celebration->package->min_children),
             'minChildrenRequired' => $celebration->package->min_children,
@@ -50,7 +50,7 @@ class CelebrationBillController extends Controller
      */
     protected function getPackagePrice(Celebration $celebration): int
     {
-        return (Carbon::parse($celebration->celebration_date)->isWeekend()
+        return (Carbon::parse($celebration->celebration_date)->isBusinessWeekend()
             ? $celebration->package->weekend_price
             : $celebration->package->weekday_price) * 100;
     }
