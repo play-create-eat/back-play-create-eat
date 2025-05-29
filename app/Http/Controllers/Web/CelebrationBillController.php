@@ -54,4 +54,26 @@ class CelebrationBillController extends Controller
             ? $celebration->package->weekend_price
             : $celebration->package->weekday_price) * 100;
     }
+
+    public function printMenu(Celebration $celebration)
+    {
+        $celebration->load([
+            'package',
+            'invitations',
+            'family',
+            'theme',
+            'cake',
+            'cart.items.menuItem.tags',
+            'cart.items.menuItem.type',
+            'cart.items.modifiers.modifierOption'
+        ]);
+
+        $pdf = PDF::loadView('pdf.celebration-menu', [
+            'celebration' => $celebration,
+            'dateFormatted' => Carbon::parse($celebration->celebration_date)->format('d M Y'),
+            'actualChildrenCount' => $celebration->invitations->count(),
+        ]);
+
+        return $pdf->stream('celebration-menu-' . $celebration->id . '.pdf');
+    }
 }
