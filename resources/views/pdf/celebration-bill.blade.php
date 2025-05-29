@@ -12,14 +12,32 @@
             background-color: #fff;
         }
         .header {
+            position: relative;
             text-align: center;
             margin-bottom: 20px;
             padding-bottom: 10px;
             border-bottom: 1px solid #000;
         }
+        .company-info {
+            position: absolute;
+            top: 0;
+            right: 0;
+            text-align: right;
+            font-size: 11px;
+            color: #555;
+            line-height: 1.3;
+            max-width: 200px;
+        }
+        .company-name {
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 3px;
+        }
         .logo {
             max-width: 200px;
             margin-bottom: 10px;
+            margin-top: 10px;
         }
         h1 {
             font-size: 22px;
@@ -74,6 +92,16 @@
             border-top: 1px solid #000;
             padding-top: 10px;
         }
+        .footer-company {
+            font-size: 12px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .footer-message {
+            font-size: 11px;
+            color: #666;
+            font-style: italic;
+        }
         .price-column {
             text-align: right;
         }
@@ -98,7 +126,19 @@
 </head>
 <body>
     <div class="header">
-        <img src="{{ asset('images/logo.svg') }}" alt="Logo" class="logo">
+        <div class="company-info">
+            <div class="company-name">Play Create Eat</div>
+            <div>Kids Amusement Arcade L.L.C</div>
+        </div>
+        @if(file_exists(public_path('images/logo.svg')))
+            <img src="{{ public_path('images/logo.svg') }}" alt="Play Create Eat Logo" class="logo">
+        @elseif(file_exists(public_path('images/logo.png')))
+            <img src="{{ public_path('images/logo.png') }}" alt="Play Create Eat Logo" class="logo">
+        @else
+            <div style="text-align: center; font-size: 18px; font-weight: bold; margin: 20px 0;">
+                Play Create Eat
+            </div>
+        @endif
         <h1>Celebration Bill</h1>
         <div>Invoice #{{ $celebration->id }}</div>
         <div>Date: {{ now()->format('d M Y') }}</div>
@@ -128,7 +168,7 @@
             @if($celebration->cake)
             <tr>
                 <td>{{ $celebration->cake->type }}</td>
-                <td>{{ $celebration->cake_weight ?? '1' }} Kg</td>
+                <td>{{ $celebration->cake_weight ?? '1' }} Kg (AED {{ number_format($celebration->cake->price_per_kg, 2) }} per Kg)</td>
                 <td class="price-column">{{ number_format(($celebration->cake_weight * $celebration->cake->price_per_kg), 2) }}</td>
             </tr>
             @endif
@@ -361,7 +401,8 @@
     </div>
 
     <div class="footer">
-        <p>Thank you for celebrating with us!</p>
+        <div class="footer-company">Play Create Eat Kids Amusement Arcade L.L.C</div>
+        <div class="footer-message">Thank you for choosing us to make your celebration magical!</div>
     </div>
 </body>
 </html>
