@@ -2,8 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\Otps\TypeEnum;
-use App\Models\OtpCode;
 use Throwable;
 use Twilio\Exceptions\ConfigurationException;
 use Twilio\Rest\Client;
