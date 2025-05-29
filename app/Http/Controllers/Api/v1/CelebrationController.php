@@ -157,17 +157,23 @@ class CelebrationController extends Controller
             'date' => ['required', 'date', 'after_or_equal:today'],
         ]);
 
+        $requestedDate = Carbon::parse($validated['date']);
+        $minimumDate = Carbon::now()->addDays(5);
+
+        if ($requestedDate->lessThan($minimumDate)) {
+            return response()->json([
+                'date'     => $validated['date'],
+                'duration' => $celebration->package->duration_hours,
+                'slots'    => [],
+            ]);
+        }
+
+
         $slots = $bookingService->getAvailableTimeSlots(
             $validated['date'],
             $celebration->package,
             $celebration->children_count
         );
-
-        if (Carbon::parse($validated['date'])->isSameDay(Carbon::now())) {
-            $slots = array_filter($slots, function ($slot) {
-                return Carbon::parse($slot['start_time'])->gt(Carbon::now());
-            });
-        }
 
         return response()->json([
             'date'     => $validated['date'],

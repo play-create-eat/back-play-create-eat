@@ -68,7 +68,7 @@ class Package extends Model implements HasMedia
      */
     public function getPriceForDate(Carbon $date): float
     {
-        $basePrice = $date->isWeekend()
+        $basePrice = $date->isBusinessWeekend()
             ? (float) $this->attributes['weekend_price']
             : (float) $this->attributes['weekday_price'];
 
@@ -95,7 +95,7 @@ class Package extends Model implements HasMedia
     public function getWeekendPriceAttribute(): float
     {
         $today = Carbon::today();
-        if ($today->isWeekend()) {
+        if ($today->isBusinessWeekend()) {
             return $this->getPriceForDate($today);
         }
 
@@ -106,7 +106,7 @@ class Package extends Model implements HasMedia
     public function getWeekdayPriceAttribute(): float
     {
         $today = Carbon::today();
-        if (!$today->isWeekend()) {
+        if (!$today->isBusinessWeekend()) {
             return $this->getPriceForDate($today);
         }
 
