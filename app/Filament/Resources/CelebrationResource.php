@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Clusters\Cashier\Pages\ManageCelebrationChildren;
 use App\Filament\Clusters\Cashier\Resources\CelebrationResource\RelationManagers\CelebrationChildrenRelationManager;
 use App\Filament\Resources\CelebrationResource\Pages;
+use App\Filament\Resources\CelebrationResource\RelationManagers\BookingsRelationManager;
 use App\Models\Cake;
 use App\Models\Celebration;
 use App\Services\CelebrationPricingService;
@@ -534,7 +535,8 @@ class CelebrationResource extends Resource
     public static function getRelations(): array
     {
         return [
-            CelebrationChildrenRelationManager::class
+            CelebrationChildrenRelationManager::class,
+            BookingsRelationManager::class
         ];
     }
 
