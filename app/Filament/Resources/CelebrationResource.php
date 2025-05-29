@@ -547,7 +547,6 @@ class CelebrationResource extends Resource
             'view'                    => Pages\ViewCelebration::route('/{record}'),
             'edit'                    => Pages\EditCelebration::route('/{record}/edit'),
             'manage-invited-children' => Pages\ManageInvitedChildren::route('/{record}/invited-children'),
-            'cashier-manage-children' => ManageCelebrationChildren::route('/{record}/cashier/children'),
         ];
     }
 }
