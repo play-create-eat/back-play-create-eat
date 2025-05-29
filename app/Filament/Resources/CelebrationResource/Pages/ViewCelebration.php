@@ -106,7 +106,28 @@ class ViewCelebration extends ViewRecord
                                         if ($needed > 0) {
                                             $set('wallet_topup_amount', $needed);
                                         }
+                                    } elseif (in_array($state, ['card', 'cash'])) {
+                                        $remaining = ($record->total_amount - $record->paid_amount) / 100;
+                                        $set('amount', $remaining);
                                     }
+                                }),
+
+                            Select::make('topup_payment_method')
+                                ->label('Payment Method for Wallet Top-up')
+                                ->options([
+                                    'card' => 'Card Payment',
+                                    'cash' => 'Cash Payment',
+                                ])
+                                ->required()
+                                ->default('cash')
+                                ->helperText('Select how the customer will pay to top up their wallet')
+                                ->visible(function($get, Celebration $record) {
+                                    if ($get('payment_method') !== 'wallet') {
+                                        return false;
+                                    }
+                                    $remaining = $record->total_amount - $record->paid_amount;
+                                    $balance = $record->family->main_wallet->balance;
+                                    return $remaining > $balance;
                                 }),
 
                             TextInput::make('wallet_topup_amount')
@@ -141,8 +162,15 @@ class ViewCelebration extends ViewRecord
                                 ->numeric()
                                 ->step(0.01)
                                 ->required()
+                                ->minValue(0.01)
+                                ->maxValue(function(Celebration $record) {
+                                    return ($record->total_amount - $record->paid_amount) / 100;
+                                })
                                 ->visible(fn($get) => in_array($get('payment_method'), ['card', 'cash']))
-                                ->helperText('Enter the amount the customer paid'),
+                                ->helperText(function(Celebration $record) {
+                                    $remaining = ($record->total_amount - $record->paid_amount) / 100;
+                                    return "Pre-filled with remaining celebration amount: AED " . number_format($remaining, 2) . ". You can adjust if needed.";
+                                }),
                         ])
                 ])
                 ->action(function (array $data, $record) {
@@ -177,10 +205,11 @@ class ViewCelebration extends ViewRecord
             $remainingAmount = $celebration->total_amount - $celebration->paid_amount;
 
             if ($paymentMethod === 'wallet') {
-                $currentBalance = $family->mainWallet->balance;
+                $currentBalance = $family->main_wallet->balance;
 
                 if ($currentBalance < $remainingAmount) {
                     $topupAmount = $data['wallet_topup_amount'] * 100;
+                    $topupPaymentMethod = $data['topup_payment_method'];
 
                     if ($topupAmount <= 0) {
                         throw new \Exception('Top-up amount must be greater than 0');
@@ -191,12 +220,23 @@ class ViewCelebration extends ViewRecord
                         throw new \Exception('Top-up amount is insufficient. Minimum required: AED ' . number_format($minimumRequired / 100, 2));
                     }
 
-                    $family->main_wallet->deposit($topupAmount);
+                    $topupDescription = match($topupPaymentMethod) {
+                        'card' => 'Manual top-up by cashier (Card Payment)',
+                        'cash' => 'Manual top-up by cashier (Cash Payment)',
+                        default => 'Manual top-up by cashier'
+                    };
+                    $family->main_wallet->deposit($topupAmount, [
+                        'description' => $topupDescription,
+                        'payment_method' => $topupPaymentMethod,
+                        'cashier_id' => auth()->guard('admin')->id(),
+                        'celebration_id' => $celebration->id,
+                    ]);
                 }
 
-                $family->main_wallet->withdraw($remainingAmount,[
+                $family->main_wallet->withdraw($remainingAmount, [
                     'description' => 'Withdrawal for celebration #' . $celebration->id,
                 ]);
+
 
                 $celebration->paid_amount = $celebration->total_amount;
                 $celebration->save();
@@ -212,7 +252,12 @@ class ViewCelebration extends ViewRecord
 
                 $message = 'Payment processed successfully via wallet';
                 if (isset($topupAmount)) {
-                    $message .= '. Wallet topped up with AED ' . number_format($topupAmount / 100, 2);
+                    $topupMethodLabel = match($topupPaymentMethod) {
+                        'card' => 'Card',
+                        'cash' => 'Cash',
+                        default => 'Unknown'
+                    };
+                    $message .= '. Wallet topped up with AED ' . number_format($topupAmount / 100, 2) . ' via ' . $topupMethodLabel;
                     if ($excessAmount > 0) {
                         $message .= '. Excess amount AED ' . number_format($excessAmount / 100, 2) . ' added to main wallet';
                     }
@@ -225,19 +270,25 @@ class ViewCelebration extends ViewRecord
                     throw new \Exception('Payment amount must be greater than 0');
                 }
 
+                if ($paidAmount > $remainingAmount) {
+                    throw new \Exception('Payment amount cannot exceed the remaining celebration balance of AED ' . number_format($remainingAmount / 100, 2));
+                }
+
                 $family->main_wallet->deposit($paidAmount, [
                     'description' => 'Payment for celebration #' . $celebration->id,
+                    'payment_method' => $paymentMethod,
+                    'cashier_id' => auth()->guard('admin')->id(),
                 ]);
 
-                $amountToWithdraw = min($paidAmount, $remainingAmount);
-                $family->main_wallet->withdraw($amountToWithdraw, [
+
+                $family->main_wallet->withdraw($paidAmount, [
                     'description' => 'Withdrawal for celebration #' . $celebration->id,
                 ]);
 
-                $celebration->paid_amount += $amountToWithdraw;
+                $celebration->paid_amount += $paidAmount;
                 $celebration->save();
 
-                $cashbackAmount = ($amountToWithdraw * $package->cashback_percentage) / 100;
+                $cashbackAmount = ($paidAmount * $package->cashback_percentage) / 100;
                 if ($cashbackAmount > 0) {
                     $family->loyalty_wallet->deposit($cashbackAmount, [
                         'description' => 'Cashback for celebration #' . $celebration->id,
@@ -246,11 +297,6 @@ class ViewCelebration extends ViewRecord
 
                 $method = ucfirst($paymentMethod);
                 $message = "Payment of AED " . number_format($paidAmount / 100, 2) . " processed successfully via {$method}";
-
-                $excessAmount = $paidAmount - $amountToWithdraw;
-                if ($excessAmount > 0) {
-                    $message .= '. Excess amount AED ' . number_format($excessAmount / 100, 2) . ' added to main wallet';
-                }
             }
 
             if (isset($cashbackAmount) && $cashbackAmount > 0) {
