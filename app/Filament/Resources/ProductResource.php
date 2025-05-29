@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\ProductTypeEnum;
 use App\Filament\Resources\ProductResource\Pages;
 use App\Models\Product;
 use Carbon\CarbonInterval;
@@ -30,6 +31,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Number;
+use Illuminate\Support\Str;
 
 class ProductResource extends Resource
 {
@@ -59,9 +61,38 @@ class ProductResource extends Resource
                             ]),
                         Section::make('Configuration')
                             ->schema([
+                                Select::make('type')
+                                    ->options(
+                                        collect(ProductTypeEnum::cases())
+                                            ->mapWithKeys(fn($case) => [$case->value => $case->label()])
+                                            ->toArray()
+                                    )
+                                    ->default(ProductTypeEnum::BASIC->value)
+                                    ->required()
+                                    ->reactive()
+                                    ->disabled(fn() => request()->routeIs('filament.admin.resources.products.edit'))
+                                    ->afterStateUpdated(function ($state, callable $set) {
+                                        if ($state === ProductTypeEnum::PACKAGE->value) {
+                                            $defaultPackageDuration = collect(config("passes.durations"))
+                                                ->keys()
+                                                ->first(fn($value) => $value >= 1440);
+
+                                            $set('duration_time', $defaultPackageDuration);
+                                            $set('price', 0);
+                                        } else {
+                                            $set('price', '');
+                                        }
+                                    }),
                                 Select::make('duration_time')
                                     ->options(config('passes.durations'))
-                                    ->required(),
+                                    ->required()
+                                    ->reactive()
+                                    ->default(function () {
+                                        return collect(config("passes.durations"))
+                                            ->keys()
+                                            ->first(fn($value) => $value >= 1440);
+                                    })
+                                    ->disabled(fn(callable $get) => $get('type') === ProductTypeEnum::PACKAGE->value),
                                 CheckboxList::make('features')
                                     ->relationship(titleAttribute: 'name')
                                     ->columns(2)
@@ -85,7 +116,7 @@ class ProductResource extends Resource
                                     ->required(),
                                 TextInput::make('price_weekend')
                                     ->formatStateUsing(fn(?string $state): string => $state ? app(FormatterServiceInterface::class)->floatValue($state, 2) : '')
-                                    ->dehydrateStateUsing(fn(string $state): string => $state ? app(FormatterServiceInterface::class)->intValue($state, 2) : null)
+                                    ->dehydrateStateUsing(fn(?string $state): ?string => $state ? app(FormatterServiceInterface::class)->intValue($state, 2) : null)
                                     ->mask(RawJs::make('$money($input)'))
                                     ->stripCharacters(',')
                                     ->numeric()
@@ -97,7 +128,7 @@ class ProductResource extends Resource
                             ->schema([
                                 TextInput::make('discount_price_weekday')
                                     ->formatStateUsing(fn(?string $state): string => $state ? app(FormatterServiceInterface::class)->floatValue($state, 2) : '')
-                                    ->dehydrateStateUsing(fn(string $state): string => $state ? app(FormatterServiceInterface::class)->intValue($state, 2) : null)
+                                    ->dehydrateStateUsing(fn(?string $state): ?string => $state ? app(FormatterServiceInterface::class)->intValue($state, 2) : null)
                                     ->mask(RawJs::make('$money($input)'))
                                     ->stripCharacters(',')
                                     ->numeric()
@@ -105,7 +136,7 @@ class ProductResource extends Resource
                                     ->minValue(0),
                                 TextInput::make('discount_price_weekend')
                                     ->formatStateUsing(fn(?string $state): string => $state ? app(FormatterServiceInterface::class)->floatValue($state, 2) : '')
-                                    ->dehydrateStateUsing(fn(string $state): string => $state ? app(FormatterServiceInterface::class)->intValue($state, 2) : null)
+                                    ->dehydrateStateUsing(fn(?string $state): ?string => $state ? app(FormatterServiceInterface::class)->intValue($state, 2) : null)
                                     ->mask(RawJs::make('$money($input)'))
                                     ->stripCharacters(',')
                                     ->numeric()
@@ -169,6 +200,10 @@ class ProductResource extends Resource
             })
             ->columns([
                 Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('type')->sortable()
+                    ->badge()
+                    ->formatStateUsing(fn(ProductTypeEnum $state): string => $state->label())
+                    ->color(fn(ProductTypeEnum $state): string => $state->color()),
                 Tables\Columns\TextColumn::make('features.name'),
                 Tables\Columns\TextColumn::make('price')
                     ->fontFamily(FontFamily::Mono)
@@ -200,7 +235,6 @@ class ProductResource extends Resource
                     ->sortable(),
 
 
-
                 Tables\Columns\TextColumn::make('cashback_percent')
                     ->label('Cashback')
                     ->fontFamily(FontFamily::Mono)
@@ -224,6 +258,10 @@ class ProductResource extends Resource
                     ->searchable()
                     ->preload()
                     ->multiple(),
+                SelectFilter::make('type')
+                    ->options(collect(ProductTypeEnum::cases())
+                        ->mapWithKeys(fn($case) => [$case->value => $case->label()])
+                        ->toArray()),
                 Filter::make('is_available')
                     ->toggle()
                     ->query(fn(Builder $query): Builder => $query->where('is_available', true)),

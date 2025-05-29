@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ProductTypeEnum;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -25,6 +26,7 @@ use Bavix\Wallet\Interfaces\ProductLimitedInterface;
  * @property double $fee_percent
  * @property bool $is_extendable
  * @property bool $is_available
+ * @property ProductTypeEnum $type
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  * @property ?\Carbon\Carbon $deleted_at
@@ -51,6 +53,7 @@ class Product extends Model implements ProductLimitedInterface
         'fee_percent',
         'is_extendable',
         'is_available',
+        'type',
     ];
 
     public function canBuy(Customer $customer, int $quantity = 1, bool $force = false): bool
@@ -76,6 +79,7 @@ class Product extends Model implements ProductLimitedInterface
             'cashback_percent'          => $this->cashback_percent,
             'fee_percent'               => $this->fee_percent,
             'features'                  => $this->features()->pluck('name', 'id')->toArray(),
+            'type'                      => $this->type,
         ];
     }
 
@@ -139,6 +143,7 @@ class Product extends Model implements ProductLimitedInterface
             'fee_percent'               => 'decimal:2',
             'is_extendable'             => 'boolean',
             'is_available'              => 'boolean',
+            'type'                      => ProductTypeEnum::class,
         ];
     }
 }
