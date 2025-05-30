@@ -36,6 +36,7 @@ class ProductResource extends JsonResource
             'fee_percent'               => (double)$this->fee_percent,
             'is_extendable'             => $this->is_extendable,
             'features'                  => ProductFeatureResource::collection($this->whenLoaded('features')),
+            'type'                      => $this->type,
         ];
     }
 }

@@ -10,12 +10,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * @property int $id
+ * @property ?int $pass_package_id
  * @property string $serial
  * @property int $remaining_time
  * @property bool $is_extendable
  * @property ?User $user
  * @property ?Child $children
  * @property ?\Bavix\Wallet\Models\Transfer $transfer
+ * @property ?PassPackage $passPackage
  * @property ?\Carbon\Carbon $entered_at
  * @property ?\Carbon\Carbon $exited_at
  * @property \Carbon\Carbon $expires_at
@@ -59,18 +61,39 @@ class Pass extends Model
         return $this->belongsTo(Transfer::class);
     }
 
+    public function passPackage(): BelongsTo
+    {
+        return $this->belongsTo(PassPackage::class);
+    }
+
     public function scopeAvailable($query): \Illuminate\Database\Eloquent\Builder
     {
         return $query
-            ->where('expires_at', '>=', now())
-            ->where('remaining_time', '>', 0);
+            ->where(function ($q) {
+                $q->whereNotNull('pass_package_id')
+                    ->where('expires_at', '>=', now());
+            })
+            ->orWhere(function ($q) {
+                $q->whereNull('pass_package_id')
+                    ->where('expires_at', '>=', now())
+                    ->where('remaining_time', '>', 0);
+            });
     }
 
     public function scopeExpired($query): \Illuminate\Database\Eloquent\Builder
     {
         return $query
-            ->where('expires_at', '<', now())
-            ->orWhere('remaining_time', '<=', 0);
+            ->where(function ($q) {
+                $q->whereNotNull('pass_package_id')
+                    ->where('expires_at', '<', now());
+            })
+            ->orWhere(function ($q) {
+                $q->whereNull('pass_package_id')
+                    ->where(function ($q) {
+                        $q->where('expires_at', '<', now())
+                            ->orWhere('remaining_time', '<=', 0);
+                    });
+            });
     }
 
     public function scopeActive($query): \Illuminate\Database\Eloquent\Builder
@@ -85,6 +108,9 @@ class Pass extends Model
 
     public function isExpired(): bool
     {
+        if ($this->pass_package_id) {
+            return $this->expires_at->lte(Carbon::now());
+        }
         return $this->expires_at->lte(Carbon::now()) || $this->remaining_time <= 0;
     }
 
