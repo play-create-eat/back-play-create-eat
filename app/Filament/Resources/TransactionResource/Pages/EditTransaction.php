@@ -12,6 +12,8 @@ class EditTransaction extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [];
+        return [
+            Actions\DeleteAction::make(),
+        ];
     }
 }
