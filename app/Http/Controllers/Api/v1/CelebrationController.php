@@ -56,13 +56,7 @@ class CelebrationController extends Controller
             $query->where('paid_amount', '<', 'total_amount');
         }
 
-        $celebrations = $query->orderByDesc('celebration_date')->get();
-
-        foreach ($celebrations as $celebration) {
-            $this->pricingService->recalculateAndUpdate($celebration);
-        }
-
-        return response()->json($celebrations);
+        return response()->json($query->orderByDesc('celebration_date')->get());
     }
 
     public function show(Celebration $celebration)
