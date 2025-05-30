@@ -2,71 +2,68 @@
 
 namespace App\Console\Commands;
 
-use App\Enums\RoleEnum;
-use App\Models\User;
 use Illuminate\Console\Command;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 class PermissionSync extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'permission:sync';
+    protected $signature = 'permission:sync {--force : Force sync without confirmation}';
+    protected $description = 'Sync permissions and roles from config file to database';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Sync permissions and roles and assign all permissions to super admin';
-
-    /**
-     * Execute the console command.
-     */
     public function handle(): void
     {
-        foreach ($this->permissions() as $permission) {
+        if (!$this->option('force') && !$this->confirm('This will sync all permissions and roles. Continue?')) {
+            $this->info('Operation cancelled.');
+            return;
+        }
+
+        $this->syncPermissions();
+        $this->syncRoles();
+
+        $this->info('All permissions and roles synced successfully!');
+    }
+
+    private function syncPermissions(): void
+    {
+        $permissions = config('roles-permissions.permissions', []);
+
+        $this->info("Syncing " . count($permissions) . " permissions...");
+
+        foreach ($permissions as $permissionData) {
             Permission::firstOrCreate([
-                'name' => $permission,
+                'name' => $permissionData['name'],
+                'guard_name' => $permissionData['guard_name'] ?? 'admin',
             ]);
-        }
 
-        foreach ($this->roles() as $role) {
-            $dbRole = Role::firstOrCreate(['name' => $role]);
-            if ($role === RoleEnum::SUPER_ADMIN) {
-                $dbRole->syncPermissions(Permission::all());
+            $this->line("✓ {$permissionData['name']}");
+        }
+    }
+
+    private function syncRoles(): void
+    {
+        $roles = config('roles-permissions.roles', []);
+
+        $this->info("Syncing " . count($roles) . " roles...");
+
+        foreach ($roles as $roleData) {
+            $role = Role::firstOrCreate([
+                'name' => $roleData['name'],
+                'guard_name' => $roleData['guard_name'] ?? 'admin',
+            ]);
+
+            // Assign permissions to role
+            if (isset($roleData['permissions'])) {
+                if ($roleData['permissions'] === '*') {
+                    // Assign all permissions
+                    $role->syncPermissions(Permission::where('guard_name', $role->guard_name)->get());
+                } else {
+                    // Assign specific permissions
+                    $role->syncPermissions($roleData['permissions']);
+                }
             }
+
+            $this->line("✓ {$roleData['name']}");
         }
-
-        $this->info('All permissions synced');
-    }
-
-    private function permissions(): array
-    {
-        return $this->modelPermissions();
-    }
-
-    private function modelPermissions(): array
-    {
-        $model = new User();
-
-        $table = $model->getTable();
-
-        return [
-            "view $table",
-            "create $table",
-            "edit $table",
-            "delete $table",
-        ];
-
-    }
-
-    private static function roles(): array
-    {
-        return RoleEnum::values();
     }
 }
