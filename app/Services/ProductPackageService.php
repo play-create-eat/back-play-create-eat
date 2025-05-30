@@ -70,7 +70,11 @@ class ProductPackageService
      * @return Pass
      * @throws \Throwable
      */
-    public function redeem(PassPackage $passPackage, DateTime $activationDate = null): Pass
+    public function redeem(
+        PassPackage     $passPackage,
+        DateTime        $activationDate = null,
+        array           $meta = []
+    ): Pass
     {
         throw_unless($passPackage->quantity > 0,
             new InsufficientBalanceException(
@@ -85,7 +89,7 @@ class ProductPackageService
 
         $passPackage->loadMissing(['children', 'productPackage.product', 'user']);
 
-        return DB::transaction(function () use ($passPackage, $activationDate) {
+        return DB::transaction(function () use ($passPackage, $activationDate, $meta) {
             $pass = app(PassService::class)->purchase(
                 user: $passPackage->user,
                 child: $passPackage->children,
@@ -93,6 +97,7 @@ class ProductPackageService
                 isFree: true,
                 activationDate: $activationDate,
                 meta: [
+                    ...$meta,
                     'pass_package_id' => $passPackage->id,
                     'product_package_id' => $passPackage->productPackage->id,
                     'quantity_balance' => $passPackage->quantity,

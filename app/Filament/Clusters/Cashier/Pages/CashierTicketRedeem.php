@@ -2,17 +2,14 @@
 
 namespace App\Filament\Clusters\Cashier\Pages;
 
-use App\Exceptions\InsufficientBalanceException;
 use App\Filament\Clusters\Cashier;
 use App\Filament\Clusters\Cashier\Concerns\HasGlobalUserSearch;
 use App\Filament\Clusters\Cashier\Concerns\HasUserSearchForm;
 use App\Models\Child;
-use App\Models\ProductPackage;
+use App\Models\PassPackage;
 use App\Models\User;
 use App\Services\ProductPackageService;
 use Bavix\Wallet\Internal\Exceptions\ExceptionInterface;
-use Bavix\Wallet\Objects\Cart;
-use Bavix\Wallet\Services\FormatterServiceInterface;
 use Exception;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Repeater;
@@ -24,13 +21,14 @@ use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Livewire\Attributes\Url;
 use Throwable;
 
-class CashierTicketPackages extends Page implements HasForms
+class CashierTicketRedeem extends Page implements HasForms
 {
     use InteractsWithForms;
     use HasGlobalUserSearch;
@@ -39,15 +37,21 @@ class CashierTicketPackages extends Page implements HasForms
     protected static ?string $cluster = Cashier::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-ticket';
-    protected static string $view = 'filament.clusters.cashier.pages.ticket-packages';
-    protected static ?string $navigationLabel = 'Ticket Packages';
+    protected static string $view = 'filament.clusters.cashier.pages.ticket-redeem';
+    protected static ?string $navigationLabel = 'Ticket Redeem';
 
     protected static ?int $navigationSort = 2;
     public ?array $data = [
-        'packages' => [],
+        'tickets' => [],
     ];
 
-    public ?Collection $productPackages = null;
+    #[Url]
+    public ?string $order = null;
+    public array $passes = [];
+    public string $step = 'checkout';
+    protected $queryString = [
+        'order' => ['except' => null],
+    ];
 
     public static function canAccess(): bool
     {
@@ -62,13 +66,13 @@ class CashierTicketPackages extends Page implements HasForms
         }
 
         $this->mountHasUserSearchForm();
-        $this->productPackages = ProductPackage::available()->get()->keyBy('id');
+        $this->passes = $this->order ? Cache::get("cashier.redeem.{$this->order}", []) : [];
         $this->form->fill();
     }
 
     public function refreshForm(): void
     {
-        Log::info('Refreshing tickets package form', [
+        Log::info('Refreshing tickets package redeem form', [
             'selectedUserId' => $this->selectedUserId,
             'hasUser' => (bool)$this->selectedUser,
         ]);
@@ -82,7 +86,7 @@ class CashierTicketPackages extends Page implements HasForms
         }
 
         $this->data = [
-            'packages' => [],
+            'tickets' => [],
         ];
 
         $this->refreshUserSearchForm();
@@ -102,7 +106,7 @@ class CashierTicketPackages extends Page implements HasForms
 
         return $form
             ->schema([
-                Repeater::make('packages')
+                Repeater::make('tickets')
                     ->schema([
                         Select::make('child_id')
                             ->label('Child')
@@ -123,42 +127,45 @@ class CashierTicketPackages extends Page implements HasForms
                             ->exists(table: Child::class, column: 'id')
                             ->required()
                         ,
-                        Select::make('product_package_id')
-                            ->label('Package')
+                        Select::make('pass_package_id')
+                            ->label('Ticket Package')
                             ->native(false)
-                            ->allowHtml()
-                            ->options(fn(Get $get) => $this->getProductPackageOptions())
-                            ->disabled(fn(Get $get) => blank($get('child_id')))
-                            ->exists(table: ProductPackage::class, column: 'id')
+                            ->live()
+                            ->dehydrated()
+                            ->options(function (Get $get) {
+                                $childId = $get('child_id');
+
+                                if (!$childId) {
+                                    return [];
+                                }
+
+                                return PassPackage::available()
+                                    ->with(['productPackage'])
+                                    ->where('child_id', $childId)
+                                    ->get()
+                                    ->mapWithKeys(function (PassPackage $passPackage) {
+                                        $productPackage = $passPackage->productPackage;
+                                        return [
+                                            $passPackage->id => "{$productPackage->name} (x{$passPackage->quantity})"
+                                        ];
+                                    })
+                                    ->toArray();
+                            })
+                            ->disabled(fn(Get $get) => !$get('child_id'))
+                            ->exists(table: PassPackage::class, column: 'id')
                             ->required()
-                            ->columnSpan(2)
+                        ,
                     ])
                     ->columns()
-                    ->addActionLabel('Add package')
+                    ->deletable(false)
                     ->minItems(1)
+                    ->maxItems(1)
                     ->disabled(fn() => !$this->selectedUser)
                     ->visible(fn() => (bool)$this->selectedUser)
                     ->live()
                     ->columnSpanFull()
             ])
             ->statePath('data');
-    }
-
-    protected function getProductPackageOptions(): array
-    {
-        if ($this->productPackages) {
-            return $this->productPackages
-                ->mapWithKeys(function (ProductPackage $productPackage) {
-                    return [
-                        "{$productPackage->id}" => view('filament.clusters.cashier.components.ticket-package-option', [
-                            'name' => $productPackage->name,
-                            'price' => app(FormatterServiceInterface::class)->floatValue($productPackage->getFinalPrice(), 2),
-                        ])->render()
-                    ];
-                })
-                ->toArray();
-        }
-        return [];
     }
 
     /**
@@ -171,9 +178,9 @@ class CashierTicketPackages extends Page implements HasForms
         try {
             DB::beginTransaction();
 
-            $packages = $data['packages'] ?? [];
+            $tickets = $data['tickets'] ?? [];
 
-            if (empty($packages)) {
+            if (empty($tickets)) {
                 Notification::make()
                     ->title('No packages added')
                     ->body('Please add at least one package to continue.')
@@ -181,8 +188,6 @@ class CashierTicketPackages extends Page implements HasForms
                     ->send();
                 return;
             }
-
-            $cart = app(Cart::class);
 
             if (!$this->selectedUser) {
                 throw new Exception('No user selected');
@@ -198,26 +203,6 @@ class CashierTicketPackages extends Page implements HasForms
                 $client->family->load('wallets');
             }
 
-            foreach ($packages as $package) {
-                /** @var ProductPackage $productPackage */
-                $productPackage = $this->productPackages->get($package['product_package_id'] ?? null);
-
-                if (!$productPackage) {
-                    throw new Exception('Invalid package selected');
-                }
-
-                $cart = $cart->withItem($productPackage, pricePerItem: $productPackage->getFinalPrice());
-            }
-
-            $totalPrice = $cart->getTotal($client->family);
-
-            throw_unless($client->family->canWithdraw($totalPrice),
-                new InsufficientBalanceException(
-                    amount: $totalPrice,
-                    balance: $client->family->main_wallet->balance,
-                )
-            );
-
             $cashierUser = Filament::auth()->user();
             $orderId = (string)Str::uuid7(time: now());
             $orderMeta = [
@@ -225,50 +210,59 @@ class CashierTicketPackages extends Page implements HasForms
                 'cashier_user_id' => $cashierUser->id,
             ];
 
-            $children = $client->family->children()
-                ->whereIn('id', Arr::pluck($packages, 'child_id'))
+            $passPackages = PassPackage::available()
+                ->whereIn('id', Arr::pluck($tickets, 'pass_package_id'))
                 ->get()
                 ->keyBy('id');
 
+            $children = $client->family->children()
+                ->whereIn('id', Arr::pluck($tickets, 'child_id'))
+                ->get()
+                ->keyBy('id');
+
+            $passes = [];
             $productPackageService = app(ProductPackageService::class);
 
-            foreach ($packages as $package) {
-                $childId = $package['child_id'];
+            foreach ($tickets as $ticket) {
+                $childId = $ticket['child_id'];
                 $child = $children->get($childId);
 
                 if (!$child) {
                     throw new Exception("Child with ID {$childId} not found");
                 }
 
-                $productPackage = $this->productPackages->get($package['product_package_id']);
+                $passPackageId = $ticket['pass_package_id'];
+                $passPackage = $passPackages->get($passPackageId);
 
-                $productPackageService->purchase(
-                    user: $client,
-                    child: $child,
-                    productPackage: $productPackage,
+                if (!$child) {
+                    throw new Exception("Pass package with ID {$passPackageId} not found");
+                }
+
+                $passes[] = $productPackageService->redeem(
+                    passPackage: $passPackage,
                     meta: $orderMeta
                 );
             }
 
             DB::commit();
+            Cache::put("cashier.redeem.$orderId", $passes, now()->addDays(2));
+
+            $this->passes = $passes;
+            $this->order = $orderId;
+            $this->step = 'fulfillment';
+
+            $this->data = [
+                'tickets' => []
+            ];
 
             Notification::make()
-                ->title('Packages purchased successfully')
+                ->title('Ticket redeem successfully')
                 ->success()
-                ->send();
-
-            redirect(request()->header('Referer'));
-        } catch (InsufficientBalanceException $e) {
-            DB::rollBack();
-            Notification::make()
-                ->title('Insufficient balance')
-                ->body("The family doesn't have enough funds. Required: " . number_format($e->getAmount() / 100, 2) . ", Available: " . number_format($e->getBalance() / 100, 2))
-                ->danger()
                 ->send();
         } catch (ExceptionInterface $e) {
             DB::rollBack();
             Notification::make()
-                ->title('Failed to purchase packages')
+                ->title('Failed to redeem tickets')
                 ->body($e->getMessage())
                 ->danger()
                 ->send();

@@ -370,14 +370,21 @@ class PassService
         $now = Carbon::now();
         $timeLapsed = round($pass->entered_at->diffInMinutes($now));
 
-        $pass->fill([
-            'exited_at' => $now,
-            'remaining_time' => $pass->remaining_time - $timeLapsed,
-        ]);
+        if ($pass->pass_package_id) {
+            $pass->fill([
+                'exited_at' => $now,
+            ]);
+        } else {
+            $pass->fill([
+                'exited_at' => $now,
+                'remaining_time' => $pass->remaining_time - $timeLapsed,
+            ]);
 
-        if ($pass->remaining_time <= 0) {
-            $pass->expires_at = $now;
+            if ($pass->remaining_time <= 0) {
+                $pass->expires_at = $now;
+            }
         }
+
 
         $pass->save();
         $pass->user->notify(new PassCheckOutNotification($pass));
@@ -436,13 +443,13 @@ class PassService
             ->withItem($product, pricePerItem: $productPrice)
             ->withMeta([
                 ...$meta,
-                'loyalty_points_used'       => $loyaltyPointAmount,
-                'discount_price_weekday'    => $product->discount_price_weekday,
-                'discount_price_weekend'    => $product->discount_price_weekend,
-                'discount_percent'          => $product->discount_percent,
-                'cashback_percent'          => $product->cashback_percent,
-                'cashback_amount'           => $cashbackAmount,
-                'fee_percent'               => $product->fee_percent,
+                'loyalty_points_used' => $loyaltyPointAmount,
+                'discount_price_weekday' => $product->discount_price_weekday,
+                'discount_price_weekend' => $product->discount_price_weekend,
+                'discount_percent' => $product->discount_percent,
+                'cashback_percent' => $product->cashback_percent,
+                'cashback_amount' => $cashbackAmount,
+                'fee_percent' => $product->fee_percent,
             ]);
 
         list($transfer) = array_values($family->payCart($cart));
