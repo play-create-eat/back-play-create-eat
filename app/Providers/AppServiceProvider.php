@@ -4,8 +4,12 @@ namespace App\Providers;
 
 use App\Models\Cart;
 use App\Observers\CartObserver;
+use App\Observers\PermissionObserver;
+use App\Observers\RoleObserver;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,5 +31,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Cart::observe(CartObserver::class);
+        Permission::observe(PermissionObserver::class);
+        Role::observe(RoleObserver::class);
     }
 }

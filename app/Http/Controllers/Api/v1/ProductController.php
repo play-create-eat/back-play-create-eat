@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\v1;
 
+use App\Enums\ProductTypeEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\v1\ProductPurchaseRequest;
 use App\Http\Requests\Api\v1\ProductRefundRequest;
@@ -13,6 +14,7 @@ use App\Services\PassService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Enum;
 
 /**
  * @OA\Schema(
@@ -51,17 +53,20 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $filters = $request->validate([
-            'limit' => ['integer', 'min:1', 'max:50'],
-            'duration' => ['array', 'min:1', Rule::in(array_keys(config('passes.durations')))],
-            'date' => ['date', 'after_or_equal:today'],
-            'feature' => ['array', 'min:1'],
+            'limit'     => ['integer', 'min:1', 'max:50'],
+            'duration'  => ['array', 'min:1', Rule::in(array_keys(config('passes.durations')))],
+            'date'      => ['date', 'after_or_equal:today'],
+            'feature'   => ['array', 'min:1'],
             'feature.*' => ['integer'],
+            'type'      => [new Enum(ProductTypeEnum::class)],
         ]);
 
         $limit = $filters['limit'] ?? 10;
+        $type = $filters['type'] ?? ProductTypeEnum::BASIC;
 
         $products = Product::available()
             ->with(['features'])
+            ->where('type', $type)
             ->when($request->filled('duration'), function ($query) use ($request) {
                 $query->whereIn('duration_time', $request->input('duration'));
             })

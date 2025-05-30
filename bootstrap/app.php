@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Middleware\CashierAccess;
 use App\Http\Middleware\ForceJsonMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
