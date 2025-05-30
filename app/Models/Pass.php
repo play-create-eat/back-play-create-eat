@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property ?User $user
  * @property ?Child $children
  * @property ?\Bavix\Wallet\Models\Transfer $transfer
+ * @property ?PassPackage $passPackage
  * @property ?\Carbon\Carbon $entered_at
  * @property ?\Carbon\Carbon $exited_at
  * @property \Carbon\Carbon $expires_at
@@ -57,6 +58,11 @@ class Pass extends Model
     public function transfer(): BelongsTo
     {
         return $this->belongsTo(Transfer::class);
+    }
+
+    public function passPackage(): BelongsTo
+    {
+        return $this->belongsTo(PassPackage::class);
     }
 
     public function scopeAvailable($query): \Illuminate\Database\Eloquent\Builder

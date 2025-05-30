@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Bavix\Wallet\Interfaces\Customer;
+use Bavix\Wallet\Interfaces\ProductLimitedInterface;
 use Bavix\Wallet\Traits\HasWallet;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,7 +25,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property Carbon $updated_at
  * @property ?Carbon $deleted_at
  */
-class ProductPackage extends Model
+class ProductPackage extends Model implements ProductLimitedInterface
 {
     use HasWallet, SoftDeletes;
 
@@ -61,6 +62,7 @@ class ProductPackage extends Model
             'description' => $this->description,
             'price' => $this->price,
             'discount_price' => $this->discount_price,
+            'cashback_amount' => $this->cashback_amount,
             'product_id' => $this->product->id,
             'product_quantity' => $this->product_quantity,
         ];
