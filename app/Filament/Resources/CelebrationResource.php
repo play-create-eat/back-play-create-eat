@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Clusters\Cashier\Pages\ManageCelebrationChildren;
 use App\Filament\Clusters\Cashier\Resources\CelebrationResource\RelationManagers\CelebrationChildrenRelationManager;
 use App\Filament\Resources\CelebrationResource\Pages;
 use App\Filament\Resources\CelebrationResource\RelationManagers\BookingsRelationManager;
@@ -19,7 +18,6 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\View;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
@@ -78,12 +76,14 @@ class CelebrationResource extends Resource
                             ->disabled()
                             ->afterStateHydrated(function ($component, $state) {
                                 if ($state) {
-                                    $component->state(Carbon::parse($state)->format('Y-m-d H:i'));
+                                    $date = Carbon::parse($state)->utc()->setTimezone(config('app.timezone'));
+                                    $component->state($date->format('Y-m-d H:i'));
                                 }
                             })
                             ->dehydrateStateUsing(function ($state) {
                                 if ($state) {
-                                    return Carbon::parse($state)->format('Y-m-d H:i');
+                                    $date = Carbon::createFromFormat('Y-m-d H:i', $state, config('app.timezone'));
+                                    return $date->utc()->format('Y-m-d H:i:s');
                                 }
                                 return null;
                             }),
@@ -544,6 +544,7 @@ class CelebrationResource extends Resource
     {
         return [
             'index'                   => Pages\ListCelebrations::route('/'),
+            'create'                  => Pages\CreateCelebration::route('/create'),
             'view'                    => Pages\ViewCelebration::route('/{record}'),
             'edit'                    => Pages\EditCelebration::route('/{record}/edit'),
             'manage-invited-children' => Pages\ManageInvitedChildren::route('/{record}/invited-children'),
