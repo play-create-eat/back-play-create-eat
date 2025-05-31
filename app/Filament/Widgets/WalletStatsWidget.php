@@ -38,7 +38,7 @@ class WalletStatsWidget extends BaseWidget
     protected function getTodayStats(): array
     {
         $mainWalletIds = Wallet::where('slug', 'default')->pluck('id');
-        $loyaltyWalletIds = Wallet::where('name', 'cashback')->pluck('id');
+        $loyaltyWalletIds = Wallet::where('slug', 'cashback')->pluck('id');
 
         $todayMainDeposits = Transaction::where('type', 'deposit')
             ->whereDate('created_at', today())
@@ -50,15 +50,15 @@ class WalletStatsWidget extends BaseWidget
             ->whereIn('wallet_id', $loyaltyWalletIds)
             ->sum(DB::raw('amount / 100'));
 
-        $todayMainWithdrawals = Transaction::where('type', 'withdraw')
-            ->whereDate('created_at', today())
-            ->whereIn('wallet_id', $mainWalletIds)
-            ->sum(DB::raw('amount / 100'));
+//        $todayMainWithdrawals = Transaction::where('type', 'withdraw')
+//            ->whereDate('created_at', today())
+//            ->whereIn('wallet_id', $mainWalletIds)
+//            ->sum(DB::raw('amount / 100'));
 
-        $todayLoyaltyWithdrawals = Transaction::where('type', 'withdraw')
-            ->whereDate('created_at', today())
-            ->whereIn('wallet_id', $loyaltyWalletIds)
-            ->sum(DB::raw('amount / 100'));
+//        $todayLoyaltyWithdrawals = Transaction::where('type', 'withdraw')
+//            ->whereDate('created_at', today())
+//            ->whereIn('wallet_id', $loyaltyWalletIds)
+//            ->sum(DB::raw('amount / 100'));
 
         $todayCardDeposits = Transaction::where('type', 'deposit')
             ->whereDate('created_at', today())
@@ -83,15 +83,15 @@ class WalletStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-gift')
                 ->color('success'),
 
-            Stat::make("Today's Main Wallet Withdrawals", 'AED ' . number_format($todayMainWithdrawals, 2))
-                ->description('Main wallet withdrawals today')
-                ->descriptionIcon('heroicon-m-arrow-down-circle')
-                ->color('danger'),
+//            Stat::make("Today's Main Wallet Withdrawals", 'AED ' . number_format($todayMainWithdrawals, 2))
+//                ->description('Main wallet withdrawals today')
+//                ->descriptionIcon('heroicon-m-arrow-down-circle')
+//                ->color('danger'),
 
-            Stat::make("Today's Cashback Withdrawals", 'AED ' . number_format($todayLoyaltyWithdrawals, 2))
-                ->description('Cashback withdrawals today')
-                ->descriptionIcon('heroicon-m-arrow-down-circle')
-                ->color('warning'),
+//            Stat::make("Today's Cashback Withdrawals", 'AED ' . number_format($todayLoyaltyWithdrawals, 2))
+//                ->description('Cashback withdrawals today')
+//                ->descriptionIcon('heroicon-m-arrow-down-circle')
+//                ->color('warning'),
 
             Stat::make('Today Card Deposits', 'AED ' . number_format($todayCardDeposits, 2))
                 ->description('Card deposits made today')
@@ -107,8 +107,8 @@ class WalletStatsWidget extends BaseWidget
 
     protected function getFullAnalyticsStats(): array
     {
-        $mainWalletIds = Wallet::where('name', 'default')->pluck('id');
-        $loyaltyWalletIds = Wallet::where('name', 'cashback')->pluck('id');
+        $mainWalletIds = Wallet::where('slug', 'default')->pluck('id');
+        $loyaltyWalletIds = Wallet::where('slug', 'cashback')->pluck('id');
 
         $totalMainDeposits = Transaction::where('type', 'deposit')
             ->whereIn('wallet_id', $mainWalletIds)
@@ -118,13 +118,13 @@ class WalletStatsWidget extends BaseWidget
             ->whereIn('wallet_id', $loyaltyWalletIds)
             ->sum(DB::raw('amount / 100'));
 
-        $totalMainWithdrawals = Transaction::where('type', 'withdraw')
-            ->whereIn('wallet_id', $mainWalletIds)
-            ->sum(DB::raw('amount / 100'));
-
-        $totalLoyaltyWithdrawals = Transaction::where('type', 'withdraw')
-            ->whereIn('wallet_id', $loyaltyWalletIds)
-            ->sum(DB::raw('amount / 100'));
+//        $totalMainWithdrawals = Transaction::where('type', 'withdraw')
+//            ->whereIn('wallet_id', $mainWalletIds)
+//            ->sum(DB::raw('amount / 100'));
+//
+//        $totalLoyaltyWithdrawals = Transaction::where('type', 'withdraw')
+//            ->whereIn('wallet_id', $loyaltyWalletIds)
+//            ->sum(DB::raw('amount / 100'));
 
         $cardDeposits = Transaction::where('type', 'deposit')
             ->whereJsonContains('meta->payment_method', 'card')
@@ -147,15 +147,15 @@ class WalletStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-gift')
                 ->color('primary'),
 
-            Stat::make('Total Main Wallet Withdrawals', 'AED ' . number_format($totalMainWithdrawals, 2))
-                ->description('All time main wallet withdrawals')
-                ->descriptionIcon('heroicon-m-arrow-trending-down')
-                ->color('danger'),
-
-            Stat::make('Total Cashback Withdrawals', 'AED ' . number_format($totalLoyaltyWithdrawals, 2))
-                ->description('All time cashback withdrawals')
-                ->descriptionIcon('heroicon-m-arrow-trending-down')
-                ->color('warning'),
+//            Stat::make('Total Main Wallet Withdrawals', 'AED ' . number_format($totalMainWithdrawals, 2))
+//                ->description('All time main wallet withdrawals')
+//                ->descriptionIcon('heroicon-m-arrow-trending-down')
+//                ->color('danger'),
+//
+//            Stat::make('Total Cashback Withdrawals', 'AED ' . number_format($totalLoyaltyWithdrawals, 2))
+//                ->description('All time cashback withdrawals')
+//                ->descriptionIcon('heroicon-m-arrow-trending-down')
+//                ->color('warning'),
 
             Stat::make('Card Payments', 'AED ' . number_format($cardDeposits, 2))
                 ->description('Total deposits via card')
