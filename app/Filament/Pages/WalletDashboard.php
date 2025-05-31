@@ -9,11 +9,11 @@ use Bavix\Wallet\Models\Transaction as WalletTransaction;
 use Filament\Forms;
 use Filament\Pages\Page;
 use Filament\Tables;
-use Filament\Tables\Table;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
 class WalletDashboard extends Page implements HasTable
@@ -29,6 +29,12 @@ class WalletDashboard extends Page implements HasTable
     protected static ?int $navigationSort = 1;
 
     protected static string $view = 'filament.pages.wallet-dashboard';
+
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('viewTodayAnalytics') ||
+            auth()->guard('admin')->user()->can('viewFullAnalytics');
+    }
 
     public function getHeaderWidgets(): array
     {
@@ -65,7 +71,7 @@ class WalletDashboard extends Page implements HasTable
                     ->label('Type')
                     ->colors([
                         'success' => 'deposit',
-                        'danger' => 'withdraw',
+                        'danger'  => 'withdraw',
                     ])
                     ->sortable(),
                 Tables\Columns\TextColumn::make('amount')
@@ -85,7 +91,7 @@ class WalletDashboard extends Page implements HasTable
                         'primary' => 'card',
                         'warning' => 'cash',
                     ])
-                    ->formatStateUsing(fn ($state) => match($state) {
+                    ->formatStateUsing(fn($state) => match ($state) {
                         'card' => 'Card Payment',
                         'cash' => 'Cash Payment',
                         default => 'N/A'
@@ -115,7 +121,7 @@ class WalletDashboard extends Page implements HasTable
             ->filters([
                 SelectFilter::make('type')
                     ->options([
-                        'deposit' => 'Deposits',
+                        'deposit'  => 'Deposits',
                         'withdraw' => 'Withdrawals',
                     ])
                     ->label('Transaction Type'),
@@ -126,7 +132,7 @@ class WalletDashboard extends Page implements HasTable
                         'cash' => 'Cash Payment',
                     ])
                     ->query(function (Builder $query, array $data): Builder {
-                        if (! $data['value']) {
+                        if (!$data['value']) {
                             return $query;
                         }
 
@@ -149,11 +155,11 @@ class WalletDashboard extends Page implements HasTable
                         return $query
                             ->when(
                                 $data['from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
                             )
                             ->when(
                                 $data['to'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
                             );
                     }),
 
@@ -170,17 +176,17 @@ class WalletDashboard extends Page implements HasTable
                         return $query
                             ->when(
                                 $data['min_amount'],
-                                fn (Builder $query, $amount): Builder => $query->where('amount', '>=', $amount * 100),
+                                fn(Builder $query, $amount): Builder => $query->where('amount', '>=', $amount * 100),
                             )
                             ->when(
                                 $data['max_amount'],
-                                fn (Builder $query, $amount): Builder => $query->where('amount', '<=', $amount * 100),
+                                fn(Builder $query, $amount): Builder => $query->where('amount', '<=', $amount * 100),
                             );
                     }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()
-                    ->modalContent(fn ($record) => view('filament.pages.transaction-details', ['record' => $record])),
+                    ->modalContent(fn($record) => view('filament.pages.transaction-details', ['record' => $record])),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -195,10 +201,5 @@ class WalletDashboard extends Page implements HasTable
             ->emptyStateHeading('No transactions found')
             ->emptyStateDescription('No wallet transactions have been recorded yet.')
             ->emptyStateIcon('heroicon-o-banknotes');
-    }
-
-    public static function canAccess(): bool
-    {
-        return auth()->guard('admin')->user()->can('viewWalletDashboard') ?? true;
     }
 }

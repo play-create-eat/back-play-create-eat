@@ -230,6 +230,30 @@ return [
             'name' => 'view-product-types',
             'guard_name' => 'admin',
         ],
+        [
+            'name' => 'view-feedbacks',
+            'guard_name' => 'admin',
+        ],
+        [
+            'name' => 'view-package-discounts',
+            'guard_name' => 'admin',
+        ],
+        [
+            'name' => 'view-today-analytics',
+            'guard_name' => 'admin',
+        ],
+        [
+            'name' => 'view-analytics',
+            'guard_name' => 'admin',
+        ],
+        [
+            'name' => 'view-wallet-transactions',
+            'guard_name' => 'admin',
+        ],
+        [
+            'name' => 'view-product-packages',
+            'guard_name' => 'admin',
+        ],
     ],
 
     'roles' => [
@@ -241,20 +265,17 @@ return [
         [
             'name' => 'Parent',
             'guard_name' => 'web',
-            'permissions' => [
-            ],
+            'permissions' => [],
         ],
         [
             'name' => 'Nanny',
             'guard_name' => 'web',
-            'permissions' => [
-            ],
+            'permissions' => [],
         ],
         [
             'name' => 'Relative',
             'guard_name' => 'web',
-            'permissions' => [
-            ],
+            'permissions' => [],
         ],
         [
             'name' => 'super-admin',

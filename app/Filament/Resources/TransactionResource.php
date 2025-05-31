@@ -23,6 +23,11 @@ class TransactionResource extends Resource
 
     protected static ?string $navigationGroup = 'Wallet Management';
 
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('viewWalletTransactions');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
