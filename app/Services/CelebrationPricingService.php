@@ -16,7 +16,6 @@ class CelebrationPricingService
      */
     public function calculateTotalPrice(Celebration $celebration, ?int $overrideChildrenCount = null): array
     {
-        // Load necessary relationships if not already loaded
         if (!$celebration->relationLoaded('package') ||
             !$celebration->relationLoaded('cake') ||
             !$celebration->relationLoaded('features') ||
@@ -35,14 +34,12 @@ class CelebrationPricingService
 
         $childrenCount = $overrideChildrenCount ?? $celebration->children_count;
 
-        // Calculate package price (weekday vs weekend)
         $packagePrice = Carbon::parse($celebration->celebration_date)->isWeekday()
             ? $celebration->package->weekday_price
             : $celebration->package->weekend_price;
 
         $basePackageCost = ($packagePrice * 100) * $childrenCount;
 
-        // Calculate cake cost
         $cakeCost = 0;
         if ($celebration->cake && $celebration->cake_weight) {
             $cakeCost = $celebration->cake->price_per_kg * 100 * $celebration->cake_weight;

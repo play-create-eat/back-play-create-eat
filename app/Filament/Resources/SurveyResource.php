@@ -23,6 +23,11 @@ class SurveyResource extends Resource
 
     protected static ?string $navigationLabel = 'Survey Responses';
 
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('viewFeedbacks');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -198,4 +203,4 @@ class SurveyResource extends Resource
             'view' => Pages\ViewSurvey::route('/{record}'),
         ];
     }
-} 
+}

@@ -29,6 +29,11 @@ class ProductPackageResource extends Resource
 
     protected static ?string $navigationGroup = 'Product Management';
 
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('viewProductPackages');
+    }
+
     public static function form(Form $form): Form
     {
         return $form

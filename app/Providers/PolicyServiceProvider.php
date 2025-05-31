@@ -3,18 +3,23 @@
 namespace App\Providers;
 
 use App\Policies\Filament\AdminPolicy;
+use App\Policies\Filament\AnalyticPolicy;
 use App\Policies\Filament\CashierPolicy;
 use App\Policies\Filament\CelebrationFeaturePolicy;
 use App\Policies\Filament\CelebrationPolicy;
 use App\Policies\Filament\FamilyPolicy;
+use App\Policies\Filament\FeedbackPolicy;
 use App\Policies\Filament\MenuManagementPolicy;
+use App\Policies\Filament\PackageDiscountPolicy;
 use App\Policies\Filament\PackagePolicy;
 use App\Policies\Filament\PartyInvitationTemplatePolicy;
 use App\Policies\Filament\PermissionPolicy;
+use App\Policies\Filament\ProductPackagePolicy;
 use App\Policies\Filament\ProductPolicy;
 use App\Policies\Filament\ProductTypePolicy;
 use App\Policies\Filament\RolePolicy;
 use App\Policies\Filament\ThemePolicy;
+use App\Policies\Filament\TransactionPolicy;
 use App\Policies\Filament\UserPolicy;
 use Gate;
 use Illuminate\Support\ServiceProvider;
@@ -73,5 +78,18 @@ class PolicyServiceProvider extends ServiceProvider
         Gate::define('viewProducts', [ProductPolicy::class, 'viewProducts']);
 
         Gate::define('viewProductTypes', [ProductTypePolicy::class, 'viewProductTypes']);
+
+        Gate::define('viewTodayAnalytics', [AnalyticPolicy::class, 'viewTodayAnalytics']);
+        Gate::define('viewFullAnalytics', [AnalyticPolicy::class, 'viewFullAnalytics']);
+
+        Gate::define('viewFeedbacks', [FeedbackPolicy::class, 'viewFeedbacks']);
+
+        Gate::define('viewPackageDiscounts', [PackageDiscountPolicy::class, 'viewPackageDiscounts']);
+
+        Gate::define('viewProductPackages', [ProductPackagePolicy::class, 'viewProductPackages']);
+
+        Gate::define('viewWalletTransactions', [TransactionPolicy::class, 'viewTransactions']);
+
+
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\CelebrationResource\Pages;
 
 use App\Filament\Resources\CelebrationResource;
+use Filament\Actions\Action;
 use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
@@ -35,6 +36,12 @@ class ListCelebrations extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [];
+        return [
+            Action::make('create')
+                ->label('Create Celebration')
+                ->url(CelebrationResource::getUrl('create'))
+                ->icon('heroicon-o-plus')
+                ->color('primary'),
+        ];
     }
 }

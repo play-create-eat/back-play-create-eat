@@ -19,6 +19,11 @@ class PackageDiscountResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
+    public static function canAccess(): bool
+    {
+        return auth()->guard('admin')->user()->can('viewPackageDiscounts');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
