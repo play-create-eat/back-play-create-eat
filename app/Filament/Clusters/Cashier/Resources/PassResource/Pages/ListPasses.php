@@ -13,6 +13,8 @@ use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
 use Log;
+use Session;
+use App\Models\Pass;
 
 class ListPasses extends ListRecords implements HasForms
 {
@@ -25,11 +27,6 @@ class ListPasses extends ListRecords implements HasForms
     protected static string $view = 'filament.clusters.cashier.resources.pass-resource.pages.list-passes';
 
     public ?array $data = [];
-
-    protected function getHeaderActions(): array
-    {
-        return [];
-    }
 
     public function mount(): void
     {
@@ -47,24 +44,81 @@ class ListPasses extends ListRecords implements HasForms
     {
         $schema = [];
         if (!$this->selectedUser) {
-            $schema[]  = $this->getUserSearchComponent();
+            $schema[] = $this->getUserSearchComponent();
         }
         return $form
             ->schema($schema)
             ->statePath('data');
     }
 
-
     public function getTabs(): array
     {
+        $selectedUserId = Session::get('cashier.selected_user_id');
+        $selectedUser = null;
+
+        if ($selectedUserId) {
+            $selectedUser = User::with(['family.children'])->find($selectedUserId);
+        }
+
         return [
-            'all' => Tab::make(),
+            'all' => Tab::make()
+                ->badge(function () use ($selectedUser) {
+                    $query = Pass::query();
+                    if ($selectedUser?->family?->children->isNotEmpty()) {
+                        $childrenIds = $selectedUser->family->children->pluck('id')->toArray();
+                        $query->where('user_id', $selectedUser->id)
+                              ->whereIn('child_id', $childrenIds);
+                    }
+                    return $query->count();
+                }),
+
             'available' => Tab::make()
-                ->modifyQueryUsing(fn (Builder $query) => $query->available()),
+                ->modifyQueryUsing(fn (Builder $query) => $query->available())
+                ->badge(function () use ($selectedUser) {
+                    $query = Pass::available();
+                    if ($selectedUser?->family?->children->isNotEmpty()) {
+                        $childrenIds = $selectedUser->family->children->pluck('id')->toArray();
+                        $query->where('user_id', $selectedUser->id)
+                              ->whereIn('child_id', $childrenIds);
+                    }
+                    return $query->count();
+                }),
+
             'expired' => Tab::make()
-                ->modifyQueryUsing(fn (Builder $query) => $query->expired()),
+                ->modifyQueryUsing(fn (Builder $query) => $query->expired())
+                ->badge(function () use ($selectedUser) {
+                    $query = Pass::expired();
+                    if ($selectedUser?->family?->children->isNotEmpty()) {
+                        $childrenIds = $selectedUser->family->children->pluck('id')->toArray();
+                        $query->where('user_id', $selectedUser->id)
+                              ->whereIn('child_id', $childrenIds);
+                    }
+                    return $query->count();
+                }),
+
             'playground' => Tab::make()
-                ->modifyQueryUsing(fn (Builder $query) => $query->active()),
+                ->modifyQueryUsing(fn (Builder $query) => $query->active())
+                ->badge(function () use ($selectedUser) {
+                    $query = Pass::active();
+                    if ($selectedUser?->family?->children->isNotEmpty()) {
+                        $childrenIds = $selectedUser->family->children->pluck('id')->toArray();
+                        $query->where('user_id', $selectedUser->id)
+                              ->whereIn('child_id', $childrenIds);
+                    }
+                    return $query->count();
+                }),
+
+            'today' => Tab::make()
+                ->modifyQueryUsing(fn (Builder $query) => $query->whereDate('created_at', today()))
+                ->badge(function () use ($selectedUser) {
+                    $query = Pass::whereDate('created_at', today());
+                    if ($selectedUser?->family?->children->isNotEmpty()) {
+                        $childrenIds = $selectedUser->family->children->pluck('id')->toArray();
+                        $query->where('user_id', $selectedUser->id)
+                              ->whereIn('child_id', $childrenIds);
+                    }
+                    return $query->count();
+                }),
         ];
     }
 
@@ -103,5 +157,10 @@ class ListPasses extends ListRecords implements HasForms
         $this->refreshUserSearchForm();
         $this->form->fill();
         $this->resetTable();
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [];
     }
 }
