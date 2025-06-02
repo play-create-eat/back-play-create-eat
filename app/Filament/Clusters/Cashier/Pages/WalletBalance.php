@@ -98,10 +98,10 @@ class WalletBalance extends Page implements HasTable
             $schema[] = Select::make('payment_method')
                 ->label('Payment Method')
                 ->options([
-                    'cash' => 'Cash Payment',
                     'card' => 'Card Payment',
+                    'cash' => 'Cash Payment',
                 ])
-                ->default('cash')
+                ->default('card')
                 ->required()
                 ->visible(fn() => (bool)$this->selectedUser);
 
@@ -203,8 +203,8 @@ class WalletBalance extends Page implements HasTable
         $family = $this->selectedUser->family;
 
         $paymentMethod = match ($data['payment_method']) {
-            'card' => 'Card Payment',
-            default => 'Cash Payment',
+            'cash' => 'Cash Payment',
+            default => 'Card Payment',
         };
 
         $description = "Manual top-up by cashier ($paymentMethod)";
