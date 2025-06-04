@@ -39,12 +39,17 @@ class WalletStatsWidget extends BaseWidget
     protected function getTodayStats(): array
     {
         $mainWalletIds = Wallet::where('slug', 'default')->pluck('id');
-//        $loyaltyWalletIds = Wallet::where('slug', 'cashback')->pluck('id');
 
         $todayMainDeposits = Transaction::where('type', 'deposit')
             ->whereDate('created_at', today())
             ->whereIn('wallet_id', $mainWalletIds)
             ->where('payable_type', Family::class)
+            ->whereDoesntHave('transfer', function ($query) {
+                $query->whereHas('withdraw', function ($subQuery) {
+                    $subQuery->where('type', 'withdraw')
+                        ->whereJsonContains('meta->description', 'Refund');
+                });
+            })
             ->sum(DB::raw('amount / 100'));
 
         $todayAppMainWalletDeposits = Transaction::where('type', 'deposit')
@@ -52,6 +57,12 @@ class WalletStatsWidget extends BaseWidget
             ->whereJsonContains('meta->description', 'Stripe Payment')
             ->whereIn('wallet_id', $mainWalletIds)
             ->where('payable_type', Family::class)
+            ->whereDoesntHave('transfer', function ($query) {
+                $query->whereHas('withdraw', function ($subQuery) {
+                    $subQuery->where('type', 'withdraw')
+                        ->whereJsonContains('meta->description', 'Refund');
+                });
+            })
             ->sum(DB::raw('amount / 100'));
 
         $todayCardDeposits = Transaction::where('type', 'deposit')
@@ -59,6 +70,12 @@ class WalletStatsWidget extends BaseWidget
             ->whereJsonContains('meta->payment_method', 'card')
             ->whereIn('wallet_id', $mainWalletIds)
             ->where('payable_type', Family::class)
+            ->whereDoesntHave('transfer', function ($query) {
+                $query->whereHas('withdraw', function ($subQuery) {
+                    $subQuery->where('type', 'withdraw')
+                        ->whereJsonContains('meta->description', 'Refund');
+                });
+            })
             ->sum(DB::raw('amount / 100'));
 
         $todayCashDeposits = Transaction::where('type', 'deposit')
@@ -66,6 +83,12 @@ class WalletStatsWidget extends BaseWidget
             ->whereJsonContains('meta->payment_method', 'cash')
             ->whereIn('wallet_id', $mainWalletIds)
             ->where('payable_type', Family::class)
+            ->whereDoesntHave('transfer', function ($query) {
+                $query->whereHas('withdraw', function ($subQuery) {
+                    $subQuery->where('type', 'withdraw')
+                        ->whereJsonContains('meta->description', 'Refund');
+                });
+            })
             ->sum(DB::raw('amount / 100'));
 
         return [
@@ -99,6 +122,12 @@ class WalletStatsWidget extends BaseWidget
         $totalMainDeposits = Transaction::where('type', 'deposit')
             ->whereIn('wallet_id', $mainWalletIds)
             ->where('payable_type', Family::class)
+            ->whereDoesntHave('transfer', function ($query) {
+                $query->whereHas('withdraw', function ($subQuery) {
+                    $subQuery->where('type', 'withdraw')
+                        ->whereJsonContains('meta->description', 'Refund');
+                });
+            })
             ->sum(DB::raw('amount / 100'));
 
         $totalLoyaltyDeposits = Transaction::where('type', 'deposit')
@@ -110,12 +139,24 @@ class WalletStatsWidget extends BaseWidget
             ->whereJsonContains('meta->payment_method', 'card')
             ->whereIn('wallet_id', $mainWalletIds)
             ->where('payable_type', Family::class)
+            ->whereDoesntHave('transfer', function ($query) {
+                $query->whereHas('withdraw', function ($subQuery) {
+                    $subQuery->where('type', 'withdraw')
+                        ->whereJsonContains('meta->description', 'Refund');
+                });
+            })
             ->sum(DB::raw('amount / 100'));
 
         $cashDeposits = Transaction::where('type', 'deposit')
             ->whereJsonContains('meta->payment_method', 'cash')
             ->whereIn('wallet_id', $mainWalletIds)
             ->where('payable_type', Family::class)
+            ->whereDoesntHave('transfer', function ($query) {
+                $query->whereHas('withdraw', function ($subQuery) {
+                    $subQuery->where('type', 'withdraw')
+                        ->whereJsonContains('meta->description', 'Refund');
+                });
+            })
             ->sum(DB::raw('amount / 100'));
 
         return [
