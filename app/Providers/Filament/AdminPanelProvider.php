@@ -60,6 +60,10 @@ class AdminPanelProvider extends PanelProvider
                     ->label('Product Management')
                     ->icon('heroicon-o-ticket')
                     ->collapsible(),
+                NavigationGroup::make()
+                    ->label('Content Management')
+                    ->icon('heroicon-o-document-text')
+                    ->collapsible(),
             ])
             ->widgets([
                 Widgets\AccountWidget::class,

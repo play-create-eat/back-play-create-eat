@@ -31,7 +31,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Cart::observe(CartObserver::class);
-        Permission::observe(PermissionObserver::class);
-        Role::observe(RoleObserver::class);
+//        Permission::observe(PermissionObserver::class);
+//        Role::observe(RoleObserver::class);
     }
 }

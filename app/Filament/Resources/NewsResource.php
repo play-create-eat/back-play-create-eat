@@ -16,15 +16,11 @@ class NewsResource extends Resource
 {
     protected static ?string $model = News::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-newspaper';
-
     protected static ?string $navigationLabel = 'News';
 
     protected static ?string $pluralLabel = 'News';
 
     protected static ?string $navigationGroup = 'Content Management';
-
-    protected static ?int $navigationSort = 12;
 
     public static function form(Form $form): Form
     {
