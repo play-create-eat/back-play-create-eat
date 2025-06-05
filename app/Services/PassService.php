@@ -32,6 +32,7 @@ use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Intervention\Image\Laravel\Facades\Image;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Throwable;
 
 class PassService
 {
@@ -107,7 +108,7 @@ class PassService
      * @param string $serial
      * @param int $productTypeId
      * @return Pass
-     * @throws \Throwable
+     * @throws Throwable
      * @throws PassExpiredException
      */
     public function scan(string $serial, int $productTypeId): Pass
@@ -128,7 +129,7 @@ class PassService
      * @param string $serial
      * @param int $minutes
      * @return Pass
-     * @throws \Throwable
+     * @throws Throwable
      * @throws PassNotExtendableException
      * @throws InvalidExtendableTimeException
      */
@@ -241,7 +242,7 @@ class PassService
      * @param bool $confirmed
      * @return bool
      * @throws \Bavix\Wallet\Internal\Exceptions\ExceptionInterface
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function refund(Pass $pass, bool $confirmed = true): bool
     {
@@ -296,7 +297,7 @@ class PassService
     /**
      * @param Pass $pass
      * @return bool
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function isRefundable(Pass $pass): bool
     {
@@ -324,7 +325,7 @@ class PassService
      * @param Pass $pass
      * @param int $productTypeId
      * @return Pass
-     * @throws \Throwable
+     * @throws Throwable
      * @throws PassFeatureNotAvailableException
      * @throws PassExpiredException
      */
@@ -394,7 +395,7 @@ class PassService
 
     /**
      * @throws \Bavix\Wallet\Internal\Exceptions\ExceptionInterface
-     * @throws \Throwable
+     * @throws Throwable
      */
     protected function payWithLoyaltyPoints(
         User    $user,
