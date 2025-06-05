@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\v1\ChildController;
 use App\Http\Controllers\Api\v1\FamilyController;
 use App\Http\Controllers\Api\v1\InvitationController;
+use App\Http\Controllers\Api\v1\NewsController;
 use App\Http\Controllers\Api\v1\NotificationController;
 use App\Http\Controllers\Api\v1\PandaDocController;
 use App\Http\Controllers\Api\v1\PaymentController;
@@ -75,6 +76,8 @@ Route::prefix('v1')->group(function () {
     Route::post('pandadoc/webhook', [PandaDocController::class, 'handleWebhook']);
     Route::post('pandadoc/create', [PandaDocController::class, 'create'])
         ->withoutMiddleware('auth:sanctum');
+
+    Route::apiResource('news', NewsController::class)->only(['index', 'show']);
 
     require __DIR__ . '/auth.php';
     require __DIR__ . '/stripe.php';
