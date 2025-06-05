@@ -253,7 +253,7 @@ return [
         [
             'name' => 'view-product-packages',
             'guard_name' => 'admin',
-        ],
+        ]
     ],
 
     'roles' => [
