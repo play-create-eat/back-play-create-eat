@@ -253,27 +253,7 @@ return [
         [
             'name' => 'view-product-packages',
             'guard_name' => 'admin',
-        ],
-        [
-            'name' => 'manage-news',
-            'guard_name' => 'admin',
-        ],
-        [
-            'name' => 'view-news',
-            'guard_name' => 'admin',
-        ],
-        [
-            'name' => 'create-news',
-            'guard_name' => 'admin',
-        ],
-        [
-            'name' => 'edit-news',
-            'guard_name' => 'admin',
-        ],
-        [
-            'name' => 'delete-news',
-            'guard_name' => 'admin',
-        ],
+        ]
     ],
 
     'roles' => [
