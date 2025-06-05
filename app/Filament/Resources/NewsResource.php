@@ -22,6 +22,10 @@ class NewsResource extends Resource
 
     protected static ?string $pluralLabel = 'News';
 
+    protected static ?string $navigationGroup = 'Content Management';
+
+    protected static ?int $navigationSort = 12;
+
     public static function form(Form $form): Form
     {
         return $form
@@ -101,7 +105,7 @@ class NewsResource extends Resource
     {
         return [
             //
-    ];
+        ];
     }
 
     public static function getPages(): array
@@ -111,5 +115,30 @@ class NewsResource extends Resource
             'create' => Pages\CreateNews::route('/create'),
             'edit' => Pages\EditNews::route('/{record}/edit'),
         ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth('admin')->user()->can('viewAny', News::class);
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth('admin')->user()->can('create', News::class);
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth('admin')->user()->can('update', $record);
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth('admin')->user()->can('delete', $record);
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return auth('admin')->user()->can('deleteAny', News::class);
     }
 }
