@@ -228,7 +228,7 @@ class RegisteredUserController extends Controller
 
         $user->assignRole('Administrator');
 
-        $token = $user->createToken($request->userAgent())->plainTextToken;
+        $token = $user->createToken(substr($request->userAgent(), 0, 255))->plainTextToken;
 
         return response()->json([
             'token' => $token,
@@ -309,7 +309,7 @@ class RegisteredUserController extends Controller
 
         $invitation->update(['expired_at' => now()]);
 
-        $token = $user->createToken($request->userAgent())->plainTextToken;
+        $token = $user->createToken(substr($request->userAgent(), 0, 255))->plainTextToken;
 
         return response()->json(['token' => $token], Response::HTTP_CREATED);
     }
