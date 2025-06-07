@@ -2,50 +2,46 @@
 
 namespace App\Services;
 
-use App\Exceptions\InvalidPassActivationDateException;
-use Bavix\Wallet\Services\AtomicServiceInterface;
-use chillerlan\QRCode\Output\QROutputInterface;
-use chillerlan\QRCode\QRCode;
-use chillerlan\QRCode\QROptions;
-use DateTime;
+use App\Exceptions\ChildrenFamilyNotAssociatedException;
 use App\Exceptions\InsufficientCashbackBalanceException;
+use App\Exceptions\InvalidExtendableTimeException;
+use App\Exceptions\InvalidPassActivationDateException;
+use App\Exceptions\PassExpiredException;
+use App\Exceptions\PassFeatureNotAvailableException;
+use App\Exceptions\PassNotExtendableException;
+use App\Exceptions\ProductNotAvailableException;
 use App\Models\Child;
 use App\Models\Pass;
 use App\Models\Product;
 use App\Models\ProductType;
 use App\Models\User;
-use App\Exceptions\ChildrenFamilyNotAssociatedException;
-use App\Exceptions\PassFeatureNotAvailableException;
-use App\Exceptions\InvalidExtendableTimeException;
-use App\Exceptions\PassNotExtendableException;
-use App\Exceptions\PassExpiredException;
-use App\Exceptions\ProductNotAvailableException;
 use App\Notifications\PassCheckInNotification;
 use App\Notifications\PassCheckOutNotification;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Bavix\Wallet\Internal\Exceptions\ExceptionInterface;
 use Bavix\Wallet\Models\Transfer;
 use Bavix\Wallet\Objects\Cart;
+use Bavix\Wallet\Services\AtomicServiceInterface;
 use Carbon\Carbon;
 use Carbon\CarbonInterval;
+use chillerlan\QRCode\Output\QROutputInterface;
+use chillerlan\QRCode\QRCode;
+use chillerlan\QRCode\QROptions;
+use DateTime;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Str;
 use Intervention\Image\Laravel\Facades\Image;
+use Intervention\Image\MediaType;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Throwable;
 
 class PassService
 {
-    public static function generateSerial(): string
-    {
-        return Str::upper('SN-' . Str::orderedUuid());
-    }
-
-    public static function findPassBySerial(string $serial): Pass
-    {
-        return Pass::where('serial', $serial)->firstOrFail();
-    }
-
+    /**
+     * @throws Throwable
+     */
     public function purchase(
         User     $user,
         Child    $child,
@@ -70,6 +66,26 @@ class PassService
         );
 
         return DB::transaction(function () use ($user, $child, $product, $activationDate, $isFree, $loyaltyPointAmount, $meta) {
+            $duration = CarbonInterval::minutes($product->duration_time);
+            $expiresFrom = $activationDate ? Carbon::instance($activationDate) : Carbon::now();
+            $expiresAt = $duration->totalSeconds <= CarbonInterval::day()->totalSeconds
+                ? $expiresFrom->endOfDay()
+                : $expiresFrom->addYear();
+
+            $passSerial = static::generateSerial();
+
+            $passInfo = [
+                'pass_serial'     => $passSerial,
+                'child_id'        => $child->id,
+                'child_name'      => $child->first_name . ' ' . $child->last_name,
+                'activation_date' => $activationDate ? Carbon::instance($activationDate)->format('Y-m-d') : today()->format('Y-m-d'),
+                'expires_at'      => $expiresAt->format('Y-m-d H:i:s'),
+                'remaining_time'  => round($duration->totalMinutes),
+                'is_extendable'   => $product->is_extendable,
+            ];
+
+            $enrichedMeta = array_merge($meta, ['pass_info' => $passInfo]);
+
             if ($isFree) {
                 $transfer = $user->family->payFree($product);
             } else {
@@ -78,19 +94,12 @@ class PassService
                     product: $product,
                     date: $activationDate,
                     loyaltyPointAmount: $loyaltyPointAmount,
-                    meta: $meta
+                    meta: $enrichedMeta
                 );
             }
 
-            $duration = CarbonInterval::minutes($product->duration_time);
-
-            $expiresFrom = $activationDate ? Carbon::instance($activationDate) : Carbon::now();
-            $expiresAt = $duration->totalSeconds <= CarbonInterval::day()->totalSeconds
-                ? $expiresFrom->endOfDay()
-                : $expiresFrom->addYear();
-
             $pass = new Pass();
-            $pass->serial = static::generateSerial();
+            $pass->serial = $passSerial;
             $pass->remaining_time = round($duration->totalMinutes);
             $pass->is_extendable = $product->is_extendable;
             $pass->activation_date = $activationDate ?: today();
@@ -100,8 +109,104 @@ class PassService
             $pass->transfer()->associate($transfer);
             $pass->save();
 
+            if ($transfer->withdraw) {
+                $currentMeta = $transfer->withdraw->meta ?? [];
+                $currentMeta['pass_info']['pass_id'] = $pass->id;
+                $transfer->withdraw->update(['meta' => $currentMeta]);
+            }
+
+            if ($transfer->deposit) {
+                $currentMeta = $transfer->deposit->meta ?? [];
+                $currentMeta['pass_info']['pass_id'] = $pass->id;
+                $transfer->deposit->update(['meta' => $currentMeta]);
+            }
+
+            Log::info(json_encode($pass));
+
             return $pass;
         });
+    }
+
+    public static function generateSerial(): string
+    {
+        return Str::upper('SN-' . Str::orderedUuid());
+    }
+
+    /**
+     * @throws ExceptionInterface
+     * @throws Throwable
+     */
+    protected function payWithLoyaltyPoints(
+        User    $user,
+        Product $product,
+        Carbon  $date = null,
+        int     $loyaltyPointAmount = 0,
+        array   $meta = []
+    ): Transfer
+    {
+        $family = $user->loadMissing('family')->family;
+        $productPrice = $product->getFinalPrice($date);
+        $loyaltyWallet = $family->loyalty_wallet;
+
+
+        if ($loyaltyPointAmount > 0) {
+            if ($loyaltyPointAmount > $productPrice) {
+                $loyaltyPointAmount = $productPrice;
+            }
+
+            throw_if($loyaltyWallet->balance < $loyaltyPointAmount, new InsufficientCashbackBalanceException(
+                amount: $loyaltyPointAmount,
+                balance: $loyaltyWallet->balance,
+            ));
+
+            $loyaltyWallet->withdraw(
+                amount: $loyaltyPointAmount,
+                meta: [
+                    ...$meta,
+                    'description'   => 'Loyalty points redeemed successfully for product discount.',
+                    'product_id'    => $product->id,
+                    'product_name'  => $product->name,
+                    'product_price' => $productPrice,
+                ],
+            );
+
+            $productPrice = max(0, $productPrice - $loyaltyPointAmount);
+        }
+
+        $cashbackAmount = 0;
+
+        if ($productPrice > 0 && $product->cashback_percent > 0) {
+            $cashbackAmount = round($productPrice * $product->cashback_percent / 100);
+        }
+
+        $cart = app(Cart::class)
+            ->withItem($product, pricePerItem: $productPrice)
+            ->withMeta([
+                ...$meta,
+                'loyalty_points_used'    => $loyaltyPointAmount,
+                'discount_price_weekday' => $product->discount_price_weekday,
+                'discount_price_weekend' => $product->discount_price_weekend,
+                'discount_percent'       => $product->discount_percent,
+                'cashback_percent'       => $product->cashback_percent,
+                'cashback_amount'        => $cashbackAmount,
+                'fee_percent'            => $product->fee_percent,
+            ]);
+
+        list($transfer) = array_values($family->payCart($cart));
+
+        if ($cashbackAmount > 0) {
+
+            $loyaltyWallet->deposit(
+                $cashbackAmount,
+                [
+                    'name'        => 'Cashback for product "' . $product->id . '" purchase ',
+                    'product_id'  => $product->id,
+                    'transfer_id' => $transfer->id,
+                ]
+            );
+        }
+
+        return $transfer;
     }
 
     /**
@@ -123,6 +228,91 @@ class PassService
         }
 
         return $pass->fresh();
+    }
+
+    public static function findPassBySerial(string $serial): Pass
+    {
+        return Pass::where('serial', $serial)->firstOrFail();
+    }
+
+    /**
+     * @param Pass $pass
+     * @param int $productTypeId
+     * @return Pass
+     * @throws Throwable
+     * @throws PassFeatureNotAvailableException
+     * @throws PassExpiredException
+     */
+    protected function markPassCheckIn(Pass $pass, int $productTypeId): Pass
+    {
+        $pass->loadMissing('user');
+
+        throw_if(
+            condition: $pass->isExpired(),
+            exception: new PassExpiredException($pass)
+        );
+
+        throw_unless(
+            condition: $pass->activation_date->isToday(),
+            exception: new InvalidPassActivationDateException($pass)
+        );
+
+        $productType = ProductType::findOrFail($productTypeId);
+
+        throw_unless(
+            condition: $this->isPassFeatureAvailable($pass, $productType),
+            exception: new PassFeatureNotAvailableException($pass, $productType)
+        );
+
+        $pass->fill([
+            'entered_at' => Carbon::now(),
+            'exited_at'  => null,
+        ]);
+
+        $pass->save();
+        $pass->user->notify(new PassCheckInNotification($pass));
+
+        return $pass;
+    }
+
+    public function isPassFeatureAvailable(Pass $pass, ProductType $productType): bool
+    {
+        $pass->loadMissing("transfer.deposit");
+        $features = collect($pass->transfer->deposit->meta["features"] ?? []);
+
+        return $features->has($productType->id);
+    }
+
+    /**
+     * @param Pass $pass
+     * @return Pass
+     */
+    protected function markPassCheckOut(Pass $pass): Pass
+    {
+        $pass->loadMissing('user');
+        $now = Carbon::now();
+        $timeLapsed = round($pass->entered_at->diffInMinutes($now));
+
+        if ($pass->pass_package_id) {
+            $pass->fill([
+                'exited_at' => $now,
+            ]);
+        } else {
+            $pass->fill([
+                'exited_at'      => $now,
+                'remaining_time' => $pass->remaining_time - $timeLapsed,
+            ]);
+
+            if ($pass->remaining_time <= 0) {
+                $pass->expires_at = $now;
+            }
+        }
+
+
+        $pass->save();
+        $pass->user->notify(new PassCheckOutNotification($pass));
+
+        return $pass;
     }
 
     /**
@@ -156,12 +346,15 @@ class PassService
         return $pass;
     }
 
-    public function isPassFeatureAvailable(Pass $pass, ProductType $productType): bool
+    public function getBraceletPdfPath(string $serial, bool $force = false): string
     {
-        $pass->loadMissing("transfer.deposit");
-        $features = collect($pass->transfer->deposit->meta["features"] ?? []);
+        $disk = Storage::disk('local');
+        $filePath = "passes/{$serial}/bracelet.pdf";
+        $this->generateQRCode($serial, $force);
 
-        return $features->has($productType->id);
+        abort_unless($disk->exists($filePath), 404);
+
+        return $disk->path($filePath);
     }
 
     public function generateQRCode(string $serial, bool $force = false): void
@@ -192,38 +385,32 @@ class PassService
         $imageContent = $render->getImageBlob();
 
         $qr = Image::read($imageContent)
-            ->encodeByMediaType(\Intervention\Image\MediaType::IMAGE_PNG)
+            ->encodeByMediaType(MediaType::IMAGE_PNG)
             ->toDataUri();
 
         $logoLong = Image::read(storage_path('app/public/logos/logo-long-pass.png'))
             ->rotate(-90)
-            ->encodeByMediaType(\Intervention\Image\MediaType::IMAGE_PNG)
+            ->encodeByMediaType(MediaType::IMAGE_PNG)
             ->toDataUri();
 
         $logo = Image::read(storage_path('app/public/logos/logo-pass.png'))
             ->rotate(-90)
-            ->encodeByMediaType(\Intervention\Image\MediaType::IMAGE_PNG)
+            ->encodeByMediaType(MediaType::IMAGE_PNG)
             ->toDataUri();
 
         $pdf = Pdf::loadView('pdf.pass-bracelet', [
-            'qr' => $qr,
+            'qr'       => $qr,
             'logoLong' => $logoLong,
-            'logo' => $logo,
+            'logo'     => $logo,
         ])->setPaper([0, 0, $this->mm2pt(25.4), $this->mm2pt(254)], 'portrait');
 
         $disk->put($qrImagePath, $imageContent);
         $pdf->save($braceletPdfPath, 'local');
     }
 
-    public function getBraceletPdfPath(string $serial, bool $force = false): string
+    private function mm2pt(float $mm): float
     {
-        $disk = Storage::disk('local');
-        $filePath = "passes/{$serial}/bracelet.pdf";
-        $this->generateQRCode($serial, $force);
-
-        abort_unless($disk->exists($filePath), 404);
-
-        return $disk->path($filePath);
+        return $mm * 72 / 25.4;
     }
 
     public function getQRImagePath(string $serial, bool $force = false): string
@@ -241,7 +428,7 @@ class PassService
      * @param Pass $pass
      * @param bool $confirmed
      * @return bool
-     * @throws \Bavix\Wallet\Internal\Exceptions\ExceptionInterface
+     * @throws ExceptionInterface
      * @throws Throwable
      */
     public function refund(Pass $pass, bool $confirmed = true): bool
@@ -259,9 +446,9 @@ class PassService
 
             $result = $family->refund($product);
             $meta = [
-                'product_id' => $product->id,
+                'product_id'   => $product->id,
                 'product_name' => $product->name,
-                'pass_id' => $pass->id,
+                'pass_id'      => $pass->id,
             ];
 
             app(AtomicServiceInterface::class)
@@ -319,159 +506,5 @@ class PassService
         );
 
         return true;
-    }
-
-    /**
-     * @param Pass $pass
-     * @param int $productTypeId
-     * @return Pass
-     * @throws Throwable
-     * @throws PassFeatureNotAvailableException
-     * @throws PassExpiredException
-     */
-    protected function markPassCheckIn(Pass $pass, int $productTypeId): Pass
-    {
-        $pass->loadMissing('user');
-
-        throw_if(
-            condition: $pass->isExpired(),
-            exception: new PassExpiredException($pass)
-        );
-
-        throw_unless(
-            condition: $pass->activation_date->isToday(),
-            exception: new InvalidPassActivationDateException($pass)
-        );
-
-        $productType = ProductType::findOrFail($productTypeId);
-
-        throw_unless(
-            condition: $this->isPassFeatureAvailable($pass, $productType),
-            exception: new PassFeatureNotAvailableException($pass, $productType)
-        );
-
-        $pass->fill([
-            'entered_at' => Carbon::now(),
-            'exited_at' => null,
-        ]);
-
-        $pass->save();
-        $pass->user->notify(new PassCheckInNotification($pass));
-
-        return $pass;
-    }
-
-    /**
-     * @param Pass $pass
-     * @return Pass
-     */
-    protected function markPassCheckOut(Pass $pass): Pass
-    {
-        $pass->loadMissing('user');
-        $now = Carbon::now();
-        $timeLapsed = round($pass->entered_at->diffInMinutes($now));
-
-        if ($pass->pass_package_id) {
-            $pass->fill([
-                'exited_at' => $now,
-            ]);
-        } else {
-            $pass->fill([
-                'exited_at' => $now,
-                'remaining_time' => $pass->remaining_time - $timeLapsed,
-            ]);
-
-            if ($pass->remaining_time <= 0) {
-                $pass->expires_at = $now;
-            }
-        }
-
-
-        $pass->save();
-        $pass->user->notify(new PassCheckOutNotification($pass));
-
-        return $pass;
-    }
-
-    /**
-     * @throws \Bavix\Wallet\Internal\Exceptions\ExceptionInterface
-     * @throws Throwable
-     */
-    protected function payWithLoyaltyPoints(
-        User    $user,
-        Product $product,
-        Carbon  $date = null,
-        int     $loyaltyPointAmount = 0,
-        array   $meta = []
-    ): Transfer
-    {
-        $family = $user->loadMissing('family')->family;
-        $productPrice = $product->getFinalPrice($date);
-        $loyaltyWallet = $family->loyalty_wallet;
-
-
-        if ($loyaltyPointAmount > 0) {
-            if ($loyaltyPointAmount > $productPrice) {
-                $loyaltyPointAmount = $productPrice;
-            }
-
-            throw_if($loyaltyWallet->balance < $loyaltyPointAmount, new InsufficientCashbackBalanceException(
-                amount: $loyaltyPointAmount,
-                balance: $loyaltyWallet->balance,
-            ));
-
-            $loyaltyWallet->withdraw(
-                amount: $loyaltyPointAmount,
-                meta: [
-                    ...$meta,
-                    'description' => 'Loyalty points redeemed successfully for product discount.',
-                    'product_id' => $product->id,
-                    'product_name' => $product->name,
-                    'product_price' => $productPrice,
-                ],
-            );
-
-            $productPrice = max(0, $productPrice - $loyaltyPointAmount);
-        }
-
-        $cashbackAmount = 0;
-
-        if ($productPrice > 0 && $product->cashback_percent > 0) {
-            $cashbackAmount = round($productPrice * $product->cashback_percent / 100);
-        }
-
-        $cart = app(Cart::class)
-            ->withItem($product, pricePerItem: $productPrice)
-            ->withMeta([
-                ...$meta,
-                'loyalty_points_used' => $loyaltyPointAmount,
-                'discount_price_weekday' => $product->discount_price_weekday,
-                'discount_price_weekend' => $product->discount_price_weekend,
-                'discount_percent' => $product->discount_percent,
-                'cashback_percent' => $product->cashback_percent,
-                'cashback_amount' => $cashbackAmount,
-                'fee_percent' => $product->fee_percent,
-            ]);
-
-        list($transfer) = array_values($family->payCart($cart));
-
-        if ($cashbackAmount > 0) {
-
-            $loyaltyWallet->deposit(
-                $cashbackAmount,
-                [
-                    'name' => 'Cashback for product "' . $product->id . '" purchase ',
-                    'product_id' => $product->id,
-                    'transfer_id' => $transfer->id,
-                ]
-            );
-        }
-
-        return $transfer;
-    }
-
-    private function mm2pt(float $mm): float
-    {
-        return $mm * 72 / 25.4;
     }
 }

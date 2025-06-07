@@ -10,6 +10,7 @@ use App\Models\User;
 use Bavix\Wallet\Internal\Exceptions\ExceptionInterface;
 use Bavix\Wallet\Models\Transaction;
 use Bavix\Wallet\Models\Wallet;
+use Carbon\Carbon;
 use Exception;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -24,6 +25,7 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\HtmlString;
 
 
 class WalletBalance extends Page implements HasTable
@@ -126,7 +128,7 @@ class WalletBalance extends Page implements HasTable
      */
     public function table(Table $table): Table
     {
-        $query = Transaction::query();
+        $query = Transaction::query()->with('wallet');
 
         if ($this->selectedUser && $this->selectedUser->family) {
             $query->where('payable_type', Family::class)
@@ -149,7 +151,42 @@ class WalletBalance extends Page implements HasTable
                         return 'AED ' . number_format($amount, 2);
                     }
                 }),
-                TextColumn::make('meta.description')->label('Description')->wrap(),
+                TextColumn::make('meta.description')->label('Description')->wrap()
+                    ->getStateUsing(function (Transaction $record) {
+                        $meta = $record->meta ?? [];
+                        $description = $meta['description'] ?? '';
+
+                        if (isset($meta['pass_info'])) {
+                            $passInfo = $meta['pass_info'];
+                            $passId = $passInfo['pass_id'] ?? 'N/A';
+                            $childName = $passInfo['child_name'] ?? 'N/A';
+                            $activationDate = $passInfo['activation_date'] ?? 'N/A';
+                            $expiresAt = $passInfo['expires_at'] ?? 'N/A';
+
+                            if ($expiresAt !== 'N/A') {
+                                try {
+                                    $expiresAt = Carbon::parse($expiresAt)->format('Y-m-d');
+                                } catch (Exception $e) {
+                                    $expiresAt = 'N/A';
+                                }
+                            }
+
+
+                            $passDetailsHtml = "
+                                <div class='text-sm text-gray-600 mt-1'>
+                                <div><strong>Pass ID:</strong>$passId</div>
+                                <div><strong>Child:</strong> $childName</div>
+                                <div><strong>Activation:</strong> $activationDate</div>
+                                <div><strong>Expires:</strong>$expiresAt</div>
+                                </div>
+                            ";
+
+                            return new HtmlString($description . $passDetailsHtml);
+                        }
+
+                        return $description;
+                    })
+                    ->html(),
                 TextColumn::make('created_at')->label('Date')->dateTime()->sortable(),
             ])
             ->filters([
