@@ -37,7 +37,5 @@ class CarbonServiceProvider extends ServiceProvider
                 CarbonInterface::SUNDAY
             ]);
         });
-
-        Log::info('Carbon isBusinessWeekend macro applied');
     }
 }
