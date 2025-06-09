@@ -15,11 +15,47 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Throwable;
+use ZipArchive;
+use Exception;
 
 class ViewCelebration extends ViewRecord
 {
     protected static string $resource = CelebrationResource::class;
+
+    protected function getFooterWidgets(): array
+    {
+        $celebration = $this->getRecord();
+        $images = collect([]);
+
+        if ($celebration->slideshow) {
+            $images = $celebration->slideshow->getMedia('slideshow_images')->map(function ($media) {
+                return [
+                    'id'  => $media->id,
+                    'url' => $media->getUrl()
+                ];
+            });
+        }
+
+        $hasImages = $images->count() > 0;
+
+        // Only return the widget if there are images
+        if (!$hasImages) {
+            return [];
+        }
+
+        return [
+            \App\Filament\Widgets\CelebrationSlideshowWidget::make([
+                'slideshowData' => [
+                    'images' => $images->toArray(),
+                    'celebrationId' => $celebration->id,
+                    'hasImages' => $hasImages
+                ]
+            ]),
+        ];
+    }
 
     protected function getHeaderActions(): array
     {
@@ -40,6 +76,18 @@ class ViewCelebration extends ViewRecord
                     ]
                 ), true)
                 ->openUrlInNewTab(),
+
+            Action::make('downloadSlideshow')
+                ->label('Download Slideshow')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('success')
+                ->action(function () {
+                    return $this->downloadSlideshowImages($this->getRecord());
+                })
+                ->visible(fn($record): bool =>
+                    $record->slideshow &&
+                    $record->slideshow->getMedia('slideshow_images')->count() > 0
+                ),
 
             Action::make('makePayment')
                 ->label('Make Payment')
@@ -189,6 +237,105 @@ class ViewCelebration extends ViewRecord
                 ->action(fn() => $this->processCelebrationClosure())
                 ->visible(fn($record): bool => is_null($record->closed_at)),
         ];
+    }
+
+    /**
+     * Download slideshow images as a ZIP file using the same logic as CelebrationController
+     */
+    protected function downloadSlideshowImages(Celebration $celebration): Response|BinaryFileResponse
+    {
+        try {
+            $slideshow = $celebration->slideshow;
+
+            if (!$slideshow) {
+                Notification::make()
+                    ->title('No Slideshow Found')
+                    ->body('This celebration has no slideshow.')
+                    ->warning()
+                    ->send();
+                return response()->noContent();
+            }
+
+            // Get images using the same method as CelebrationController
+            $images = $slideshow->getMedia('slideshow_images')->map(function ($media) {
+                return [
+                    'id'  => $media->id,
+                    'url' => $media->getUrl()
+                ];
+            });
+
+            if ($images->isEmpty()) {
+                Notification::make()
+                    ->title('No Images Found')
+                    ->body('This celebration has no slideshow images to download.')
+                    ->warning()
+                    ->send();
+                return response()->noContent();
+            }
+
+            $zipFileName = "celebration_{$celebration->id}_slideshow_" . now()->format('Y-m-d_H-i-s') . ".zip";
+            $zipPath = storage_path("app/temp/{$zipFileName}");
+
+            // Ensure temp directory exists
+            if (!file_exists(storage_path('app/temp'))) {
+                mkdir(storage_path('app/temp'), 0755, true);
+            }
+
+            $zip = new ZipArchive();
+            if ($zip->open($zipPath, ZipArchive::CREATE) !== TRUE) {
+                throw new Exception('Cannot create ZIP file');
+            }
+
+            $imageCount = 0;
+            foreach ($images as $index => $image) {
+                try {
+                    // Get image content from URL
+                    $imageContent = file_get_contents($image['url']);
+                    if ($imageContent !== false) {
+                        $extension = pathinfo(parse_url($image['url'], PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
+                        $imageName = "slideshow_image_" . ($index + 1) . "." . $extension;
+                        $zip->addFromString($imageName, $imageContent);
+                        $imageCount++;
+                    }
+                } catch (Exception $e) {
+                    // Continue with other images if one fails
+                    continue;
+                }
+            }
+
+            $zip->close();
+
+            if ($imageCount === 0) {
+                // Clean up empty zip file
+                if (file_exists($zipPath)) {
+                    unlink($zipPath);
+                }
+
+                Notification::make()
+                    ->title('Download Failed')
+                    ->body('No images could be downloaded.')
+                    ->danger()
+                    ->send();
+                return response()->noContent();
+            }
+
+            Notification::make()
+                ->title('Download Started')
+                ->body("Downloading {$imageCount} slideshow images...")
+                ->success()
+                ->send();
+
+            return response()->download($zipPath, $zipFileName)->deleteFileAfterSend(true);
+
+        } catch (Exception $e) {
+            Notification::make()
+                ->title('Download Failed')
+                ->body('An error occurred while preparing the download: ' . $e->getMessage())
+                ->danger()
+                ->send();
+
+            return response()->noContent();
+        }
     }
 
     /**
