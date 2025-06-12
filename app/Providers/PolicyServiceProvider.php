@@ -13,6 +13,7 @@ use App\Policies\Filament\MenuManagementPolicy;
 use App\Policies\Filament\PackageDiscountPolicy;
 use App\Policies\Filament\PackagePolicy;
 use App\Policies\Filament\PartyInvitationTemplatePolicy;
+use App\Policies\Filament\PassPolicy;
 use App\Policies\Filament\PermissionPolicy;
 use App\Policies\Filament\ProductPackagePolicy;
 use App\Policies\Filament\ProductPolicy;
@@ -89,6 +90,9 @@ class PolicyServiceProvider extends ServiceProvider
         Gate::define('viewProductPackages', [ProductPackagePolicy::class, 'viewProductPackages']);
 
         Gate::define('viewWalletTransactions', [TransactionPolicy::class, 'viewTransactions']);
+
+        Gate::define('refundPass', [PassPolicy::class, 'refundPass']);
+        Gate::define('refundUsedPass', [PassPolicy::class, 'refundUsedPass']);
 
 
     }

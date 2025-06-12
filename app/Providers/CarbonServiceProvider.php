@@ -6,7 +6,6 @@ use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\ServiceProvider;
-use Log;
 
 class CarbonServiceProvider extends ServiceProvider
 {

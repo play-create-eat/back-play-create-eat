@@ -169,30 +169,72 @@ class PassResource extends Resource
                     ->button()
                     ->label('Filter'),
             )
-            ->actions([
+                        ->actions([
                 Tables\Actions\Action::make('refund')
                     ->label('Refund')
                     ->button()
                     ->color('danger')
                     ->visible(function (Pass $pass) {
-                        try {
-                            $passService = app(PassService::class);
-                            return $passService->isRefundable($pass);
-                        } catch (Exception) {
-                            return false;
+                        $passService = app(PassService::class);
+                        if ($pass->isUnused()) {
+                            try {
+                                return $passService->isRefundable($pass);
+                            } catch (Exception) {
+                                return false;
+                            }
                         }
+
+                        if (!$pass->isUnused() && auth()->user()->can('refundUsedPass')) {
+                            try {
+                                return $passService->isRefundable($pass, allowUsedTickets: true);
+                            } catch (Exception) {
+                                return false;
+                            }
+                        }
+
+                        return false;
                     })
-                    ->requiresConfirmation()
-                    ->modalHeading('Refund Pass')
-                    ->modalDescription('Are you sure you want to refund this pass? This action cannot be undone.')
-                    ->modalSubmitActionLabel('Yes, refund')
-                    ->action(function (Pass $record) {
+                    ->form(function (Pass $record) {
+                        if (!$record->isUnused()) {
+                            return [
+                                Forms\Components\Textarea::make('reason')
+                                    ->label('Refund Reason')
+                                    ->required()
+                                    ->placeholder('Please explain why this used ticket is being refunded...')
+                                    ->rows(3)
+                                    ->maxLength(1000),
+                            ];
+                        }
+                        return [];
+                    })
+                    ->modalHeading(fn (Pass $record) => $record->isUnused() ? 'Refund Pass' : 'Refund Used Pass')
+                    ->modalDescription(function (Pass $record) {
+                        if ($record->isUnused()) {
+                            return 'Are you sure you want to refund this pass? This action cannot be undone.';
+                        }
+                        return 'This pass has already been used. Please provide a reason for the refund.';
+                    })
+                    ->requiresConfirmation(fn (Pass $record) => $record->isUnused())
+                    ->modalSubmitActionLabel(fn (Pass $record) => $record->isUnused() ? 'Yes, refund' : 'Refund with reason')
+                    ->action(function (Pass $record, array $data = []) {
                         try {
                             $passService = app(PassService::class);
-                            $passService->refund($record);
+                            $isUsedPass = !$record->isUnused();
+                            $reason = $data['reason'] ?? null;
+
+                            $passService->refund(
+                                $record,
+                                confirmed: true,
+                                refundComment: $reason,
+                                allowUsedTickets: $isUsedPass
+                            );
+
+                            $title = $isUsedPass ? 'Used pass refunded successfully' : 'Pass refunded successfully';
+                            $body = $isUsedPass && $reason ? 'Refund reason: ' . $reason : null;
 
                             Notification::make()
-                                ->title('Pass refunded successfully')
+                                ->title($title)
+                                ->body($body)
                                 ->success()
                                 ->send();
 
@@ -208,7 +250,8 @@ class PassResource extends Resource
                     ->label('Print')
                     ->url(fn(Pass $record) => route('filament.admin.pass.print', ['serial' => $record->serial]))
                     ->openUrlInNewTab()
-                    ->button(),
+                    ->button()
+                    ->visible(fn(Pass $record) => !$record->isExpired()),
             ], position: ActionsPosition::BeforeColumns);
     }
 
