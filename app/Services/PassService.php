@@ -427,29 +427,47 @@ class PassService
     /**
      * @param Pass $pass
      * @param bool $confirmed
+     * @param string|null $refundComment
+     * @param bool $allowUsedTickets
      * @return bool
      * @throws ExceptionInterface
      * @throws Throwable
      */
-    public function refund(Pass $pass, bool $confirmed = true): bool
+    public function refund(Pass $pass, bool $confirmed = true, string $refundComment = null, bool $allowUsedTickets = false): bool
     {
         $pass->loadMissing(['user.family', 'transfer.deposit.payable']);
 
-        $this->isRefundable($pass);
+        $this->isRefundable($pass, $allowUsedTickets);
 
         $family = $pass->user->family;
         $deposit = $pass->transfer->deposit;
 
-        return DB::transaction(function () use ($confirmed, $deposit, $family, $pass) {
+        return DB::transaction(function () use ($confirmed, $deposit, $family, $pass, $refundComment) {
             /** @var Product $product */
             $product = $deposit->payable;
 
-            $result = $family->refund($product);
+            $refundAmount = $deposit->amount;
             $meta = [
                 'product_id'   => $product->id,
                 'product_name' => $product->name,
-                'pass_id'      => $pass->id,
+                'pass_id' => $pass->id,
+                'description' => 'Refund for product "' . $product->name . '"',
+                'transfer_uuid' => $pass->transfer->uuid,
             ];
+
+            if ($refundComment) {
+                $meta['reason'] = $refundComment;
+                $meta['refund_date'] = now()->toISOString();
+
+                $transferMeta = $deposit->meta ?? [];
+                $transferMeta['reason'] = $refundComment;
+                $transferMeta['refund_date'] = now()->toISOString();
+                $deposit->update(['meta' => $transferMeta]);
+            }
+
+            $family->main_wallet->deposit($refundAmount, $meta, $confirmed);
+
+            $pass->transfer->update(['status' => 'refund']);
 
             app(AtomicServiceInterface::class)
                 ->block($family->loyalty_wallet, function () use ($confirmed, $deposit, $family, $meta) {
@@ -477,23 +495,26 @@ class PassService
 
             $pass->delete();
 
-            return $result;
+            return true;
         });
     }
 
     /**
      * @param Pass $pass
+     * @param bool $allowUsedTickets
      * @return bool
      * @throws Throwable
      */
-    public function isRefundable(Pass $pass): bool
+    public function isRefundable(Pass $pass, bool $allowUsedTickets = false): bool
     {
         $pass->loadMissing(['transfer']);
 
-        throw_unless(
-            condition: $pass->isUnused(),
-            exception: new HttpException(409, 'Refund unavailable: this ticket has already been used.'),
-        );
+        if (!$allowUsedTickets) {
+            throw_unless(
+                condition: $pass->isUnused(),
+                exception: new HttpException(409, 'Refund unavailable: this ticket has already been used.'),
+            );
+        }
 
         throw_if(
             condition: $pass->isExpired(),
