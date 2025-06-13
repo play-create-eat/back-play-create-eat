@@ -11,4 +11,9 @@ class TransactionPolicy
     {
         return $admin->hasPermissionTo('view-wallet-transactions');
     }
+
+    public function cancelTransactions(Admin $admin): bool
+    {
+        return $admin->hasPermissionTo('cancel-wallet-transactions');
+    }
 }

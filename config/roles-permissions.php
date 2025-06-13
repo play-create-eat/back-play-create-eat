@@ -251,6 +251,10 @@ return [
             'guard_name' => 'admin',
         ],
         [
+            'name' => 'cancel-wallet-transactions',
+            'guard_name' => 'admin',
+        ],
+        [
             'name' => 'view-product-packages',
             'guard_name' => 'admin',
         ]
@@ -313,6 +317,8 @@ return [
                 'view-user',
                 'edit-user',
                 'delete-user',
+                'view-wallet-transactions',
+                'cancel-wallet-transactions',
             ],
         ],
         [
@@ -350,6 +356,8 @@ return [
                 'cashier-view-tickets',
                 'cashier-view-wallet',
                 'view-celebrations',
+                'view-wallet-transactions',
+                'cancel-wallet-transactions',
             ],
         ],
     ],
