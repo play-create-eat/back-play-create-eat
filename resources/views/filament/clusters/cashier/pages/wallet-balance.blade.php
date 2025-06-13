@@ -7,7 +7,13 @@
                     <x-heroicon-o-banknotes class="w-6 h-6 text-primary-500 mr-4" />
                 @endif
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white ml-4">
-                    {{ $this->selectedUser ? 'Top Up' : 'Search for a client' }}
+                    @if(!$this->selectedUser)
+                        Search for a client
+                    @elseif($this->canTopUpWallet())
+                        Top Up Wallet
+                    @else
+                        View Wallet
+                    @endif
                 </h3>
             </div>
 
@@ -56,12 +62,14 @@
                         </div>
                     </div>
 
-                    <div class="mt-6">
-                        <x-filament::button wire:click="submit"
-                            class="w-full flex justify-center flex-row md:w-auto bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:ring-primary-300">
-                            Top Up Wallet
-                        </x-filament::button>
-                    </div>
+                    @if($this->canTopUpWallet())
+                        <div class="mt-6">
+                            <x-filament::button wire:click="submit"
+                                class="w-full flex justify-center flex-row md:w-auto bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:ring-primary-300">
+                                Top Up Wallet
+                            </x-filament::button>
+                        </div>
+                    @endif
                 </div>
             </div>
 

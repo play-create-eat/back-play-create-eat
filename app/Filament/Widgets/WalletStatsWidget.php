@@ -40,14 +40,20 @@ class WalletStatsWidget extends BaseWidget
     {
         $mainWalletIds = Wallet::where('slug', 'default')->pluck('id');
 
-        // Get refunded transaction UUIDs for today
         $refundedTransactionUuids = $this->getRefundedTransactionUuids(today());
+
+        $cancelledTransactionUuids = $this->getCancelledTransactionUuids(today());
 
         $todayMainDeposits = Transaction::where('type', 'deposit')
             ->whereDate('created_at', today())
             ->whereIn('wallet_id', $mainWalletIds)
             ->where('payable_type', Family::class)
             ->whereNotIn('uuid', $refundedTransactionUuids)
+            ->whereNotIn('uuid', $cancelledTransactionUuids)
+            ->where(function ($q) {
+                $q->whereNull('meta->cancelled')
+                  ->orWhere('meta->cancelled', false);
+            })
             ->sum(DB::raw('amount / 100'));
 
         $todayAppMainWalletDeposits = Transaction::where('type', 'deposit')
@@ -56,6 +62,11 @@ class WalletStatsWidget extends BaseWidget
             ->whereIn('wallet_id', $mainWalletIds)
             ->where('payable_type', Family::class)
             ->whereNotIn('uuid', $refundedTransactionUuids)
+            ->whereNotIn('uuid', $cancelledTransactionUuids)
+            ->where(function ($q) {
+                $q->whereNull('meta->cancelled')
+                  ->orWhere('meta->cancelled', false);
+            })
             ->sum(DB::raw('amount / 100'));
 
         $todayCardDeposits = Transaction::where('type', 'deposit')
@@ -64,6 +75,11 @@ class WalletStatsWidget extends BaseWidget
             ->whereIn('wallet_id', $mainWalletIds)
             ->where('payable_type', Family::class)
             ->whereNotIn('uuid', $refundedTransactionUuids)
+            ->whereNotIn('uuid', $cancelledTransactionUuids)
+            ->where(function ($q) {
+                $q->whereNull('meta->cancelled')
+                  ->orWhere('meta->cancelled', false);
+            })
             ->sum(DB::raw('amount / 100'));
 
         $todayCashDeposits = Transaction::where('type', 'deposit')
@@ -72,6 +88,11 @@ class WalletStatsWidget extends BaseWidget
             ->whereIn('wallet_id', $mainWalletIds)
             ->where('payable_type', Family::class)
             ->whereNotIn('uuid', $refundedTransactionUuids)
+            ->whereNotIn('uuid', $cancelledTransactionUuids)
+            ->where(function ($q) {
+                $q->whereNull('meta->cancelled')
+                  ->orWhere('meta->cancelled', false);
+            })
             ->sum(DB::raw('amount / 100'));
 
         return [
@@ -102,13 +123,19 @@ class WalletStatsWidget extends BaseWidget
         $mainWalletIds = Wallet::where('slug', 'default')->pluck('id');
         $loyaltyWalletIds = Wallet::where('slug', 'cashback')->pluck('id');
 
-        // Get all refunded transaction UUIDs
         $refundedTransactionUuids = $this->getRefundedTransactionUuids();
+
+        $cancelledTransactionUuids = $this->getCancelledTransactionUuids();
 
         $totalMainDeposits = Transaction::where('type', 'deposit')
             ->whereIn('wallet_id', $mainWalletIds)
             ->where('payable_type', Family::class)
             ->whereNotIn('uuid', $refundedTransactionUuids)
+            ->whereNotIn('uuid', $cancelledTransactionUuids)
+            ->where(function ($q) {
+                $q->whereNull('meta->cancelled')
+                  ->orWhere('meta->cancelled', false);
+            })
             ->sum(DB::raw('amount / 100'));
 
         $totalLoyaltyDeposits = Transaction::where('type', 'deposit')
@@ -121,6 +148,11 @@ class WalletStatsWidget extends BaseWidget
             ->whereIn('wallet_id', $mainWalletIds)
             ->where('payable_type', Family::class)
             ->whereNotIn('uuid', $refundedTransactionUuids)
+            ->whereNotIn('uuid', $cancelledTransactionUuids)
+            ->where(function ($q) {
+                $q->whereNull('meta->cancelled')
+                  ->orWhere('meta->cancelled', false);
+            })
             ->sum(DB::raw('amount / 100'));
 
         $cashDeposits = Transaction::where('type', 'deposit')
@@ -128,6 +160,11 @@ class WalletStatsWidget extends BaseWidget
             ->whereIn('wallet_id', $mainWalletIds)
             ->where('payable_type', Family::class)
             ->whereNotIn('uuid', $refundedTransactionUuids)
+            ->whereNotIn('uuid', $cancelledTransactionUuids)
+            ->where(function ($q) {
+                $q->whereNull('meta->cancelled')
+                  ->orWhere('meta->cancelled', false);
+            })
             ->sum(DB::raw('amount / 100'));
 
         return [
@@ -167,6 +204,24 @@ class WalletStatsWidget extends BaseWidget
         }
 
         return $query->pluck(DB::raw("meta->>'transfer_uuid'"))
+            ->filter()
+            ->toArray();
+    }
+
+    /**
+     * Get UUIDs of transactions that have been cancelled
+     */
+    private function getCancelledTransactionUuids($date = null): array
+    {
+        $query = Transaction::where('type', 'withdraw')
+            ->whereJsonContains('meta->description', 'Cancellation')
+            ->whereNotNull('meta->original_transaction_uuid');
+
+        if ($date) {
+            $query->whereDate('created_at', $date);
+        }
+
+        return $query->pluck(DB::raw("meta->>'original_transaction_uuid'"))
             ->filter()
             ->toArray();
     }
