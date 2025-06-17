@@ -528,7 +528,24 @@ class PassService
         $family = $pass->user->family;
         $deposit = $pass->transfer->deposit;
 
-        return DB::transaction(function () use ($confirmed, $deposit, $family, $pass, $refundComment) {
+        $passMeta = rescue(function () use ($pass, $deposit) {
+            if (array_key_exists('products', $deposit->meta)) {
+                $productMeta = collect($deposit->meta['products'])->firstWhere('pass_serial', $pass->serial);
+
+                return [
+                    'product' => $productMeta,
+                    'cashback_amount' => $productMeta['cashback'] ?? 0,
+                    'loyalty_points_used' => $productMeta['discount'] ?? 0,
+                ];
+            }
+
+            return [
+                'loyalty_points_used' => $deposit->meta['loyalty_points_used'] ?? 0,
+                'cashback_amount' => $deposit->meta['cashback_amount'] ?? 0,
+            ];
+        });
+
+        return DB::transaction(function () use ($confirmed, $deposit, $family, $pass, $refundComment, $passMeta) {
             /** @var Product $product */
             $product = $deposit->payable;
 
@@ -539,16 +556,12 @@ class PassService
                 'pass_id' => $pass->id,
                 'description' => 'Refund for product "' . $product->name . '"',
                 'transfer_uuid' => $pass->transfer->uuid,
+                'transfer_meta' => $passMeta['product'] ?? $deposit->meta ?? [],
+                'refund_date' => now()->toISOString(),
             ];
 
             if ($refundComment) {
                 $meta['reason'] = $refundComment;
-                $meta['refund_date'] = now()->toISOString();
-
-                $transferMeta = $deposit->meta ?? [];
-                $transferMeta['reason'] = $refundComment;
-                $transferMeta['refund_date'] = now()->toISOString();
-                $deposit->update(['meta' => $transferMeta]);
             }
 
             $family->main_wallet->deposit($refundAmount, $meta, $confirmed);
@@ -556,9 +569,9 @@ class PassService
             $pass->transfer->update(['status' => 'refund']);
 
             app(AtomicServiceInterface::class)
-                ->block($family->loyalty_wallet, function () use ($confirmed, $deposit, $family, $meta) {
-                    $loyaltyPoints = (int)($deposit->meta['loyalty_points_used'] ?? 0);
-                    $cashbackAmount = (int)($deposit->meta['cashback_amount'] ?? 0);
+                ->block($family->loyalty_wallet, function () use ($confirmed, $deposit, $family, $meta, $passMeta) {
+                    $loyaltyPoints = (int)($passMeta['loyalty_points_used'] ?? 0);
+                    $cashbackAmount = (int)($passMeta['cashback_amount'] ?? 0);
 
                     if ($loyaltyPoints > 0) {
                         $family->loyalty_wallet->deposit($loyaltyPoints,
