@@ -160,26 +160,12 @@ class PassService
                 );
             }
 
-            foreach (array_values($transfers) as $idx => $transfer) {
-                /** @var Product $product */
-                $product = $transfer->deposit->payable;
-
+            $idx = 0;
+            foreach ($transfers as $transfer) {
                 $pass = $passes[$idx];
                 $pass->transfer()->associate($transfer);
                 $pass->save();
-
-                if ($transfer->withdraw) {
-                    $withdrawMeta = $transfer->withdraw->meta ?? [];
-                    $withdrawMeta['products'][$product->id]['pass_id'] = $pass->id;
-                    $transfer->withdraw->update(['meta' => $withdrawMeta]);
-                }
-
-                if ($transfer->deposit) {
-                    $depositMeta = $transfer->deposit->meta ?? [];
-                    $depositMeta['products'][$product->id]['pass_id'] = $pass->id;
-                    $transfer->deposit->update(['meta' => $depositMeta]);
-                }
-
+                $idx += 1;
                 Log::info(json_encode($pass));
             }
 
