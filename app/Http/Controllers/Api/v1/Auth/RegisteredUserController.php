@@ -227,9 +227,10 @@ class RegisteredUserController extends Controller
                 'id_number'    => $partialRegistration->id_number,
             ]);
 
-            $partialRegistration->delete();
             $user->assignRole('Administrator');
         }
+
+        $partialRegistration->delete();
 
         $token = $user->createToken(substr($request->userAgent(), 0, 255))->plainTextToken;
 

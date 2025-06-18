@@ -191,8 +191,6 @@ class PandaDocController extends Controller
             'id_number'    => $partialRegistration->id_number,
         ]);
 
-        $partialRegistration->delete();
-
         $user->assignRole('Administrator');
 
         return response()->json([
