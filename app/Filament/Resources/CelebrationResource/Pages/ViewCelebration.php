@@ -41,7 +41,6 @@ class ViewCelebration extends ViewRecord
 
         $hasImages = $images->count() > 0;
 
-        // Only return the widget if there are images
         if (!$hasImages) {
             return [];
         }
