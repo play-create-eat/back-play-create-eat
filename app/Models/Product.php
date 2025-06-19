@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ProductTypeEnum;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -106,7 +107,7 @@ class Product extends Model implements ProductLimitedInterface
         return $query->where('is_available', true);
     }
 
-    public function getFinalPrice(Carbon $date = null): int
+    public function getFinalPrice(CarbonInterface $date = null): int
     {
 //        $discount = max(0, min($this->discount_percent, 100));
         $fee = max(0, min($this->fee_percent, 100));

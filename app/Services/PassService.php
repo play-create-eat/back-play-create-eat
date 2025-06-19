@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Data\Products\PassInfoData;
+use App\Data\Products\PassPurchaseData;
+use App\Data\Products\PassPurchaseProductData;
 use App\Exceptions\ChildrenFamilyNotAssociatedException;
 use App\Exceptions\InsufficientCashbackBalanceException;
 use App\Exceptions\InvalidExtendableTimeException;
@@ -23,11 +26,13 @@ use Bavix\Wallet\Models\Transfer;
 use Bavix\Wallet\Objects\Cart;
 use Bavix\Wallet\Services\AtomicServiceInterface;
 use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterval;
 use chillerlan\QRCode\Output\QROutputInterface;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 use DateTime;
+use Illuminate\Support\Enumerable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -40,173 +45,240 @@ use Throwable;
 class PassService
 {
     /**
-     * @throws Throwable
+     * @param User $user
+     * @param PassPurchaseData $data
+     * @param array $meta
+     * @return array<int, Pass>
      */
-    public function purchase(
-        User     $user,
-        Child    $child,
-        Product  $product,
-        bool     $isFree = false,
-        int      $loyaltyPointAmount = 0,
-        DateTime $activationDate = null,
-        array    $meta = []
-    ): Pass
+    public function purchaseMultiple(
+        User             $user,
+        PassPurchaseData $data,
+        array            $meta = []
+    ): array
     {
         $user->loadMissing('family');
-        $child->loadMissing('family');
 
-        throw_unless($product->is_available, new ProductNotAvailableException($product));
+        return DB::transaction(function () use ($user, $data, $meta) {
+            $family = $user->loadMissing('family')->family;
+            $loyaltyWallet = $family->loyalty_wallet;
 
-        throw_unless(
-            $child->family->is($user->family),
-            new ChildrenFamilyNotAssociatedException(
-                child: $child,
-                currentFamily: $user->family,
-            )
-        );
+            if ($data->loyaltyPointsAmount > 0) {
+                throw_if($loyaltyWallet->balance < $data->loyaltyPointsAmount, new InsufficientCashbackBalanceException(
+                    amount: $data->loyaltyPointsAmount,
+                    balance: $loyaltyWallet->balance,
+                ));
+            }
 
-        return DB::transaction(function () use ($user, $child, $product, $activationDate, $isFree, $loyaltyPointAmount, $meta) {
-            $duration = CarbonInterval::minutes($product->duration_time);
-            $expiresFrom = $activationDate ? Carbon::instance($activationDate) : Carbon::now();
-            $expiresAt = $duration->totalSeconds <= CarbonInterval::day()->totalSeconds
-                ? $expiresFrom->endOfDay()
-                : $expiresFrom->addYear();
+            $products = $this->getAvailableProductsByIds(
+                ids: $data->products->toCollection()->pluck('productId'),
+            );
 
-            $passSerial = static::generateSerial();
+            $children = $this->getFamilyChildrenByIds(
+                user: $user,
+                ids: $data->products->toCollection()->pluck('childId'),
+            );
 
-            $passInfo = [
-                'pass_serial'     => $passSerial,
-                'child_id'        => $child->id,
-                'child_name'      => $child->first_name . ' ' . $child->last_name,
-                'activation_date' => $activationDate ? Carbon::instance($activationDate)->format('Y-m-d') : today()->format('Y-m-d'),
-                'expires_at'      => $expiresAt->format('Y-m-d H:i:s'),
-                'remaining_time'  => round($duration->totalMinutes),
-                'is_extendable'   => $product->is_extendable,
+            $cart = app(Cart::class);
+            $meta = [
+                ...$meta,
+                'gift' => $data->gift,
+                'products' => [],
             ];
 
-            $enrichedMeta = array_merge($meta, ['pass_info' => $passInfo]);
+            $discountPerItem = 0;
+            if ($data->loyaltyPointsAmount > 0) {
+                $discountPerItem = floor($data->loyaltyPointsAmount / $data->products->count());
+            }
 
-            if ($isFree) {
-                $transfer = $user->family->payFree($product);
-            } else {
-                $transfer = $this->payWithLoyaltyPoints(
-                    user: $user,
+            $cashbackAmount = 0;
+            $passes = [];
+
+            /** @var PassPurchaseProductData $item */
+            foreach ($data->products as $item) {
+                /** @var Product $product */
+                $product = $products->get($item->productId);
+
+                /** @var Child $child */
+                $child = $children->get($item->childId);
+
+                $passInfo = $this->getPassProductInfo(
                     product: $product,
-                    date: $activationDate,
-                    loyaltyPointAmount: $loyaltyPointAmount,
-                    meta: $enrichedMeta
+                    child: $child,
+                    date: $item->date,
+                    discount: $discountPerItem,
+                    gift: $data->gift,
+                );
+
+                $cashbackAmount += $passInfo->cashback;
+
+                $cart = $cart->withItem(
+                    product: $product,
+                    pricePerItem: $passInfo->price,
+                );
+
+                $pass = new Pass();
+                $pass->serial = $passInfo->pass_serial;
+                $pass->remaining_time = $passInfo->remaining_time;
+                $pass->is_extendable = $product->is_extendable;
+                $pass->activation_date = $passInfo->activation_date;
+                $pass->expires_at = $passInfo->expires_at;
+                $pass->children()->associate($child);
+                $pass->user()->associate($user);
+
+                $passes[] = $pass;
+                $meta['products'][] = $passInfo->toArray();
+            }
+
+            $cart = $cart->withMeta([
+                ...$meta,
+                'loyalty_points_used' => $data->loyaltyPointsAmount,
+            ]);
+
+            if ($data->loyaltyPointsAmount > 0) {
+                $data->loyaltyPointsAmount = round($discountPerItem * $data->products->count());
+
+                $loyaltyWallet->withdraw(
+                    amount: $data->loyaltyPointsAmount,
+                    meta: [
+                        ...$meta,
+                        'description' => 'Loyalty points redeemed successfully for pass purchase.',
+                        'cart' => $cart->getMeta(),
+                    ],
                 );
             }
 
-            $pass = new Pass();
-            $pass->serial = $passSerial;
-            $pass->remaining_time = round($duration->totalMinutes);
-            $pass->is_extendable = $product->is_extendable;
-            $pass->activation_date = $activationDate ?: today();
-            $pass->expires_at = $expiresAt;
-            $pass->children()->associate($child);
-            $pass->user()->associate($user);
-            $pass->transfer()->associate($transfer);
-            $pass->save();
+            $transfers = $family->payCart($cart);
 
-            if ($transfer->withdraw) {
-                $currentMeta = $transfer->withdraw->meta ?? [];
-                $currentMeta['pass_info']['pass_id'] = $pass->id;
-                $transfer->withdraw->update(['meta' => $currentMeta]);
+            if ($cashbackAmount > 0) {
+                $loyaltyWallet->deposit(
+                    amount: $cashbackAmount,
+                    meta: [
+                        'name' => 'Cashback for pass purchase',
+                        'transfer_ids' => array_keys($transfers),
+                        'cart' => $cart->getMeta(),
+                    ],
+                );
             }
 
-            if ($transfer->deposit) {
-                $currentMeta = $transfer->deposit->meta ?? [];
-                $currentMeta['pass_info']['pass_id'] = $pass->id;
-                $transfer->deposit->update(['meta' => $currentMeta]);
+            $idx = 0;
+            foreach ($transfers as $transfer) {
+                $pass = $passes[$idx];
+                $pass->transfer()->associate($transfer);
+                $pass->save();
+                $idx += 1;
+                Log::info(json_encode($pass));
             }
 
-            Log::info(json_encode($pass));
-
-            return $pass;
+            return $passes;
         });
     }
+
+    /**
+     * @param Enumerable $ids
+     * @return Enumerable<int, Product>
+     * @throws Throwable
+     */
+    public function getAvailableProductsByIds(Enumerable $ids): Enumerable
+    {
+        $products = Product::available()
+            ->whereIn(
+                column: 'id',
+                values: $ids,
+            )
+            ->get()
+            ->keyBy('id');
+
+        foreach ($products as $product) {
+            throw_unless($product, new HttpException(404, 'Product not found'));
+            throw_unless($product->is_available, new ProductNotAvailableException($product));
+        }
+
+        return $products;
+    }
+
+    public function getFamilyChildrenByIds(User $user, Enumerable $ids): Enumerable
+    {
+        $user->loadMissing('family');
+
+        $children = Child::query()
+            ->with('family')
+            ->whereIn(
+                column: 'id',
+                values: $ids,
+            )
+            ->get()
+            ->keyBy('id');
+
+        foreach ($children as $child) {
+            throw_unless($child, new HttpException(404, 'Children not found'));
+            throw_unless(
+                $child->family->is($user->family),
+                new ChildrenFamilyNotAssociatedException(
+                    child: $child,
+                    currentFamily: $user->family,
+                )
+            );
+        }
+
+        return $children;
+    }
+
+    public function getPassProductInfo(
+        Product  $product,
+        Child    $child,
+        DateTime $date = null,
+        int      $discount = 0,
+        bool     $gift = false,
+    ): PassInfoData
+    {
+        $duration = CarbonInterval::minutes($product->duration_time);
+        $date = ($date ? CarbonImmutable::instance($date) : CarbonImmutable::now())->startOfDay();
+        $expiresAt = $date->clone()->endOfDay();
+
+        if ($duration->totalSeconds > CarbonInterval::day()->totalSeconds) {
+            $expiresAt = $expiresAt->addYear();
+        }
+
+        $price = $product->getFinalPrice($date);
+        if ($discount > 0) {
+            $price = max(0, $price - $discount);
+        }
+
+        $cashback = 0;
+        if ($cashback > 0 && $product->cashback_percent > 0) {
+            $cashback = round($price * $product->cashback_percent / 100);
+        }
+
+        if ($gift) {
+            $price = 0;
+            $cashback = 0;
+        }
+
+        return PassInfoData::from([
+            'product_id' => $product->id,
+            'price' => $price,
+            'discount' => $discount,
+            'cashback' => $cashback,
+            'pass_serial' => static::generateSerial(),
+            'child_id' => $child->id,
+            'child_name' => $child->first_name . ' ' . $child->last_name,
+            'activation_date' => $date,
+            'expires_at' => $expiresAt,
+            'remaining_time' => round($duration->totalMinutes),
+            'is_extendable' => $product->is_extendable,
+            'discount_price_weekday' => $product->discount_price_weekday,
+            'discount_price_weekend' => $product->discount_price_weekend,
+            'discount_percent' => $product->discount_percent,
+            'cashback_percent' => $product->cashback_percent,
+            'fee_percent' => $product->fee_percent,
+            'gift' => $gift,
+        ]);
+    }
+
 
     public static function generateSerial(): string
     {
         return Str::upper('SN-' . Str::orderedUuid());
-    }
-
-    /**
-     * @throws ExceptionInterface
-     * @throws Throwable
-     */
-    protected function payWithLoyaltyPoints(
-        User    $user,
-        Product $product,
-        Carbon  $date = null,
-        int     $loyaltyPointAmount = 0,
-        array   $meta = []
-    ): Transfer
-    {
-        $family = $user->loadMissing('family')->family;
-        $productPrice = $product->getFinalPrice($date);
-        $loyaltyWallet = $family->loyalty_wallet;
-
-
-        if ($loyaltyPointAmount > 0) {
-            if ($loyaltyPointAmount > $productPrice) {
-                $loyaltyPointAmount = $productPrice;
-            }
-
-            throw_if($loyaltyWallet->balance < $loyaltyPointAmount, new InsufficientCashbackBalanceException(
-                amount: $loyaltyPointAmount,
-                balance: $loyaltyWallet->balance,
-            ));
-
-            $loyaltyWallet->withdraw(
-                amount: $loyaltyPointAmount,
-                meta: [
-                    ...$meta,
-                    'description'   => 'Loyalty points redeemed successfully for product discount.',
-                    'product_id'    => $product->id,
-                    'product_name'  => $product->name,
-                    'product_price' => $productPrice,
-                ],
-            );
-
-            $productPrice = max(0, $productPrice - $loyaltyPointAmount);
-        }
-
-        $cashbackAmount = 0;
-
-        if ($productPrice > 0 && $product->cashback_percent > 0) {
-            $cashbackAmount = round($productPrice * $product->cashback_percent / 100);
-        }
-
-        $cart = app(Cart::class)
-            ->withItem($product, pricePerItem: $productPrice)
-            ->withMeta([
-                ...$meta,
-                'loyalty_points_used'    => $loyaltyPointAmount,
-                'discount_price_weekday' => $product->discount_price_weekday,
-                'discount_price_weekend' => $product->discount_price_weekend,
-                'discount_percent'       => $product->discount_percent,
-                'cashback_percent'       => $product->cashback_percent,
-                'cashback_amount'        => $cashbackAmount,
-                'fee_percent'            => $product->fee_percent,
-            ]);
-
-        list($transfer) = array_values($family->payCart($cart));
-
-        if ($cashbackAmount > 0) {
-
-            $loyaltyWallet->deposit(
-                $cashbackAmount,
-                [
-                    'name'        => 'Cashback for product "' . $product->id . '" purchase ',
-                    'product_id'  => $product->id,
-                    'transfer_id' => $transfer->id,
-                ]
-            );
-        }
-
-        return $transfer;
     }
 
     /**
@@ -266,7 +338,7 @@ class PassService
 
         $pass->fill([
             'entered_at' => Carbon::now(),
-            'exited_at'  => null,
+            'exited_at' => null,
         ]);
 
         $pass->save();
@@ -299,7 +371,7 @@ class PassService
             ]);
         } else {
             $pass->fill([
-                'exited_at'      => $now,
+                'exited_at' => $now,
                 'remaining_time' => $pass->remaining_time - $timeLapsed,
             ]);
 
@@ -399,9 +471,9 @@ class PassService
             ->toDataUri();
 
         $pdf = Pdf::loadView('pdf.pass-bracelet', [
-            'qr'       => $qr,
+            'qr' => $qr,
             'logoLong' => $logoLong,
-            'logo'     => $logo,
+            'logo' => $logo,
         ])->setPaper([0, 0, $this->mm2pt(25.4), $this->mm2pt(254)], 'portrait');
 
         $disk->put($qrImagePath, $imageContent);
@@ -442,27 +514,40 @@ class PassService
         $family = $pass->user->family;
         $deposit = $pass->transfer->deposit;
 
-        return DB::transaction(function () use ($confirmed, $deposit, $family, $pass, $refundComment) {
+        $passMeta = rescue(function () use ($pass, $deposit) {
+            if (array_key_exists('products', $deposit->meta)) {
+                $productMeta = collect($deposit->meta['products'])->firstWhere('pass_serial', $pass->serial);
+
+                return [
+                    'product' => $productMeta,
+                    'cashback_amount' => $productMeta['cashback'] ?? 0,
+                    'loyalty_points_used' => $productMeta['discount'] ?? 0,
+                ];
+            }
+
+            return [
+                'loyalty_points_used' => $deposit->meta['loyalty_points_used'] ?? 0,
+                'cashback_amount' => $deposit->meta['cashback_amount'] ?? 0,
+            ];
+        });
+
+        return DB::transaction(function () use ($confirmed, $deposit, $family, $pass, $refundComment, $passMeta) {
             /** @var Product $product */
             $product = $deposit->payable;
 
             $refundAmount = $deposit->amount;
             $meta = [
-                'product_id'   => $product->id,
+                'product_id' => $product->id,
                 'product_name' => $product->name,
                 'pass_id' => $pass->id,
                 'description' => 'Refund for product "' . $product->name . '"',
                 'transfer_uuid' => $pass->transfer->uuid,
+                'transfer_meta' => $passMeta['product'] ?? $deposit->meta ?? [],
+                'refund_date' => now()->toISOString(),
             ];
 
             if ($refundComment) {
                 $meta['reason'] = $refundComment;
-                $meta['refund_date'] = now()->toISOString();
-
-                $transferMeta = $deposit->meta ?? [];
-                $transferMeta['reason'] = $refundComment;
-                $transferMeta['refund_date'] = now()->toISOString();
-                $deposit->update(['meta' => $transferMeta]);
             }
 
             $family->main_wallet->deposit($refundAmount, $meta, $confirmed);
@@ -470,9 +555,9 @@ class PassService
             $pass->transfer->update(['status' => 'refund']);
 
             app(AtomicServiceInterface::class)
-                ->block($family->loyalty_wallet, function () use ($confirmed, $deposit, $family, $meta) {
-                    $loyaltyPoints = (int)($deposit->meta['loyalty_points_used'] ?? 0);
-                    $cashbackAmount = (int)($deposit->meta['cashback_amount'] ?? 0);
+                ->block($family->loyalty_wallet, function () use ($confirmed, $deposit, $family, $meta, $passMeta) {
+                    $loyaltyPoints = (int)($passMeta['loyalty_points_used'] ?? 0);
+                    $cashbackAmount = (int)($passMeta['cashback_amount'] ?? 0);
 
                     if ($loyaltyPoints > 0) {
                         $family->loyalty_wallet->deposit($loyaltyPoints,
