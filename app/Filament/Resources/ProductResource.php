@@ -260,6 +260,10 @@ class ProductResource extends Resource
                     ->label('Discount')
                     ->fontFamily(FontFamily::Mono)
                     ->prefix('%'),
+                Tables\Columns\IconColumn::make('campaign_active')
+                    ->label('Campaign')
+                    ->boolean()
+                    ->sortable(),
                 Tables\Columns\IconColumn::make('is_available')
                     ->label('Available')
                     ->boolean()
