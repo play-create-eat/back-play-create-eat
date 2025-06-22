@@ -148,7 +148,7 @@ class PassService
             }
 
             $transfers = $family->payCart($cart);
-
+            
             if ($cashbackAmount > 0) {
                 $loyaltyWallet->deposit(
                     amount: $cashbackAmount,
@@ -245,7 +245,7 @@ class PassService
         }
 
         $cashback = 0;
-        if ($cashback > 0 && $product->cashback_percent > 0) {
+        if ($product->cashback_percent > 0) {
             $cashback = round($price * $product->cashback_percent / 100);
         }
 
