@@ -13,6 +13,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Group;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Support\Enums\FontFamily;
@@ -93,6 +94,26 @@ class ProductResource extends Resource
                                     ->relationship(titleAttribute: 'name')
                                     ->columns(2)
                                     ->required(),
+                            ]),
+
+                        Section::make('Campaign')
+                            ->schema([
+                                Toggle::make('campaign_active')
+                                    ->label('Active')
+                                    ->default(false)
+                                    ->reactive(),
+                                DatePicker::make('campaign_start_date')
+                                    ->label('Start Date')
+                                    ->reactive()
+                                    ->disabled(fn (callable $get) => $get('campaign_active') !== true)
+                                    ->required(fn (callable $get) => $get('campaign_active') === true)
+                                    ->minDate(today()),
+                                DatePicker::make('campaign_end_date')
+                                    ->label('End Date')
+                                    ->disabled(fn (callable $get) => $get('campaign_active') !== true)
+                                    ->required(fn (callable $get) => $get('campaign_active') === true)
+                                    ->minDate(fn (callable $get) => $get('campaign_start_date'))
+                                    ->afterOrEqual(fn (callable $get) => $get('campaign_start_date')),
                             ]),
 
                     ])

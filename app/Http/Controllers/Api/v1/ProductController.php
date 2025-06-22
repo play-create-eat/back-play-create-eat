@@ -63,10 +63,15 @@ class ProductController extends Controller
 
         $limit = $filters['limit'] ?? 10;
         $type = $filters['type'] ?? ProductTypeEnum::BASIC;
+        $date = $filters['date'] ?? today();
 
         $products = Product::available()
             ->with(['features'])
             ->where('type', $type)
+            ->where('campaign_active', false)
+            ->orWhere(function ($query) use ($date) {
+                $query->activeCampaign($date);
+            })
             ->when($request->filled('duration'), function ($query) use ($request) {
                 $query->whereIn('duration_time', $request->input('duration'));
             })
