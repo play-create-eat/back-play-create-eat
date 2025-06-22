@@ -36,6 +36,11 @@ class ProductResource extends JsonResource
             'fee_percent'               => (double)$this->fee_percent,
             'is_extendable'             => $this->is_extendable,
             'features'                  => ProductFeatureResource::collection($this->whenLoaded('features')),
+            'campaign'                  => [
+                'active'        => $this->campaign_active,
+                'start_date'    => $this->campaign_start_date,
+                'end_date'      => $this->campaign_end_date,
+            ],
             'type'                      => $this->type,
         ];
     }
