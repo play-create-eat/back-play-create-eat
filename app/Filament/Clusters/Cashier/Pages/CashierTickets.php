@@ -2,6 +2,8 @@
 
 namespace App\Filament\Clusters\Cashier\Pages;
 
+use App\Data\Products\PassPurchaseData;
+use App\Data\Products\PassPurchaseProductData;
 use App\Exceptions\InsufficientBalanceException;
 use App\Filament\Clusters\Cashier;
 use App\Filament\Clusters\Cashier\Concerns\HasGlobalUserSearch;
@@ -25,7 +27,6 @@ use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -82,7 +83,7 @@ class CashierTickets extends Page implements HasForms
     {
         Log::info('Refreshing tickets form', [
             'selectedUserId' => $this->selectedUserId,
-            'hasUser'        => (bool)$this->selectedUser,
+            'hasUser' => (bool)$this->selectedUser,
         ]);
 
         if ($this->selectedUserId) {
@@ -175,9 +176,9 @@ class CashierTickets extends Page implements HasForms
                 ->mapWithKeys(function (Product $product) use ($date) {
                     return [
                         "{$product->id}" => view('filament.clusters.cashier.components.ticket-option', [
-                            'name'     => $product->name,
+                            'name' => $product->name,
                             'features' => $product->features->pluck('name')->toArray(),
-                            'price'    => app(FormatterServiceInterface::class)->floatValue($product->getFinalPrice($date), 2),
+                            'price' => app(FormatterServiceInterface::class)->floatValue($product->getFinalPrice($date), 2),
                         ])->render()
                     ];
                 })
@@ -247,36 +248,26 @@ class CashierTickets extends Page implements HasForms
 
             $cashierUser = Filament::auth()->user();
             $orderId = (string)Str::uuid7(time: now());
-            $orderMeta = [
-                'cashier_order_id' => $orderId,
-                'cashier_user_id'  => $cashierUser->id,
-            ];
-
-            $children = $client->family->children()
-                ->whereIn('id', Arr::pluck($tickets, 'child_id'))
-                ->get()
-                ->keyBy('id');
-
-            $passes = [];
-            $passService = app(PassService::class);
+            $products = [];
 
             foreach ($tickets as $ticket) {
-                $childId = $ticket['child_id'];
-                $child = $children->get($childId);
-
-                if (!$child) {
-                    throw new Exception("Child with ID {$childId} not found");
-                }
-
-                $passes[] = $passService->purchase(
-                    user: $client,
-                    child: $child,
-                    product: $this->products->get($ticket['product_id']),
-                    loyaltyPointAmount: 0,
-                    activationDate: Carbon::parse($ticket['activation_date']),
-                    meta: $orderMeta
-                );
+                $products[] = [
+                    'product_id' => $ticket['product_id'],
+                    'child_id' => $ticket['child_id'],
+                    'date' => $ticket['activation_date'],
+                ];
             }
+
+            $passes = app(PassService::class)->purchaseMultiple(
+                user: $client,
+                data: PassPurchaseData::from([
+                    'products' => PassPurchaseProductData::collect($products),
+                ]),
+                meta: [
+                    'cashier_order_id' => $orderId,
+                    'cashier_user_id' => $cashierUser->id,
+                ],
+            );
 
             DB::commit();
             Cache::put("cashier.order.$orderId", $passes, now()->addDays(2));

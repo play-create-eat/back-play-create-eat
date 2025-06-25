@@ -24,13 +24,13 @@ class ProductPurchaseRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'child_id' => 'required|integer',
-            'product_id' => 'required|integer',
-            'date' => [
+            'loyalty_points_amount' => 'required|integer|min:0',
+            'products.*.product_id' => ['required', 'integer'],
+            'products.*.child_id' => ['required', 'integer'],
+            'products.*.date' => [
                 'required',
                 Rule::date()->afterOrEqual(today()),
             ],
-            'loyalty_points_amount' => 'required|integer|min:0',
         ];
     }
 }

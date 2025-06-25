@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Data\Products\PassPurchaseData;
+use App\Data\Products\PassPurchaseProductData;
 use App\Exceptions\ChildrenFamilyNotAssociatedException;
 use App\Exceptions\InsufficientBalanceException;
 use App\Exceptions\PassAlreadyExistsException;
@@ -71,9 +73,9 @@ class ProductPackageService
      * @throws \Throwable
      */
     public function redeem(
-        PassPackage     $passPackage,
-        DateTime        $activationDate = null,
-        array           $meta = []
+        PassPackage $passPackage,
+        DateTime    $activationDate = null,
+        array       $meta = []
     ): Pass
     {
         throw_unless($passPackage->quantity > 0,
@@ -90,14 +92,21 @@ class ProductPackageService
         $passPackage->loadMissing(['children', 'productPackage.product', 'user']);
 
         return DB::transaction(function () use ($passPackage, $activationDate, $meta) {
-            $pass = app(PassService::class)->purchase(
+            $products = [
+                [
+                    'product_id' => $passPackage->productPackage->product->id,
+                    'child_id' => $passPackage->children->id,
+                    'date' => $activationDate,
+                ],
+            ];
+
+            list($pass) = app(PassService::class)->purchaseMultiple(
                 user: $passPackage->user,
-                child: $passPackage->children,
-                product: $passPackage->productPackage->product,
-                isFree: true,
-                activationDate: $activationDate,
+                data: PassPurchaseData::from([
+                    'gift' => true,
+                    'products' => PassPurchaseProductData::collect($products),
+                ]),
                 meta: [
-                    ...$meta,
                     'pass_package_id' => $passPackage->id,
                     'product_package_id' => $passPackage->productPackage->id,
                     'quantity_balance' => $passPackage->quantity,

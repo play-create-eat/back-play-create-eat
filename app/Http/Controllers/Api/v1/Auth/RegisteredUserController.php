@@ -210,32 +210,34 @@ class RegisteredUserController extends Controller
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $user = User::create([
-            'email'     => $partialRegistration->email,
-            'password'  => $partialRegistration->password,
-            'family_id' => $partialRegistration->family_id,
-        ]);
+        $user = User::where('email', $partialRegistration->email)->first();
 
-        $user->profile()->create([
-            'first_name'   => $partialRegistration->first_name,
-            'last_name'    => $partialRegistration->last_name,
-            'phone_number' => $partialRegistration->phone_number,
-            'id_type'      => $partialRegistration->id_type,
-            'id_number'    => $partialRegistration->id_number,
-        ]);
+        if (!$user) {
+            $user = User::updateOrCreate([
+                'email'     => $partialRegistration->email,
+                'password'  => $partialRegistration->password,
+                'family_id' => $partialRegistration->family_id,
+            ]);
+
+            $user->profile()->updateOrCreate([
+                'first_name'   => $partialRegistration->first_name,
+                'last_name'    => $partialRegistration->last_name,
+                'phone_number' => $partialRegistration->phone_number,
+                'id_type'      => $partialRegistration->id_type,
+                'id_number'    => $partialRegistration->id_number,
+            ]);
+
+            $user->assignRole('Administrator');
+        }
 
         $partialRegistration->delete();
-
-        $user->assignRole('Administrator');
 
         $token = $user->createToken(substr($request->userAgent(), 0, 255))->plainTextToken;
 
         return response()->json([
             'token' => $token,
             'user'  => new UserResource($user->load(['profile', 'family', 'roles.permissions']))
-        ],
-            Response::HTTP_CREATED
-        );
+        ], Response::HTTP_CREATED);
     }
 
     /**

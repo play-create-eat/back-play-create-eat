@@ -6,6 +6,7 @@ use App\Enums\IdTypeEnum;
 use App\Http\Controllers\Controller;
 use App\Models\Child;
 use App\Models\PartialRegistration;
+use App\Models\User;
 use App\Services\PandaDocService;
 use Exception;
 use Illuminate\Http\Request;
@@ -176,9 +177,24 @@ class PandaDocController extends Controller
             'document_signed' => true,
         ]);
 
+        $user = User::updateOrCreate([
+            'email'     => $partialRegistration->email,
+            'password'  => $partialRegistration->password,
+            'family_id' => $partialRegistration->family_id,
+        ]);
+
+        $user->profile()->updateOrCreate([
+            'first_name'   => $partialRegistration->first_name,
+            'last_name'    => $partialRegistration->last_name,
+            'phone_number' => $partialRegistration->phone_number,
+            'id_type'      => $partialRegistration->id_type,
+            'id_number'    => $partialRegistration->id_number,
+        ]);
+
+        $user->assignRole('Administrator');
+
         return response()->json([
-            'message'              => 'Webhook received.'
+            'message' => 'Webhook received and user registration completed.',
         ]);
     }
-
 }

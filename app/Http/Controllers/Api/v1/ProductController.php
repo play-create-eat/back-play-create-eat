@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers\Api\v1;
 
+use App\Data\Products\PassPurchaseData;
+use App\Data\Products\PassPurchaseProductData;
 use App\Enums\ProductTypeEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\v1\ProductPurchaseRequest;
 use App\Http\Requests\Api\v1\ProductRefundRequest;
 use App\Http\Resources\Api\v1\FamilyPassResource;
 use App\Http\Resources\Api\v1\ProductResource;
-use App\Models\Child;
 use App\Models\Product;
 use App\Services\PassService;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
@@ -53,20 +53,25 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $filters = $request->validate([
-            'limit'     => ['integer', 'min:1', 'max:50'],
-            'duration'  => ['array', 'min:1', Rule::in(array_keys(config('passes.durations')))],
-            'date'      => ['date', 'after_or_equal:today'],
-            'feature'   => ['array', 'min:1'],
+            'limit' => ['integer', 'min:1', 'max:50'],
+            'duration' => ['array', 'min:1', Rule::in(array_keys(config('passes.durations')))],
+            'date' => ['date', 'after_or_equal:today'],
+            'feature' => ['array', 'min:1'],
             'feature.*' => ['integer'],
-            'type'      => [new Enum(ProductTypeEnum::class)],
+            'type' => [new Enum(ProductTypeEnum::class)],
         ]);
 
         $limit = $filters['limit'] ?? 10;
         $type = $filters['type'] ?? ProductTypeEnum::BASIC;
+        $date = $filters['date'] ?? today();
 
         $products = Product::available()
             ->with(['features'])
             ->where('type', $type)
+            ->where('campaign_active', false)
+            ->orWhere(function ($query) use ($date) {
+                $query->activeCampaign($date);
+            })
             ->when($request->filled('duration'), function ($query) use ($request) {
                 $query->whereIn('duration_time', $request->input('duration'));
             })
@@ -132,19 +137,17 @@ class ProductController extends Controller
     public function purchase(ProductPurchaseRequest $request)
     {
         $user = auth()->guard('sanctum')->user()->load('family');
-        $child = Child::findOrFail($request->input('child_id'));
-        $product = Product::available()->findOrFail($request->input('product_id'));
-        $loyaltyPointAmount = (int)$request->input('loyalty_points_amount');
+        $data = PassPurchaseData::from([
+            'loyaltyPointsAmount' => (int)$request->input('loyalty_points_amount'),
+            'products' => PassPurchaseProductData::collect($request->input('products')),
+        ]);
 
-        $pass = app(PassService::class)->purchase(
+        $passes = app(PassService::class)->purchaseMultiple(
             user: $user,
-            child: $child,
-            product: $product,
-            loyaltyPointAmount: $loyaltyPointAmount,
-            activationDate: Carbon::parse($request->input('date'))
+            data: $data,
         );
 
-        return new FamilyPassResource($pass);
+        return FamilyPassResource::collection($passes);
     }
 
     /**

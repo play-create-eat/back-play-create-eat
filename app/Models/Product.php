@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ProductTypeEnum;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -29,6 +30,9 @@ use Bavix\Wallet\Interfaces\ProductLimitedInterface;
  * @property bool $is_available
  * @property ProductTypeEnum $type
  * @property ?ProductPackage $productPackage
+ * @property bool $campaign_active
+ * @property ?\Carbon\Carbon $campaign_start_date
+ * @property ?\Carbon\Carbon $campaign_end_date
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  * @property ?\Carbon\Carbon $deleted_at
@@ -56,6 +60,9 @@ class Product extends Model implements ProductLimitedInterface
         'is_extendable',
         'is_available',
         'type',
+        'campaign_active',
+        'campaign_start_date',
+        'campaign_end_date',
     ];
 
     public function canBuy(Customer $customer, int $quantity = 1, bool $force = false): bool
@@ -106,7 +113,14 @@ class Product extends Model implements ProductLimitedInterface
         return $query->where('is_available', true);
     }
 
-    public function getFinalPrice(Carbon $date = null): int
+    public function scopeActiveCampaign($query, CarbonInterface|string $date): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where('campaign_active', true)
+            ->whereDate('campaign_start_date', '<=', $date)
+            ->whereDate('campaign_end_date', '>=', $date);
+    }
+
+    public function getFinalPrice(CarbonInterface $date = null): int
     {
 //        $discount = max(0, min($this->discount_percent, 100));
         $fee = max(0, min($this->fee_percent, 100));
@@ -151,6 +165,7 @@ class Product extends Model implements ProductLimitedInterface
             'is_extendable'             => 'boolean',
             'is_available'              => 'boolean',
             'type'                      => ProductTypeEnum::class,
+            'campaign_active'           => 'boolean',
         ];
     }
 }

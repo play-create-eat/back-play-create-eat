@@ -25,7 +25,8 @@ class CelebrationBillController extends Controller
             'theme',
             'cake',
             'menuItems',
-            'modifierOptions'
+            'modifierOptions',
+            'bookings.tables'
         ]);
 
         $pdf = PDF::loadView('pdf.celebration-bill', [
@@ -65,7 +66,8 @@ class CelebrationBillController extends Controller
             'cake',
             'cart.items.menuItem.tags',
             'cart.items.menuItem.type',
-            'cart.items.modifiers.modifierOption'
+            'cart.items.modifiers.modifierOption',
+            'bookings.tables'
         ]);
 
         $pdf = PDF::loadView('pdf.celebration-menu', [

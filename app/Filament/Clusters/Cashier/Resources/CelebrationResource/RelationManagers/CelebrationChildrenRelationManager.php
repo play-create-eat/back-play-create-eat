@@ -2,6 +2,8 @@
 
 namespace App\Filament\Clusters\Cashier\Resources\CelebrationResource\RelationManagers;
 
+use App\Data\Products\PassPurchaseData;
+use App\Data\Products\PassPurchaseProductData;
 use App\Models\Child;
 use App\Models\Product;
 use App\Models\User;
@@ -276,17 +278,25 @@ class CelebrationChildrenRelationManager extends RelationManager
                 return;
             }
 
-            $pass = app(PassService::class)->purchase(
+            $products = [
+                [
+                    'product_id' => $playgroundProduct->id,
+                    'child_id' => $child->id,
+                    'date' => $celebration->celebration_date ?? Carbon::now(),
+                ],
+            ];
+
+            list($pass) = app(PassService::class)->purchaseMultiple(
                 user: $user,
-                child: $child,
-                product: $playgroundProduct,
-                isFree: true,
-                activationDate: $celebration->celebration_date ?? Carbon::now(),
+                data: PassPurchaseData::from([
+                    'gift' => true,
+                    'products' => PassPurchaseProductData::collect($products),
+                ]),
                 meta: [
                     'celebration_id' => $celebration->id,
                     'auto_generated' => true,
-                    'description'    => 'Free ticket for celebration attendance'
-                ]
+                    'description'    => 'Free ticket for celebration attendance',
+                ],
             );
 
             app(PassService::class)->generateQRCode($pass->serial, true);
