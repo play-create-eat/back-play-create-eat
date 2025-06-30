@@ -148,7 +148,7 @@ class PassService
             }
 
             $transfers = $family->payCart($cart);
-            
+
             if ($cashbackAmount > 0) {
                 $loyaltyWallet->deposit(
                     amount: $cashbackAmount,
@@ -266,11 +266,11 @@ class PassService
             'expires_at' => $expiresAt,
             'remaining_time' => round($duration->totalMinutes),
             'is_extendable' => $product->is_extendable,
-            'discount_price_weekday' => $product->discount_price_weekday,
-            'discount_price_weekend' => $product->discount_price_weekend,
-            'discount_percent' => $product->discount_percent,
-            'cashback_percent' => $product->cashback_percent,
-            'fee_percent' => $product->fee_percent,
+            'discount_price_weekday' => $product->discount_price_weekday ?? 0,
+            'discount_price_weekend' => $product->discount_price_weekend ?? 0,
+            'discount_percent' => $product->discount_percent ?? 0,
+            'cashback_percent' => $product->cashback_percent ?? 0,
+            'fee_percent' => $product->fee_percent ?? 0,
             'gift' => $gift,
         ]);
     }

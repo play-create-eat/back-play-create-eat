@@ -86,6 +86,18 @@ class Family extends Model implements Wallet, Customer
         )->distinct();
     }
 
+    public function passPackages(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            PassPackage::class,
+            User::class,
+            'family_id',
+            'user_id',
+            'id',
+            'id',
+        )->distinct();
+    }
+
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
