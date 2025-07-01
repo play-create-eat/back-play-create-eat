@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\v1\NotificationController;
 use App\Http\Controllers\Api\v1\PandaDocController;
 use App\Http\Controllers\Api\v1\PaymentController;
 use App\Http\Controllers\Api\v1\ProductController;
+use App\Http\Controllers\Api\v1\ProductPackageController;
 use App\Http\Controllers\Api\v1\ProfileController;
 use App\Http\Controllers\Api\v1\SurveyController;
 use App\Http\Middleware\CheckAuthenticationOrRegistrationId;
@@ -47,10 +48,16 @@ Route::prefix('v1')->group(function () {
 
         Route::get('user/family-members', [FamilyController::class, 'members']);
         Route::get('user/family-passes', [FamilyController::class, 'passes']);
+        Route::get('user/family-pass-packages', [FamilyController::class, 'passPackages']);
 
         Route::get('product', [ProductController::class, 'index']);
         Route::post('product/purchase', [ProductController::class, 'purchase']);
         Route::post('product/refund', [ProductController::class, 'refund']);
+
+        Route::get('product-package', [ProductPackageController::class, 'index']);
+        Route::post('product-package/purchase', [ProductPackageController::class, 'purchase']);
+        Route::post('product-package/refund', [ProductPackageController::class, 'refund']);
+        Route::post('product-package/redeem', [ProductPackageController::class, 'redeem']);
 
         Route::put('profile', [ProfileController::class, 'update']);
 

@@ -6,6 +6,7 @@ use Bavix\Wallet\Models\Transfer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * @property int $id
@@ -17,9 +18,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  * @property ?\Bavix\Wallet\Models\Transfer $transfer
+ * @property ?\Carbon\Carbon $deleted_at
  */
 class PassPackage extends Model
 {
+    use SoftDeletes;
+
     /**
      * The attributes that are mass assignable.
      *
