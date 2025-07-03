@@ -34,6 +34,8 @@ class DailyActivityResource extends Resource
 
     protected static ?string $navigationGroup = 'Activity Management';
 
+    protected static ?int $navigationSort = 2;
+
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
 
     public static function form(Form $form): Form
@@ -230,5 +232,30 @@ class DailyActivityResource extends Resource
             'create' => Pages\CreateDailyActivity::route('/create'),
             'edit' => Pages\EditDailyActivity::route('/{record}/edit'),
         ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth('admin')->user()->can('viewAny', static::getModel());
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth('admin')->user()->can('create', static::getModel());
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth('admin')->user()->can('update', $record);
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth('admin')->user()->can('delete', $record);
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return auth('admin')->user()->can('deleteAny', static::getModel());
     }
 }
