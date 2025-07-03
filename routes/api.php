@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\v1\ChildController;
+use App\Http\Controllers\Api\v1\DailyActivityController;
 use App\Http\Controllers\Api\v1\FamilyController;
 use App\Http\Controllers\Api\v1\InvitationController;
 use App\Http\Controllers\Api\v1\NewsController;
@@ -85,6 +86,16 @@ Route::prefix('v1')->group(function () {
         ->withoutMiddleware('auth:sanctum');
 
     Route::apiResource('news', NewsController::class)->only(['index', 'show']);
+
+    // Daily Activities routes
+    Route::prefix('daily-activities')->group(function () {
+        Route::get('/', [DailyActivityController::class, 'index']);
+        Route::get('/today', [DailyActivityController::class, 'today']);
+        Route::get('/week', [DailyActivityController::class, 'week']);
+        Route::get('/categories', [DailyActivityController::class, 'categories']);
+        Route::get('/locations', [DailyActivityController::class, 'locations']);
+        Route::get('/{dailyActivity}', [DailyActivityController::class, 'show']);
+    });
 
     require __DIR__ . '/auth.php';
     require __DIR__ . '/stripe.php';
