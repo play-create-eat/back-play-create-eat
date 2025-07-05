@@ -6,6 +6,7 @@ use App\Data\Products\PassPurchaseData;
 use App\Data\Products\PassPurchaseProductData;
 use App\Exceptions\ChildrenFamilyNotAssociatedException;
 use App\Exceptions\InsufficientBalanceException;
+use App\Exceptions\InsufficientCashbackBalanceException;
 use App\Exceptions\PassAlreadyExistsException;
 use App\Exceptions\ProductPackageNotAvailableException;
 use App\Models\Child;
@@ -29,6 +30,7 @@ class ProductPackageService
         User           $user,
         Child          $child,
         ProductPackage $productPackage,
+        int            $loyaltyPointsAmount = 0,
         bool           $isFree = false,
         array          $meta = []
     ): PassPackage
@@ -46,14 +48,15 @@ class ProductPackageService
             )
         );
 
-        return DB::transaction(function () use ($user, $child, $productPackage, $isFree, $meta) {
+        return DB::transaction(function () use ($user, $child, $productPackage, $isFree, $meta, $loyaltyPointsAmount) {
             if ($isFree) {
                 $transfer = $user->family->payFree($productPackage);
             } else {
                 $transfer = $this->payWithLoyaltyPoints(
                     user: $user,
                     productPackage: $productPackage,
-                    meta: $meta
+                    loyaltyPointsAmount: $loyaltyPointsAmount,
+                    meta: $meta,
                 );
             }
 
@@ -138,20 +141,49 @@ class ProductPackageService
     protected function payWithLoyaltyPoints(
         User           $user,
         ProductPackage $productPackage,
+        int            $loyaltyPointsAmount = 0,
         array          $meta = []
     ): Transfer
     {
         $family = $user->loadMissing('family')->family;
-        $productPrice = $productPackage->getFinalPrice();
         $loyaltyWallet = $family->loyalty_wallet;
+
+        $productPrice = $productPackage->getFinalPrice();
+        $discountAmount = max(0, $loyaltyPointsAmount);
+
+        if ($discountAmount > 0) {
+            throw_if($loyaltyWallet->balance < $discountAmount, new InsufficientCashbackBalanceException(
+                amount: $discountAmount,
+                balance: $loyaltyWallet->balance,
+            ));
+
+            $productPrice = max(0, $productPrice - $discountAmount);
+        }
 
         $cart = app(Cart::class)
             ->withItem($productPackage, pricePerItem: $productPrice)
-            ->withMeta($meta);
+            ->withMeta([
+                ...$meta,
+                'discount' => $discountAmount,
+                'price_base' => $productPackage->getFinalPrice(),
+                'price_final' => $productPrice,
+            ]);
 
         list($transfer) = array_values($family->payCart($cart));
 
+        if ($discountAmount) {
+            $loyaltyWallet->withdraw(
+                amount: $discountAmount,
+                meta: [
+                    ...$meta,
+                    'description' => 'Loyalty points redeemed for pass package purchase.',
+                    'cart' => $cart->getMeta(),
+                ],
+            );
+        }
+
         $cashbackAmount = $productPackage->cashback_amount;
+
         if ($productPrice > 0 && $cashbackAmount > 0) {
             $loyaltyWallet->deposit(
                 $cashbackAmount,

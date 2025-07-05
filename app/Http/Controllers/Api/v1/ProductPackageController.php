@@ -58,6 +58,7 @@ class ProductPackageController extends Controller
             user: $user,
             child: $child,
             productPackage: $productPackage,
+            loyaltyPointsAmount: $loyaltyPointsAmount,
         );
 
         $passPackage->loadMissing(['productPackage.product.features']);
