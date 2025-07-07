@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\v1\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\v1\UserResource;
+use App\Models\Profile;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -66,16 +67,41 @@ class AuthenticatedSessionController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'phone_number' => ['required', 'exists:profiles,phone_number'],
-            'password'     => ['required'],
+            'phone_number' => ['required', 'string'],
+            'password'     => ['required', 'string'],
         ]);
+
+        $profileExists = Profile::where('phone_number', $request->input('phone_number'))->exists();
+
+        if (!$profileExists) {
+            return response()->json([
+                'message' => 'Invalid credentials provided.',
+                'errors' => [
+                    'phone_number' => ['Invalid credentials provided.']
+                ]
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
 
         $user = User::whereHas('profile', function ($query) use ($request) {
             $query->where('phone_number', $request->input('phone_number'));
         })->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json(['message' => 'Invalid credentials provided.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        if (!$user) {
+            return response()->json([
+                'message' => 'Invalid credentials provided.',
+                'errors' => [
+                    'phone_number' => ['Invalid credentials provided.']
+                ]
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        if (!Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'message' => 'Invalid credentials provided.',
+                'errors' => [
+                    'password' => ['Invalid credentials provided.']
+                ]
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $user->tokens()->delete();

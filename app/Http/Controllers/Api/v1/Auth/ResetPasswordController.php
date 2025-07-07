@@ -47,10 +47,18 @@ class ResetPasswordController extends Controller
      */
     public function forgot(ForgotPasswordRequest $request, OtpService $otpService, TwilloService $twilloService)
     {
-
         $user = User::whereHas('profile', function ($query) use ($request) {
             $query->where('phone_number', $request->input('phone_number'));
         })->first();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'Invalid credentials provided.',
+                'errors' => [
+                    'phone_number' => ['Invalid credentials provided.']
+                ]
+            ], 422);
+        }
 
         $otpCode = $otpService->generate($user, TypeEnum::PHONE, PurposeEnum::FORGOT_PASSWORD, $request->input('phone_number'));
 //        if ($request->input('phone_number') === '+37368411195') {
