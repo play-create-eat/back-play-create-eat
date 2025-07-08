@@ -175,11 +175,11 @@
 
 <div class="bill-info">
     <div><strong>Celebration Date:</strong> {{ $dateFormatted }} ({{ $isWeekend ? 'Weekend' : 'Weekday' }})</div>
-    <div><strong>Family:</strong> {{ $celebration->family->name ?? 'N/A' }}</div>
-    <div><strong>Parent phone number:</strong> {{ $celebration->user->profile->phone_number }}</div>
+    <div><strong>Family:</strong> {{ $celebration->family?->name ?? 'N/A' }}</div>
+    <div><strong>Parent phone number:</strong> {{ $celebration->user?->profile?->phone_number }}</div>
     <div><strong>Child:</strong> {{ $celebration->child->full_name ?? 'N/A' }}</div>
-    <div><strong>Package:</strong> {{ $celebration->package->name }}</div>
-    <div><strong>Theme:</strong> {{ $celebration->theme->name ?? 'N/A' }}</div>
+    <div><strong>Package:</strong> {{ $celebration->package?->name }}</div>
+    <div><strong>Theme:</strong> {{ $celebration->theme?->name ?? 'N/A' }}</div>
 </div>
 
 @if($celebration->bookings->count() > 0)
@@ -220,15 +220,15 @@
         <tr>
             <td>{{ $celebration->package->name }}</td>
             <td>{{ $isWeekend ? 'Weekend Rate' : 'Weekday Rate' }}</td>
-            <td class="price-column">{{ number_format(($isWeekend ? $celebration->package->weekend_price : $celebration->package->weekday_price), 2) }}</td>
+            <td class="price-column">{{ number_format(($isWeekend ? $celebration->package?->weekend_price : $celebration->package?->weekday_price), 2) }}</td>
         </tr>
         @if($celebration->cake)
             <tr>
-                <td>{{ $celebration->cake->type }}</td>
+                <td>{{ $celebration->cake?->type }}</td>
                 <td>{{ $celebration->cake_weight ?? '1' }} Kg
-                    (AED {{ number_format($celebration->cake->price_per_kg, 2) }} per Kg)
+                    (AED {{ number_format($celebration->cake?->price_per_kg, 2) }} per Kg)
                 </td>
-                <td class="price-column">{{ number_format(($celebration->cake_weight * $celebration->cake->price_per_kg), 2) }}</td>
+                <td class="price-column">{{ number_format(($celebration->cake_weight * $celebration->cake?->price_per_kg), 2) }}</td>
             </tr>
         @endif
     </table>
@@ -269,12 +269,12 @@
             </tr>
             @foreach($celebration->order->items as $item)
                 <tr>
-                    <td>{{ $item->menuItem->name }}</td>
+                    <td>{{ $item->menuItem?->name }}</td>
                     <td>{{ $item->quantity }}</td>
                     <td>{{ ucfirst($item->audience) }}</td>
                     <td class="price-column">
                         @if($item->audience === 'parents')
-                            {{ number_format($item->menuItem->price * $item->quantity, 2) }}
+                            {{ number_format($item->menuItem?->price * $item->quantity, 2) }}
                         @else
                             Included
                         @endif
@@ -302,7 +302,7 @@
                 <tr class="total-row">
                     <td colspan="3"><strong>Menu Items Total</strong></td>
                     <td class="price-column">
-                        <strong>AED {{ number_format($celebration->order->total_amount / 100, 2) }}</strong>
+                        <strong>AED {{ number_format($celebration->order?->total_amount / 100, 2) }}</strong>
                     </td>
                 </tr>
             @endif
@@ -320,12 +320,12 @@
             </tr>
             @foreach($celebration->cart->items as $item)
                 <tr>
-                    <td>{{ $item->menuItem->name }}</td>
+                    <td>{{ $item->menuItem?->name }}</td>
                     <td>{{ $item->quantity }}</td>
                     <td>{{ ucfirst($item->audience) }}</td>
                     <td class="price-column">
                         @if($item->audience === 'parents')
-                            {{ number_format($item->menuItem->price * $item->quantity, 2) }}
+                            {{ number_format($item->menuItem?->price * $item->quantity, 2) }}
                         @else
                             Included
                         @endif
@@ -371,11 +371,11 @@
         <tr>
             <td>Package Price Per Child</td>
             <td class="price-column">
-                AED {{ number_format(($isWeekend ? $celebration->package->weekend_price : $celebration->package->weekday_price), 2) }}</td>
+                AED {{ number_format(($isWeekend ? $celebration->package?->weekend_price : $celebration->package?->weekday_price), 2) }}</td>
         </tr>
         <tr>
             <td>Minimum Children Required</td>
-            <td class="price-column">{{ $celebration->package->min_children }}</td>
+            <td class="price-column">{{ $celebration->package?->min_children }}</td>
         </tr>
         <tr>
             <td>Actual Children Attending</td>
