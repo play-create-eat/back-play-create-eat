@@ -257,6 +257,26 @@ return [
         [
             'name' => 'view-product-packages',
             'guard_name' => 'admin',
+        ],
+        [
+            'name' => 'view-daily-activities',
+            'guard_name' => 'admin',
+        ],
+        [
+            'name' => 'create-daily-activities',
+            'guard_name' => 'admin',
+        ],
+        [
+            'name' => 'edit-daily-activities',
+            'guard_name' => 'admin',
+        ],
+        [
+            'name' => 'delete-daily-activities',
+            'guard_name' => 'admin',
+        ],
+        [
+            'name' => 'manage-daily-activities',
+            'guard_name' => 'admin',
         ]
     ],
 
@@ -319,6 +339,7 @@ return [
                 'delete-user',
                 'view-wallet-transactions',
                 'cancel-wallet-transactions',
+                'manage-daily-activities',
             ],
         ],
         [
@@ -332,6 +353,7 @@ return [
                 'view-families',
                 'view-products',
                 'view-product-types',
+                'manage-daily-activities',
             ],
         ],
         [

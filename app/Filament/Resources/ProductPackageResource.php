@@ -8,9 +8,11 @@ use App\Filament\Resources\ProductPackageResource\RelationManagers;
 use App\Models\ProductPackage;
 use Bavix\Wallet\Services\FormatterServiceInterface;
 use Filament\Forms;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Support\Enums\FontFamily;
@@ -64,6 +66,28 @@ class ProductPackageResource extends Resource
                                     ->default(1),
                                 Forms\Components\Toggle::make('is_available')
                                     ->default(true),
+                                Forms\Components\Toggle::make('is_public')
+                                    ->default(false),
+                            ]),
+
+                        Section::make('Campaign')
+                            ->schema([
+                                Toggle::make('campaign_active')
+                                    ->label('Active')
+                                    ->default(false)
+                                    ->reactive(),
+                                DatePicker::make('campaign_start_date')
+                                    ->label('Start Date')
+                                    ->reactive()
+                                    ->disabled(fn (callable $get) => $get('campaign_active') !== true)
+                                    ->required(fn (callable $get) => $get('campaign_active') === true)
+                                    ->minDate(today()),
+                                DatePicker::make('campaign_end_date')
+                                    ->label('End Date')
+                                    ->disabled(fn (callable $get) => $get('campaign_active') !== true)
+                                    ->required(fn (callable $get) => $get('campaign_active') === true)
+                                    ->minDate(fn (callable $get) => $get('campaign_start_date'))
+                                    ->afterOrEqual(fn (callable $get) => $get('campaign_start_date')),
                             ]),
                     ])
                     ->columnSpan(['lg' => 2]),
@@ -136,6 +160,8 @@ class ProductPackageResource extends Resource
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\IconColumn::make('is_available')
+                    ->boolean(),
+                Tables\Columns\IconColumn::make('is_public')
                     ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()

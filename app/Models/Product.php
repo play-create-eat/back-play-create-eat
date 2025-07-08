@@ -166,6 +166,8 @@ class Product extends Model implements ProductLimitedInterface
             'is_available'              => 'boolean',
             'type'                      => ProductTypeEnum::class,
             'campaign_active'           => 'boolean',
+            'campaign_start_date'       => 'date',
+            'campaign_end_date'         => 'date',
         ];
     }
 }
