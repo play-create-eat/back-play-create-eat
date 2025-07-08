@@ -32,25 +32,8 @@ class NewPasswordController extends Controller
             ], 422);
         }
 
-        $otp = OtpCode::where('identifier', $request->input('phone_number'))
-            ->where('code', $request->input('otp'))
-            ->where('purpose', PurposeEnum::FORGOT_PASSWORD)
-            ->where('status', StatusEnum::VERIFIED)
-            ->where('expires_at', '>=', now())
-            ->first();
-
-        if (!$otp) {
-            return response()->json([
-                'message' => 'Invalid or expired OTP code.'
-            ], 422);
-        }
-
         $user->update([
             'password' => Hash::make($request->input('password'))
-        ]);
-
-        $otp->update([
-            'expires_at' => now()
         ]);
 
         return response()->json(['message' => 'Password reset successfully.']);
