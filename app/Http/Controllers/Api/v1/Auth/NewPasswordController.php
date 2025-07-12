@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules\Password;
 
 class NewPasswordController extends Controller
@@ -22,6 +23,8 @@ class NewPasswordController extends Controller
             'otp' => ['required_without:phone_number', 'string'],
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
+
+        Log::info('New password request received', $request->all());
 
         if ($request->filled('phone_number')) {
             $user = User::whereHas('profile', function ($query) use ($request) {
