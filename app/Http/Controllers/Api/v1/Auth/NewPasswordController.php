@@ -10,6 +10,7 @@ use App\Enums\Otps\StatusEnum;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules\Password;
 
 class NewPasswordController extends Controller
@@ -22,19 +23,26 @@ class NewPasswordController extends Controller
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
+        Log::info('New password request received', $request->all());
+
         $user = User::whereHas('profile', function ($query) use ($request) {
             $query->where('phone_number', $request->input('phone_number'));
         })->first();
 
         if (!$user) {
+            Log::info('User not found');
             return response()->json([
                 'message' => 'Invalid credentials provided.'
             ], 422);
         }
 
+        Log::info('User found', ['user' => $user]);
+
         $user->update([
             'password' => Hash::make($request->input('password'))
         ]);
+
+        Log::info('Password updated', ['user' => $user]);
 
         return response()->json(['message' => 'Password reset successfully.']);
     }
