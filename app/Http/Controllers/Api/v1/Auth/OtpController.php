@@ -69,7 +69,6 @@ class OtpController extends Controller
 
         $otp->update([
             'status' => StatusEnum::VERIFIED,
-            'expires_at' => now()
         ]);
 
         return response()->json(['message' => 'Account verified successfully.']);
