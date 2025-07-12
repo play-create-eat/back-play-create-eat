@@ -8,6 +8,7 @@ use App\Models\Profile;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class AuthenticatedSessionController extends Controller
@@ -71,9 +72,14 @@ class AuthenticatedSessionController extends Controller
             'password'     => ['required', 'string'],
         ]);
 
+        Log::info('Login request received', $request->all());
+
         $profileExists = Profile::where('phone_number', $request->input('phone_number'))->exists();
 
+        Log::info('Profile exists', ['profileExists' => $profileExists]);
+
         if (!$profileExists) {
+            Log::info('Profile does not exist');
             return response()->json([
                 'message' => 'Invalid credentials provided.',
                 'errors' => [
@@ -86,7 +92,10 @@ class AuthenticatedSessionController extends Controller
             $query->where('phone_number', $request->input('phone_number'));
         })->first();
 
+        Log::info('User found', ['user' => $user]);
+
         if (!$user) {
+            Log::info('User not found');
             return response()->json([
                 'message' => 'Invalid credentials provided.',
                 'errors' => [
@@ -96,6 +105,7 @@ class AuthenticatedSessionController extends Controller
         }
 
         if (!Hash::check($request->password, $user->password)) {
+            Log::info('Password does not match');
             return response()->json([
                 'message' => 'Invalid credentials provided.',
                 'errors' => [
@@ -104,9 +114,13 @@ class AuthenticatedSessionController extends Controller
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
+        Log::info('Password matches');
+
         $user->tokens()->delete();
 
         $token = $user->createToken($request->userAgent())->plainTextToken;
+
+        Log::info('Token created', ['token' => $token]);
 
         return response()->json([
             'token' => $token,

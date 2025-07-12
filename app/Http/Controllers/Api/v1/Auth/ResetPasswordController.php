@@ -13,6 +13,7 @@ use App\Services\OtpService;
 use App\Services\TwilloService;
 use Exception;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class ResetPasswordController extends Controller
 {
@@ -47,11 +48,13 @@ class ResetPasswordController extends Controller
      */
     public function forgot(ForgotPasswordRequest $request, OtpService $otpService, TwilloService $twilloService)
     {
+        Log::info('Forgot password request received', $request->all());
         $user = User::whereHas('profile', function ($query) use ($request) {
             $query->where('phone_number', $request->input('phone_number'));
         })->first();
 
         if (!$user) {
+            Log::info('User not found');
             return response()->json([
                 'message' => 'Invalid credentials provided.',
                 'errors' => [
@@ -60,10 +63,15 @@ class ResetPasswordController extends Controller
             ], 422);
         }
 
+        Log::info('User found', ['user' => $user]);
+
         $otpCode = $otpService->generate($user, TypeEnum::PHONE, PurposeEnum::FORGOT_PASSWORD, $request->input('phone_number'));
-//        if ($request->input('phone_number') === '+37368411195') {
-            $otpService->send($otpCode);
-//        }
+
+        Log::info('OTP code generated', ['otpCode' => $otpCode]);
+
+        $otpService->send($otpCode);
+
+        Log::info('OTP sent');
 
         return response()->json(['message' => 'OTP send successfully.']);
     }
